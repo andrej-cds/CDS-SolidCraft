@@ -2281,7 +2281,12 @@ impl SolveApp {
         issue_report::CadInput::block(self, ui, report_input);
         sketch_palette::show(self, ui.ctx());
         self.resolve_fit(ui.ctx());
-        params_dialog::show(self, ui.ctx());
+        if tools {
+            // Parameters are open in the tools window; the floating dialog is not used.
+            self.params = None;
+        } else {
+            params_dialog::show(self, ui.ctx());
+        }
         design_properties::show(self, ui.ctx());
         bom_panel::show(self, ui.ctx());
         material_card_review::show(self, ui.ctx());

@@ -240,86 +240,7 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
             false,
             true,
             |ui| {
-                ui_kit::text(ui, crate::i18n::tr("manage.parameters_hint"), ui_kit::Text::Hint("manage"));
-                ui_kit::row(ui, "Filter", |ui| {
-                    let id = ui.make_persistent_id("parameter_filter");
-                    ui_kit::search_field(ui, id, &mut d.filter, "Filter");
-                });
-                ui.horizontal_wrapped(|ui| {
-                    if ui_kit::icon_label_button(ui, "Import…", "import_tray", true, false)
-                        .on_hover_text(crate::i18n::tr_label("CSV or JSON: updates existing parameters, adds new ones"))
-                        .clicked()
-                    {
-                        app.pick_open_command("parameters.import", json!({}), IMPORT_TYPES);
-                    }
-                    for (label, ext) in [("Export CSV…", "csv"), ("Export JSON…", "json")] {
-                        if ui_kit::icon_label_button(ui, label, "export_tray", true, false).clicked() {
-                            app.pick_save_command(&format!("parameters.{ext}"), &[ext], "parameters.export", json!({"format": ext}));
-                        }
-                    }
-                });
-                if let Some(error) = &d.error {
-                    ui_kit::text(ui, error, ui_kit::Text::Error("parameters_error"));
-                }
-                let filter = d.filter.to_ascii_lowercase();
-                let visible: Vec<_> = all
-                    .iter()
-                    .filter(|r| {
-                        filter.is_empty()
-                            || r.name.to_ascii_lowercase().contains(&filter)
-                            || r.comment.to_ascii_lowercase().contains(&filter)
-                            || r.group.to_ascii_lowercase().contains(&filter)
-                    })
-                    .collect();
-                let favorites: Vec<_> = visible.iter().copied().filter(|r| r.favorite).collect();
-                if !favorites.is_empty() {
-                    ui_kit::section_count(ui, "favorites", "Favorites", true, Some(favorites.len()), |ui| table(app, ui, &mut d, &favorites, "fav"));
-                }
-                let users: Vec<_> = visible.iter().copied().filter(|r| r.source == "user").collect();
-                ui_kit::section_count(ui, "users", "User Parameters", true, Some(users.len()), |ui| {
-                    table(app, ui, &mut d, &users, "user");
-                });
-                ui_kit::section(ui, "models", "Model Parameters", true, |ui| {
-                    // Group once, in listing order, rather than scanning every parameter for
-                    // each feature on every frame (#2733).
-                    let mut groups: Vec<(&str, Vec<&Row>)> = Vec::new();
-                    let mut indices = std::collections::HashMap::new();
-                    for r in visible.iter().filter(|r| r.source != "user") {
-                        let index = *indices.entry(r.group.as_str()).or_insert_with(|| {
-                            groups.push((&r.group, Vec::new()));
-                            groups.len() - 1
-                        });
-                        if let Some((_, members)) = groups.get_mut(index) {
-                            members.push(r);
-                        }
-                    }
-                    ui.scope(|ui| {
-                        ui.spacing_mut().indent = crate::theme::Tokens::get().space_14;
-                        ui.indent("model_groups", |ui| {
-                            let layout = GroupLayout {
-                                revision: app.session.revision,
-                                filter: filter.clone(),
-                                width: ui.available_width(),
-                                pixels_per_point: ui.ctx().pixels_per_point(),
-                                style: ui.style().clone(),
-                                font: app.applied_ui_font.clone(),
-                                system_fonts: app.applied_system_fonts,
-                                language: crate::i18n::language(),
-                            };
-                            if d.group_layout.as_ref() != Some(&layout) {
-                                d.group_sizes.clear();
-                                d.group_layout = Some(layout);
-                            }
-                            #[cfg(test)]
-                            {
-                                d.groups_drawn = 0;
-                            }
-                            for (group, members) in groups {
-                                model_group(app, ui, &mut d, group, &members);
-                            }
-                        });
-                    });
-                });
+                body(app, ui, &mut d, &all);
                 ui_kit::ComputeStatus { text: None, busy: false, applying: false }
             },
         );
@@ -338,6 +259,112 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
     if !close {
         app.params = Some(d);
     }
+}
+
+/// Parameters kept open in the tools window (two screens): the same contents as the dialog,
+/// with their own draft state, which stay until the mode is turned off.
+pub(crate) fn docked(app: &mut SolveApp, ui: &mut egui::Ui, slot: &mut Option<ParamsDialog>) {
+    publish(app, ui.ctx());
+    let mut d = slot.take().unwrap_or_else(|| {
+        let mut dialog = ParamsDialog::new();
+        let unit = crate::length_input::unit(&app.session.doc);
+        dialog.new_unit = UNITS.iter().position(|u| *u == unit).unwrap_or(0);
+        dialog
+    });
+    let all = if let Some((_, rows)) = d.listed.as_ref().filter(|(rev, _)| *rev == app.session.revision) {
+        rows.clone()
+    } else {
+        let rows = Arc::new(rows(app));
+        d.listed = Some((app.session.revision, rows.clone()));
+        d.lists += 1;
+        rows
+    };
+    body(app, ui, &mut d, &all);
+    *slot = Some(d);
+}
+
+/// The dialog's contents (also drawn docked in the tools window).
+fn body(app: &mut SolveApp, ui: &mut egui::Ui, d: &mut ParamsDialog, all: &Arc<Vec<Row>>) {
+        ui_kit::text(ui, crate::i18n::tr("manage.parameters_hint"), ui_kit::Text::Hint("manage"));
+        ui_kit::row(ui, "Filter", |ui| {
+            let id = ui.make_persistent_id("parameter_filter");
+            ui_kit::search_field(ui, id, &mut d.filter, "Filter");
+        });
+        ui.horizontal_wrapped(|ui| {
+            if ui_kit::icon_label_button(ui, "Import…", "import_tray", true, false)
+                .on_hover_text(crate::i18n::tr_label("CSV or JSON: updates existing parameters, adds new ones"))
+                .clicked()
+            {
+                app.pick_open_command("parameters.import", json!({}), IMPORT_TYPES);
+            }
+            for (label, ext) in [("Export CSV…", "csv"), ("Export JSON…", "json")] {
+                if ui_kit::icon_label_button(ui, label, "export_tray", true, false).clicked() {
+                    app.pick_save_command(&format!("parameters.{ext}"), &[ext], "parameters.export", json!({"format": ext}));
+                }
+            }
+        });
+        if let Some(error) = &d.error {
+            ui_kit::text(ui, error, ui_kit::Text::Error("parameters_error"));
+        }
+        let filter = d.filter.to_ascii_lowercase();
+        let visible: Vec<_> = all
+            .iter()
+            .filter(|r| {
+                filter.is_empty()
+                    || r.name.to_ascii_lowercase().contains(&filter)
+                    || r.comment.to_ascii_lowercase().contains(&filter)
+                    || r.group.to_ascii_lowercase().contains(&filter)
+            })
+            .collect();
+        let favorites: Vec<_> = visible.iter().copied().filter(|r| r.favorite).collect();
+        if !favorites.is_empty() {
+            ui_kit::section_count(ui, "favorites", "Favorites", true, Some(favorites.len()), |ui| table(app, ui, d, &favorites, "fav"));
+        }
+        let users: Vec<_> = visible.iter().copied().filter(|r| r.source == "user").collect();
+        ui_kit::section_count(ui, "users", "User Parameters", true, Some(users.len()), |ui| {
+            table(app, ui, d, &users, "user");
+        });
+        ui_kit::section(ui, "models", "Model Parameters", true, |ui| {
+            // Group once, in listing order, rather than scanning every parameter for
+            // each feature on every frame (#2733).
+            let mut groups: Vec<(&str, Vec<&Row>)> = Vec::new();
+            let mut indices = std::collections::HashMap::new();
+            for r in visible.iter().filter(|r| r.source != "user") {
+                let index = *indices.entry(r.group.as_str()).or_insert_with(|| {
+                    groups.push((&r.group, Vec::new()));
+                    groups.len() - 1
+                });
+                if let Some((_, members)) = groups.get_mut(index) {
+                    members.push(r);
+                }
+            }
+            ui.scope(|ui| {
+                ui.spacing_mut().indent = crate::theme::Tokens::get().space_14;
+                ui.indent("model_groups", |ui| {
+                    let layout = GroupLayout {
+                        revision: app.session.revision,
+                        filter: filter.clone(),
+                        width: ui.available_width(),
+                        pixels_per_point: ui.ctx().pixels_per_point(),
+                        style: ui.style().clone(),
+                        font: app.applied_ui_font.clone(),
+                        system_fonts: app.applied_system_fonts,
+                        language: crate::i18n::language(),
+                    };
+                    if d.group_layout.as_ref() != Some(&layout) {
+                        d.group_sizes.clear();
+                        d.group_layout = Some(layout);
+                    }
+                    #[cfg(test)]
+                    {
+                        d.groups_drawn = 0;
+                    }
+                    for (group, members) in groups {
+                        model_group(app, ui, d, group, &members);
+                    }
+                });
+            });
+        });
 }
 
 fn model_group(app: &mut SolveApp, ui: &mut egui::Ui, d: &mut ParamsDialog, group: &str, rows: &[&Row]) {

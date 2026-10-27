@@ -22,6 +22,8 @@ pub struct State {
     system_bar: bool,
     /// The window was given its saved place; it is only given it when it opens.
     placed: bool,
+    /// Parameters, kept open in the middle of the window.
+    params: Option<crate::params_dialog::ParamsDialog>,
 }
 
 /// Whether the tools go to a window of their own this frame. Not on the web, where there are no
@@ -93,7 +95,13 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
         }
         let fill = Tokens::get().toolbar;
         let frame = Container::new(ui.ctx(), Surface::Viewport).edge_frame(fill);
-        Container::new(ui.ctx(), Surface::Viewport).central().frame(frame).show(ui, |_| {});
+        Container::new(ui.ctx(), Surface::Viewport).central().frame(frame).show(ui, |ui| {
+            let mut params = app.tools_window.params.take();
+            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                crate::params_dialog::docked(app, ui, &mut params);
+            });
+            app.tools_window.params = params;
+        });
         let ctx = ui.ctx().clone();
         let (outer, inner, close) = ctx.input(|i| (i.viewport().outer_rect, i.viewport().inner_rect, i.viewport().close_requested()));
         if let (Some(o), Some(n)) = (outer, inner) {
