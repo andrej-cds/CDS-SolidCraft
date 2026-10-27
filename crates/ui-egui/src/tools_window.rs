@@ -97,7 +97,11 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
         let frame = Container::new(ui.ctx(), Surface::Viewport).edge_frame(fill);
         Container::new(ui.ctx(), Surface::Viewport).central().frame(frame).show(ui, |ui| {
             let mut params = app.tools_window.params.take();
-            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+            // The Browser hugs its contents over the left of the middle (and History sits below
+            // it): Parameters take what they leave free.
+            let content = crate::shell::workspace_content(app, ui.max_rect());
+            let mut free = ui.new_child(egui::UiBuilder::new().max_rect(content));
+            egui::ScrollArea::vertical().auto_shrink([false, false]).show(&mut free, |ui| {
                 crate::params_dialog::docked(app, ui, &mut params);
             });
             app.tools_window.params = params;
