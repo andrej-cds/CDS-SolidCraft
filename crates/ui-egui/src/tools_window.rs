@@ -79,6 +79,14 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
     let builder = builder(app);
     app.tools_window.placed = true;
     ctx.show_viewport_immediate(egui::ViewportId::from_hash_of("sc_tools_window"), builder, |ui, _class| {
+        // The keys pressed in this window are this window's own input: the main window never
+        // sees them, so Ctrl+Z, Ctrl+S and the other shortcuts are handled here as well.
+        if app.issue_report.draft.is_none() && app.file_picker.is_none() {
+            if !crate::keymap::capturing(app) {
+                crate::expression_complete::begin_frame(ui.ctx());
+            }
+            crate::toolbar::shortcuts(app, ui.ctx());
+        }
         let show_timeline = app.ui.show_timeline && !crate::render_workspace::active(app);
         let left_timeline = show_timeline && app.preferences.timeline_left;
         crate::toolbar::app_bar(app, ui);
