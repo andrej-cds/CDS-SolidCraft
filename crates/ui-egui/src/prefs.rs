@@ -642,6 +642,11 @@ preference_settings! {
     /// While a dialog or a sketch is open, OK and Cancel in the view's top right corner, with the
     /// axis view moved down below them (#6709). Off by default.
     view_confirm_corner: bool = false, PAGE_INTERFACE => check_id("prefs.view_confirm_corner");
+    /// Two screens: the ribbon, History and Browser go to a window of their own and the main
+    /// window keeps only the model and its dialogs. Off by default.
+    tools_window: bool = false, PAGE_INTERFACE => check_id("prefs.tools_window");
+    /// The tools window's place and size (x, y, width, height), kept so it opens on the same screen.
+    tools_window_place: Option<[f32; 4]> = None, PAGE_INTERFACE;
     /// Put the feature history to the left of the browser instead of below the viewport.
     timeline_left: bool = false, PAGE_INTERFACE;
     /// Measured outer width; the contents react to this width without a names mode.

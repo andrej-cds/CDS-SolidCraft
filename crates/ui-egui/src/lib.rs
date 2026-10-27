@@ -273,6 +273,7 @@ pub mod tool_modifiers;
 pub mod toolbar;
 pub mod toolbar_custom;
 pub mod tools;
+pub mod tools_window;
 pub mod ui_kit;
 #[cfg(test)]
 mod ui_kit_guard_tests;
@@ -592,6 +593,8 @@ pub struct SolveApp {
     pub agent: agent_cursor::AgentCursor,
     /// The agent chat panel (docs/design/in-app-agent-chat.md).
     pub agent_chat: agent_chat::AgentChat,
+    /// The ribbon, History and Browser in a window of their own (two screens).
+    pub tools_window: tools_window::State,
     /// Making SolidCraft available to the AI apps installed here ([`ai_connect`]).
     pub ai_connect: ai_connect::State,
     pending_shots: Vec<(u64, Option<String>, std::sync::mpsc::Sender<Value>, f64)>,
@@ -733,6 +736,7 @@ impl SolveApp {
             synthetic_mods: egui::Modifiers::default(),
             control_rx: None,
             agent_chat: Default::default(),
+            tools_window: Default::default(),
             ai_connect: Default::default(),
             control_held: Default::default(),
             control_job: None,
@@ -2110,6 +2114,12 @@ impl SolveApp {
         let _language = crate::i18n::scope(&self.preferences.language);
         let mut report_input = None;
         issue_report::CadInput::block(self, ui, &mut report_input);
+        // Two screens: while the tools have a window of their own, the main window is laid out
+        // docked and keeps the system's title bar; both are put back below (the saved layout and
+        // the custom title bar are the user's, not this frame's).
+        let tools = tools_window::active(self, ui.ctx());
+        let saved = (self.ui.layout, self.custom_titlebar);
+        tools_window::enter(self, ui.ctx(), tools);
         self.cad_ui(ui, &mut report_input);
         drop(report_input);
         // After everything else, on every page (the start page too, which returns early from
@@ -2117,6 +2127,7 @@ impl SolveApp {
         if self.custom_titlebar && !self.native_resize_border {
             titlebar::resize_zones(ui);
         }
+        (self.ui.layout, self.custom_titlebar) = saved;
         if self.file_picker.is_none() {
             issue_report::show(self, ui.ctx());
         }
@@ -2144,7 +2155,8 @@ impl SolveApp {
         self.poll_feature_edit(ui.ctx());
         self.poll_deferred(ui.ctx());
         self.poll_delete_check(ui.ctx());
-        if !self.embedded {
+        let tools = self.tools_window.open;
+        if !self.embedded && !tools {
             toolbar::app_bar(self, ui);
         }
         issue_report::CadInput::block(self, ui, report_input);
@@ -2171,10 +2183,10 @@ impl SolveApp {
             }
         }
         let floating = ui_kit::Container::new(ui.ctx(), ui_kit::Surface::Panel).floating();
-        let show_timeline = self.ui.show_timeline && !render_workspace::active(self);
+        let show_timeline = self.ui.show_timeline && !render_workspace::active(self) && !tools;
         let left_timeline = show_timeline && self.preferences.timeline_left;
         timeline_left::animate_folds(self, ui.ctx());
-        if !floating && !self.embedded {
+        if !floating && !self.embedded && !tools {
             toolbar::toolbar(self, ui);
         }
         theme::TabAccent::publish(self, ui.ctx());
@@ -2185,7 +2197,7 @@ impl SolveApp {
             timeline::timeline(self, ui);
         }
         // Browser hugs its contents in either layout; it never becomes a full-height blank column.
-        if !self.ui.show_browser {
+        if !self.ui.show_browser || tools {
             self.shell.browser = None;
         }
         if floating || left_timeline || !show_timeline {
@@ -2234,8 +2246,11 @@ impl SolveApp {
         if render_workspace::active(self) {
             render_workspace::panel(self, ui);
         }
-        if self.ui.show_browser {
+        if self.ui.show_browser && !tools {
             browser::browser(self, ui);
+        }
+        if tools {
+            tools_window::show(self, ui.ctx());
         }
         if floating {
             agent_chat::show(self, ui);
