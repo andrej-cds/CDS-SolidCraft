@@ -1,7 +1,0 @@
-{
-  "en": {
-    "prefs.tools_window": "Tools in a separate window (two screens)",
-    "prefs.tools_window_note": "The ribbon, History and Browser move to a window of their own that you can drag to another screen. The main window keeps only the model and its dialogs.",
-    "ui.tools_window": "Tools"
-  }
-}
