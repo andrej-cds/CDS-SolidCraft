@@ -81,26 +81,6 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
     ctx.show_viewport_immediate(egui::ViewportId::from_hash_of("sc_tools_window"), builder, |ui, _class| {
         // The keys pressed in this window are this window's own input: the main window never
         // sees them, so Ctrl+Z, Ctrl+S and the other shortcuts are handled here as well.
-        // TEMPORARY diagnosis: why does Ctrl+Z do nothing here?
-        {
-            let ctx = ui.ctx();
-            let z = ctx.input(|i| i.events.iter().any(|e| matches!(e, egui::Event::Key { key: egui::Key::Z, pressed: true, .. })));
-            let any = ctx.input(|i| i.events.len());
-            if z || any > 0 && ctx.input(|i| i.modifiers.command) {
-                eprintln!(
-                    "[tools] events={any} z={z} command={} focused={:?} text_edit={} wants_kb={} popup={} file_load_busy={} file_picker={} report_draft={} shown={}",
-                    ctx.input(|i| i.modifiers.command),
-                    ctx.memory(|m| m.focused()),
-                    ctx.text_edit_focused(),
-                    ctx.egui_wants_keyboard_input(),
-                    egui::Popup::is_any_open(ctx),
-                    app.file_load.busy(),
-                    app.file_picker.is_some(),
-                    app.issue_report.draft.is_some(),
-                    crate::toolbar::design_shown(app),
-                );
-            }
-        }
         // A button or a History step that was clicked keeps egui's keyboard focus, and the
         // shortcuts stay quiet while any widget has it: only a text box needs the keys.
         let ctx = ui.ctx().clone();
