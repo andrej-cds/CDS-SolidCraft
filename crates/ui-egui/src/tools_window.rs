@@ -81,6 +81,14 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
     ctx.show_viewport_immediate(egui::ViewportId::from_hash_of("sc_tools_window"), builder, |ui, _class| {
         // The keys pressed in this window are this window's own input: the main window never
         // sees them, so Ctrl+Z, Ctrl+S and the other shortcuts are handled here as well.
+        // A button or a History step that was clicked keeps egui's keyboard focus, and the
+        // shortcuts stay quiet while any widget has it: only a text box needs the keys.
+        let ctx = ui.ctx().clone();
+        if let Some(id) = ctx.memory(|m| m.focused())
+            && !ctx.text_edit_focused()
+        {
+            ctx.memory_mut(|m| m.surrender_focus(id));
+        }
         if app.issue_report.draft.is_none() && app.file_picker.is_none() {
             if !crate::keymap::capturing(app) {
                 crate::expression_complete::begin_frame(ui.ctx());
