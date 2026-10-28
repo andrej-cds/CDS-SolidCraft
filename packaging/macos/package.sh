@@ -26,7 +26,7 @@ set -euo pipefail
 # shellcheck source=../env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
 # The same reverse-DNS id as the Linux APP_ID.
-MACOS_BUNDLE_ID=ai.storyteller.solidcraft
+MACOS_BUNDLE_ID=io.tangencylabs.solidcraft
 
 # sign_code <path> [identifier] [entitlements]: Developer ID with the hardened runtime and a secure
 # timestamp, or the ad-hoc signature (Apple silicon refuses unsigned code) without an identity.
@@ -171,7 +171,7 @@ printf 'APPL????' >"$APP/Contents/PkgInfo"
 # Signature over the whole bundle. Nested code is signed first: the bundle signature refuses an
 # unsigned helper in Contents/MacOS. The entitlements go on the bundle (they apply to the main
 # executable): the 3D mouse driver is loaded by the app, not by the CLI.
-sign_code "$APP/Contents/MacOS/solidcraft-cli" "$MACOS_BUNDLE_ID-cli"
+sign_code "$APP/Contents/MacOS/solidcraft-cli" "$MACOS_BUNDLE_ID.cli"
 sign_code "$APP" "" "$SCRIPT_DIR/entitlements.plist"
 codesign --verify --strict --deep --verbose=2 "$APP"
 if [ -n "$SIGN_IDENTITY" ]; then
@@ -216,9 +216,11 @@ test -s "$MNT/.DS_Store" && test -s "$MNT/.VolumeIcon.icns"
 test -s "$MNT/.background.tiff"
 plutil -lint "$MNT/SolidCraft.app/Contents/Info.plist"
 # Check the names Finder/LaunchServices actually use, and the bundle identity.
-for key in CFBundleName CFBundleDisplayName CFBundleExecutable CFBundleIconFile CFBundleIconName; do
+for key in CFBundleName CFBundleExecutable CFBundleIconFile CFBundleIconName; do
   test "$(/usr/libexec/PlistBuddy -c "Print :$key" "$MNT/SolidCraft.app/Contents/Info.plist")" = SolidCraft
 done
+# CDS fork: the name people see is "SolidCraft by CDS"; the bundle and file names stay SolidCraft.
+test "$(/usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$MNT/SolidCraft.app/Contents/Info.plist")" = "SolidCraft by CDS"
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$MNT/SolidCraft.app/Contents/Info.plist")" = "$MACOS_BUNDLE_ID"
 test -s "$MNT/SolidCraft.app/Contents/Resources/SolidCraft.icns"
 cmp "$ROOT/assets/icons/app/macos/exports/icon.icns" "$MNT/SolidCraft.app/Contents/Resources/SolidCraft.icns"
@@ -256,10 +258,10 @@ echo "==> building $CLI_ZIP"
 CLI_DIR="$WORK/solidcraft-cli-$VERSION-macos-$ARCH"
 mkdir -p "$CLI_DIR"
 cp "$WORK/bin/solidcraft-cli" "$CLI_DIR/"
-sign_code "$CLI_DIR/solidcraft-cli" "$MACOS_BUNDLE_ID-cli"
+sign_code "$CLI_DIR/solidcraft-cli" "$MACOS_BUNDLE_ID.cli"
 # Compatibility shim (docs/compatibility.md): the old CLI name forwards to solidcraft-cli.
 cp "$WORK/bin/solvecraft-cli" "$CLI_DIR/"
-sign_code "$CLI_DIR/solvecraft-cli" "$MACOS_BUNDLE_ID-cli-alias"
+sign_code "$CLI_DIR/solvecraft-cli" "$MACOS_BUNDLE_ID.cli-alias"
 copy_docs "$CLI_DIR"
 rm -f "$CLI_ZIP"
 ditto -c -k --keepParent "$CLI_DIR" "$CLI_ZIP"

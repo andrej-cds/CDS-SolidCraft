@@ -98,6 +98,12 @@ pub(crate) fn breadcrumb(p: &egui::Painter, c: egui::Pos2, col: Color32) {
     p.line_segment([pos2(c.x + 1.5, c.y), pos2(c.x - 1.5, c.y + 3.0)], s);
 }
 
+/// The SolidCraft mark in the CDS gold (lightest, middle and darkest face tones).
+pub(crate) fn brand_mark(p: &egui::Painter, c: Pos2) {
+    const GOLD: [Color32; 3] = [Color32::from_rgb(255, 216, 98), Color32::from_rgb(214, 160, 48), Color32::from_rgb(150, 104, 22)];
+    brand_mark_styled(p, c, 20.0, GOLD, true);
+}
+
 /// The same original mark as a single quiet silhouette, without face seams or outlines.
 pub(crate) fn brand_mark_silhouette(p: &egui::Painter, c: Pos2, height: f32, ink: Color32) {
     brand_mark_styled(p, c, height, [ink; 3], false);

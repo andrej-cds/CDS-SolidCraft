@@ -308,7 +308,7 @@ const ELEMENTS: &[Element] = &[
             super::file_view::RecoveryMessage {
                 title: "1 design was recovered",
                 before_filename: " after SolidCraft closed unexpectedly: ",
-                filename: "enclosure-lid.solidcraft",
+                filename: "enclosure-lid.sc",
                 after_filename: ", 2 minutes ago.",
             },
             "Recover",
@@ -326,7 +326,7 @@ const ELEMENTS: &[Element] = &[
                     id,
                     RecentRow {
                         title: "Sample Plate",
-                        path: "Designs/sample-plate.solidcraft",
+                        path: "Designs/sample-plate.sc",
                         when: "Open now",
                         workspace: "Design",
                         thumbnail: None,
@@ -342,7 +342,7 @@ const ELEMENTS: &[Element] = &[
             "gallery:file:recent",
             RecentRow {
                 title: "Sample Plate",
-                path: "Designs/sample-plate.solidcraft",
+                path: "Designs/sample-plate.sc",
                 when: "Open now",
                 workspace: "Design",
                 thumbnail: None,
@@ -555,6 +555,12 @@ const ELEMENTS: &[Element] = &[
     element!("icon_label_button", |ui, _| {
         icon_label_button(ui, "Copy path", "copy", true, false);
     }),
+    element!("compact_icon_label_button", |ui, _| {
+        ui.horizontal(|ui| {
+            compact_icon_label_button(ui, "Paint", "appearance", true);
+            compact_icon_label_button(ui, "Pick Up", "select", true);
+        });
+    }),
     element!("section_count", |ui, _| {
         section_count(ui, "count", "Parameters", false, Some(5), |_| {});
     }),
@@ -716,6 +722,9 @@ const ELEMENTS: &[Element] = &[
     }),
     element!("list_picker", "dialog:list:gallery", Some("dialog:list:gallery"), |ui, _| {
         list_picker(ui, "gallery", "Preset", true);
+    }),
+    element!("choice_chip", "dialog:list:gallery", Some("dialog:list:gallery"), |ui, _| {
+        choice_chip(ui, "gallery", "Shot 1", true);
     }),
     element!("inline_text", "dialog:inline:Active", Some("dialog:inline:Active"), |ui, _| {
         text(ui, "Active", Text::Inline);
@@ -1082,6 +1091,9 @@ const ELEMENTS: &[Element] = &[
     }),
     element!("section", "dialog:section:Advanced", Some("dialog:section:Advanced"), |ui, _| {
         section(ui, "gallery", "Advanced", false, |_| {});
+    }),
+    element!("search_fold", "prefs:search:shortcuts", Some("prefs:search:shortcuts"), |ui, _| {
+        search_fold(ui, "Shortcuts", 3, |_| {});
     }),
     element!("divider", "dialog:divider:gallery", None, |ui, _| {
         divider(ui, "gallery");
@@ -1943,7 +1955,7 @@ fn file_view_application_evidence_in_both_themes_and_widths() {
     std::fs::create_dir_all(&output_dir).unwrap();
     let fixture_dir = std::env::temp_dir().join(format!("solidcraft-file-evidence-{}", std::process::id()));
     std::fs::create_dir_all(&fixture_dir).unwrap();
-    let path = fixture_dir.join("sample-plate.solidcraft");
+    let path = fixture_dir.join("sample-plate.sc");
     let fixture = path.to_string_lossy().to_string();
     let mut sample = crate::test_support::sample_app();
     sample.session.execute("file.save_as", &serde_json::json!({"path":fixture})).unwrap();
@@ -1962,7 +1974,7 @@ fn file_view_application_evidence_in_both_themes_and_widths() {
             app.ui.dark = dark;
             app.recoverable.push(solidcraft_engine::recovery::Entry {
                 id: "public-evidence".into(),
-                path: Some("enclosure-lid.solidcraft".into()),
+                path: Some("enclosure-lid.sc".into()),
                 name: "Enclosure lid".into(),
                 saved_at: web_time::SystemTime::now().duration_since(web_time::UNIX_EPOCH).unwrap().as_secs().saturating_sub(120),
                 features: 14,
