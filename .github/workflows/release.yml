@@ -680,6 +680,12 @@ jobs:
             gh release create "$tag" --draft --title "SolidCraft v$VERSION" \
               --target "$GITHUB_SHA" --notes-file ../notes.md --generate-notes "${pre[@]}" -- *
           fi
+          # CDS fork: publish at once, so nobody has to press Publish by hand.
+          if [ "$PRERELEASE" = true ]; then
+            gh release edit "$tag" --draft=false --prerelease --latest=false
+          else
+            gh release edit "$tag" --draft=false --prerelease=false --latest
+          fi
           {
             echo "Draft **SolidCraft v$VERSION** at \`${GITHUB_SHA::9}\`:"
             echo
