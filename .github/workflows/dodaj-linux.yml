@@ -1,0 +1,50 @@
+# CDS fork: adds the Linux packages of a finished release build to an already published release,
+# without building again. Started by hand (Actions > Add Linux packages > Run workflow).
+name: Add Linux packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Release run whose Linux packages are added"
+        required: true
+      tag:
+        description: "Release tag, for example v0.25.1"
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      RUN_ID: ${{ inputs.run_id }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: Download the Linux packages of that build
+        run: |
+          mkdir linux
+          for a in release-linux-x86_64 release-linux-aarch64 release-flatpak-x86_64 release-flatpak-aarch64 release-snap-x86_64 release-snap-aarch64; do
+            gh run download "$RUN_ID" --name "$a" --dir linux
+          done
+          ls -l linux
+      - name: Version-less copies, checksums, upload
+        working-directory: linux
+        run: |
+          version="${TAG#v}"
+          shopt -s nullglob
+          for f in "solidcraft-$version-"*; do
+            case "$f" in
+              *.AppImage | *.deb | *.rpm | *.flatpak | *.snap)
+                cp -- "$f" "solidcraft-${f#"solidcraft-$version-"}" ;;
+            esac
+          done
+          gh release download "$TAG" --pattern SHA256SUMS.txt --dir ../sums
+          files=()
+          for f in *; do files+=("$f"); done
+          { cat ../sums/SHA256SUMS.txt; sha256sum -- "${files[@]}"; } > SHA256SUMS.txt
+          gh release upload "$TAG" --clobber -- "${files[@]}" SHA256SUMS.txt
