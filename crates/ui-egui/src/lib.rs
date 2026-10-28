@@ -2219,7 +2219,8 @@ impl SolveApp {
         let show_timeline = self.ui.show_timeline && !render_workspace::active(self) && !tools;
         let left_timeline = show_timeline && self.preferences.timeline_left;
         timeline_left::animate_folds(self, ui.ctx());
-        if !floating && !self.embedded && !tools {
+        // Two screens: the ribbon stays in the main window, across its whole width, next to the model.
+        if !floating && !self.embedded {
             toolbar::toolbar(self, ui);
         }
         theme::TabAccent::publish(self, ui.ctx());

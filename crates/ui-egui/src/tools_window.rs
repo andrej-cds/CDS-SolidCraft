@@ -1,6 +1,6 @@
-//! Two screens: the application bar, the ribbon, History and the Browser live in a window of
-//! their own that can be dragged to another screen, while the main window keeps the model, its
-//! dialogs and the feature sheets beside it. Turned on in Preferences › Interface.
+//! Two screens: the application bar, History, the Browser and Parameters live in a window of
+//! their own that can be dragged to another screen, while the main window keeps the ribbon across
+//! its whole width, the model, its dialogs and the feature sheets beside it. Turned on in Preferences › Interface.
 //!
 //! While the window is open the main window is laid out docked and uses the system's title bar
 //! (the application bar, which was the custom title bar, is in the tools window). Both are the
@@ -77,6 +77,8 @@ fn builder(app: &SolveApp) -> egui::ViewportBuilder {
 /// Draws the tools window. Closing it turns the mode off (Preferences turns it on again).
 pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
     let builder = builder(app);
+    // The ribbon's cards were measured in the main window: keep them for its layout and input.
+    let main_cards = std::mem::take(&mut app.shell.cards);
     app.tools_window.placed = true;
     ctx.show_viewport_immediate(egui::ViewportId::from_hash_of("sc_tools_window"), builder, |ui, _class| {
         // The keys pressed in this window are this window's own input: the main window never
@@ -98,7 +100,6 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
         let show_timeline = app.ui.show_timeline && !crate::render_workspace::active(app);
         let left_timeline = show_timeline && app.preferences.timeline_left;
         crate::toolbar::app_bar(app, ui);
-        crate::toolbar::toolbar(app, ui);
         crate::theme::TabAccent::publish(app, ui.ctx());
         if show_timeline && !left_timeline {
             crate::timeline::timeline(app, ui);
@@ -138,6 +139,6 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
     // blocking and layout must not see them.
     app.shell.browser = None;
     app.shell.history = None;
-    app.shell.cards.clear();
     app.shell.panels.clear();
+    app.shell.cards = main_cards;
 }
