@@ -53,6 +53,10 @@ fn header_impl(ui: &mut Ui, icon: &str, title: &str, collapsed: Option<&mut bool
     } else {
         rect.right() - t.space_8
     };
+    // The CDS logo sits at the right end of every window title, before the buttons.
+    let logo = egui::Rect::from_center_size(egui::pos2(right - t.space_8 - 9.0, rect.center().y), vec2(18.0, 18.0));
+    crate::brand::paint_logo(ui, logo);
+    let right = (logo.left() - t.space_4).max(icon_rect.right());
     let left = (icon_rect.right() + t.space_8).min(right);
     let title_rect = egui::Rect::from_min_max(egui::pos2(left, rect.top()), egui::pos2(right.max(left), rect.bottom()));
     paint_text(ui, title_rect, title, crate::fonts::semibold(t.font_heading), t.form_ink, false);

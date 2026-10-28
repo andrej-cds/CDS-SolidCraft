@@ -271,23 +271,6 @@ pub(crate) fn offer_pill(
     Some((rect, response))
 }
 
-/// The CDS brand gold, used for the product name.
-pub const CDS_GOLD: Color32 = Color32::from_rgb(230, 185, 60);
-
-/// The round CDS logo as a texture, created once per egui context.
-fn cds_logo(ctx: &egui::Context) -> egui::TextureId {
-    let id = egui::Id::new("cds_logo_texture");
-    if let Some(h) = ctx.data(|d| d.get_temp::<egui::TextureHandle>(id)) {
-        return h.id();
-    }
-    static RAW: &[u8] = include_bytes!("../../../assets/branding/cds/cds-logo-128.rgba");
-    let image = egui::ColorImage::from_rgba_unmultiplied([128, 128], RAW);
-    let h = ctx.load_texture("cds_logo", image, egui::TextureOptions::LINEAR);
-    let tid = h.id();
-    ctx.data_mut(|d| d.insert_temp(id, h));
-    tid
-}
-
 /// Where the Report a bug text starts, from the button's left edge.
 const REPORT_TEXT_X: f32 = 29.0;
 
@@ -311,9 +294,7 @@ pub fn app_bar(app: &mut SolveApp, ui: &mut egui::Ui) {
         // (viewBox 357 x 412). Same 20 px height and centre as the old block.
         {
             let c = pos2(left + 20.0, r.center().y);
-            let tex = cds_logo(ui.ctx());
-            let side = 24.0;
-            ui.painter().image(tex, Rect::from_center_size(c, vec2(side, side)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+            crate::brand::paint_logo(ui, Rect::from_center_size(c, vec2(24.0, 24.0)));
         }
         let mut name_width = 92.0;
         if !compact_actions {
@@ -322,9 +303,9 @@ pub fn app_bar(app: &mut SolveApp, ui: &mut egui::Ui) {
                 Align2::LEFT_CENTER,
                 "SolidCraft by CDS",
                 crate::fonts::semibold(t.font_heading),
-                CDS_GOLD,
+                crate::brand::CDS_GOLD,
             );
-            name_width = (name_rect.width() + 8.0).max(92.0);
+            name_width = (name_rect.width() + 28.0).max(92.0);
         }
         let mut x = left + if compact_actions { 56.0 } else { 36.0 + name_width };
         let home = Rect::from_center_size(pos2(x - 4.0, r.center().y), vec2(32.0, 32.0));

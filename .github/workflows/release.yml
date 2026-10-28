@@ -25,9 +25,7 @@
 name: Release
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
-      timezone: America/New_York
+  # CDS fork: no nightly pre-releases (they only piled up); releases come from the release branch.
   push:
     branches: [release]
   workflow_dispatch:
@@ -661,6 +659,17 @@ jobs:
             echo "::error::Tag $tag already exists. Choose a new version; never move a release tag."
             exit 1
           fi
+          # CDS fork: the release carries what the Layerling releases carry: the Windows installer
+          # and the Mac disk image (the other platforms are still built, just not attached).
+          for f in *; do
+            case "$f" in
+              SHA256SUMS.txt) ;;
+              *windows-x64*|*macos-universal.dmg) ;;
+              *) rm -f -- "$f" ;;
+            esac
+          done
+          rm -f SHA256SUMS.txt.minisig
+          sha256sum -- $(ls | grep -v '^SHA256SUMS.txt$') > SHA256SUMS.txt
           pre=()
           if [ "$PRERELEASE" = true ]; then pre=(--prerelease); fi
           if draft="$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null)"; then
