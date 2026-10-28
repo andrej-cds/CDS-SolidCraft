@@ -308,13 +308,13 @@ jobs:
     name: macOS build ${{ matrix.arch }}
     needs: version
     if: needs.version.outputs.build == 'true'
-    runs-on: macos-14
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { arch: aarch64, target: aarch64-apple-darwin }
-          - { arch: x86_64, target: x86_64-apple-darwin }
+          - { arch: aarch64, target: aarch64-apple-darwin, runner: macos-15 }
+          - { arch: x86_64, target: x86_64-apple-darwin, runner: macos-14 }
     env:
       SOLIDCRAFT_VERSION: ${{ needs.version.outputs.version }}
       SOLIDCRAFT_BUILD_DATE: ${{ needs.version.outputs.date }}
@@ -569,7 +569,9 @@ jobs:
 
   release:
     name: GitHub Release or dry-run artifacts
-    needs: [version, linux, flatpak, snap, freebsd, macos, windows, web]
+    # CDS fork: the Mac build is not waited for (its runners queue for a long time); the
+    # release-mac job below adds the disk image to the published release when it is ready.
+    needs: [version, linux, flatpak, snap, freebsd, windows, web]
     if: needs.version.outputs.build == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -599,7 +601,7 @@ jobs:
                 cp -- "$f" "solidcraft-${f#"solidcraft-$VERSION-"}" ;;
             esac
           done
-          for f in solidcraft-windows-x64.msi solidcraft-macos-universal.dmg \
+          for f in solidcraft-windows-x64.msi \
             solidcraft-linux-x86_64.AppImage solidcraft-linux-x86_64.deb solidcraft-linux-x86_64.rpm; do
             test -s "$f" || { echo "::error::missing version-less copy $f"; exit 1; }
           done
@@ -737,3 +739,30 @@ jobs:
         with:
           name: release-assets
           path: artifacts/*
+
+  release-mac:
+    name: Add the Mac disk image to the release
+    needs: [version, release, macos]
+    if: always() && needs.version.outputs.build == 'true' && needs.release.result == 'success' && needs.macos.result == 'success' && github.ref == 'refs/heads/release' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-macos
+          path: mac
+      - name: Upload the disk image and add it to the checksums
+        working-directory: mac
+        run: |
+          tag="v$VERSION"
+          cp -- "solidcraft-$VERSION-macos-universal.dmg" solidcraft-macos-universal.dmg
+          gh release download "$tag" --pattern SHA256SUMS.txt --dir .
+          grep -v 'macos-universal.dmg' SHA256SUMS.txt > sums.new || true
+          sha256sum -- "solidcraft-$VERSION-macos-universal.dmg" solidcraft-macos-universal.dmg >> sums.new
+          mv sums.new SHA256SUMS.txt
+          gh release upload "$tag" --clobber -- "solidcraft-$VERSION-macos-universal.dmg" solidcraft-macos-universal.dmg SHA256SUMS.txt
