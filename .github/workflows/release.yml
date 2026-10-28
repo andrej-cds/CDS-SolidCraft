@@ -661,12 +661,12 @@ jobs:
             echo "::error::Tag $tag already exists. Choose a new version; never move a release tag."
             exit 1
           fi
-          # CDS fork: the release carries Windows x64, the Mac disk image and the Linux packages
-          # (the other platforms are still built, just not attached).
+          # CDS fork: the release carries Windows x64, the Mac disk image and three Linux x86_64
+          # packages (the other platforms are still built, just not attached).
           for f in *; do
             case "$f" in
               SHA256SUMS.txt) ;;
-              *windows-x64*|*macos-universal.dmg|*linux-*) ;;
+              *windows-x64*|*macos-universal.dmg|*linux-x86_64.AppImage|*linux-x86_64.deb|*linux-x86_64.rpm) ;;
               *) rm -f -- "$f" ;;
             esac
           done

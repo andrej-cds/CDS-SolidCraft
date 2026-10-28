@@ -28,9 +28,8 @@ jobs:
       - name: Download the Linux packages of that build
         run: |
           mkdir linux
-          for a in release-linux-x86_64 release-linux-aarch64 release-flatpak-x86_64 release-flatpak-aarch64 release-snap-x86_64 release-snap-aarch64; do
-            gh run download "$RUN_ID" --name "$a" --dir linux
-          done
+          gh run download "$RUN_ID" --name release-linux-x86_64 --dir all
+          for ext in AppImage deb rpm; do cp -- all/*-linux-x86_64."$ext" linux/; done
           ls -l linux
       - name: Version-less copies, checksums, upload
         working-directory: linux
@@ -39,7 +38,7 @@ jobs:
           shopt -s nullglob
           for f in "solidcraft-$version-"*; do
             case "$f" in
-              *.AppImage | *.deb | *.rpm | *.flatpak | *.snap)
+              *.AppImage | *.deb | *.rpm)
                 cp -- "$f" "solidcraft-${f#"solidcraft-$version-"}" ;;
             esac
           done
