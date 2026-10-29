@@ -535,6 +535,8 @@ pub struct Updater {
     started: bool,
     /// An automatic check has started since launch (until then one is due at once).
     launch_checked: bool,
+    /// The Update window already opened by itself since launch (`update_popup`): once per start.
+    popup_done: bool,
     /// `SOLIDCRAFT_UPDATE_CHECK=0`: no checks at all.
     off: bool,
     /// When Check now was last pressed (Unix seconds).
@@ -666,6 +668,14 @@ fn poll(app: &mut SolveApp) {
                 app.updater.open = true;
             }
             app.updater.release = Some(release);
+            // The first automatic check after a start opens the window by itself, unless the
+            // user turned that off or skipped or put off this version.
+            if newer && !manual && !app.updater.popup_done && app.preferences.update_popup && offered(app).is_some() {
+                app.updater.open = true;
+            }
+            if !manual {
+                app.updater.popup_done = true;
+            }
         }
         Err(e) => {
             log::info!("update check: {e}");
@@ -956,6 +966,7 @@ pub fn prefs_rows(app: &mut SolveApp, ui: &mut egui::Ui) {
     // Check now would do nothing: the note below says how this copy updates instead.
     if can {
         ui_kit::checkbox(ui, crate::i18n::tr("update.check_automatically"), &mut app.preferences.check_updates);
+        ui_kit::checkbox(ui, crate::i18n::tr("update.popup_at_start"), &mut app.preferences.update_popup);
         ui.horizontal_wrapped(|ui| {
             let busy = app.updater.status == Status::Checking;
             let (status, warning) = match (&app.updater.status, offered_or_newer(app)) {

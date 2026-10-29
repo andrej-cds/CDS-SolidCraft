@@ -365,6 +365,8 @@ fn the_title_bar_offers_the_new_version_and_opens_the_update_window() {
     let mut h = crate::scenario::Harness::new();
     let report = crate::scenario::rect_of("titlebar:report").unwrap();
     assert!(crate::scenario::rect_of("titlebar:update").is_none(), "nothing offered before a check");
+    // The quiet way: the window doesn't open by itself.
+    h.app.preferences.update_popup = false;
     h.app.updater.feed = Some(feed);
     h.frame();
     wait_for_check(&mut h);
@@ -391,6 +393,35 @@ fn the_title_bar_offers_the_new_version_and_opens_the_update_window() {
     h.frames(2);
     assert!(!h.app.updater.open);
     assert!(h.widget(&label).is_none(), "Remind me later hides it");
+}
+
+#[test]
+fn a_start_that_finds_an_update_opens_the_window_once_unless_turned_off() {
+    let dir = scratch();
+    let (feed, _) = next_release_feed(&dir.0);
+    let mut h = crate::scenario::Harness::new();
+    assert!(h.app.preferences.update_popup, "on by default");
+    h.app.updater.feed = Some(feed.clone());
+    h.frame();
+    wait_for_check(&mut h);
+    h.frames(2);
+    assert!(h.app.updater.open, "the first check after a start opens the Update window");
+    // Closed, it stays closed: later automatic checks only keep the pill.
+    h.app.updater.open = false;
+    h.app.preferences.update.next_check = 0.0;
+    h.frame();
+    wait_for_check(&mut h);
+    h.frames(2);
+    assert!(!h.app.updater.open, "only once per start");
+
+    let mut quiet = crate::scenario::Harness::new();
+    quiet.app.preferences.update_popup = false;
+    quiet.app.updater.feed = Some(feed);
+    quiet.frame();
+    wait_for_check(&mut quiet);
+    quiet.frames(2);
+    assert!(!quiet.app.updater.open, "turned off: only the pill in the title bar");
+    assert!(super::offered(&quiet.app).is_some());
 }
 
 #[test]
