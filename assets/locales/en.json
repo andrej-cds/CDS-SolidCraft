@@ -3411,6 +3411,7 @@
   "update.later": "Remind me later",
   "update.no_notes": "This release has no notes.",
   "update.package_hint": "This copy came from a {kind}. Download the new package, then install it with:",
+  "update.popup_at_start": "Show a window when an update is available at start",
   "update.prefs_dev": "This is a development build ({version}): it doesn't check for updates.",
   "update.prefs_flatpak": "Flatpak updates this copy ({version}): run {command} or use your software center. SolidCraft by CDS doesn't check.",
   "update.prefs_label": "Updates",

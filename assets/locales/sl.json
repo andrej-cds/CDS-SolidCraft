@@ -3296,6 +3296,7 @@
   "update.later": "Opomni me pozneje",
   "update.no_notes": "Ta izdaja nima opomb.",
   "update.package_hint": "Ta kopija izvira iz: {kind}. Prenesite nov paket in ga namestite z:",
+  "update.popup_at_start": "Ob zagonu prikaži okno, ko je na voljo posodobitev",
   "update.prefs_dev": "To je razvojna različica ({version}): ne preverja posodobitev.",
   "update.prefs_flatpak": "Ta kopija ({version}) se posodablja prek Flatpaka: zaženite {command} ali uporabite središče za programe. SolidCraft by CDS ne preverja.",
   "update.prefs_label": "Posodobitve",
