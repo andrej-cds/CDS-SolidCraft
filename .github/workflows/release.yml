@@ -671,7 +671,8 @@ jobs:
             esac
           done
           rm -f SHA256SUMS.txt.minisig
-          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%P\0' | sort -z | xargs -0 sha256sum -- > SHA256SUMS.txt
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%P\0' | sort -z | xargs -0 sha256sum -- > "$RUNNER_TEMP/sums.txt"
+          mv "$RUNNER_TEMP/sums.txt" SHA256SUMS.txt
           pre=()
           if [ "$PRERELEASE" = true ]; then pre=(--prerelease); fi
           if draft="$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null)"; then
