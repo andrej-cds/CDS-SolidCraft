@@ -59,9 +59,7 @@ pub fn supershape_solid(m: f64, n1: f64, n2: f64, n3: f64, a: f64, b: f64, size:
             if i != 0 {
                 tris.push([a0, b0, b1]);
             }
-            if i + 1 != LAT {
-                tris.push([a0, b1, a1]);
-            } else if i == 0 {
+            if i + 1 != LAT || i == 0 {
                 tris.push([a0, b1, a1]);
             }
         }
@@ -226,7 +224,7 @@ fn tetra(p: &[Vec3; 4], v: &[f64; 4], out: &mut Vec<[Vec3; 3]>) {
     let centre = |ids: &[usize]| -> Vec3 {
         let mut c = Vec3::ZERO;
         for i in ids {
-            c = c + p[*i];
+            c += p[*i];
         }
         c * (1.0 / ids.len().max(1) as f64)
     };
