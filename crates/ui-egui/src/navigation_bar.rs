@@ -71,6 +71,7 @@ pub(crate) const CATALOGUE: &[Slot] = &[
     slot!("grid", Toggle, "grid", Some("view.grid")),
     slot!("ground_shadow", Toggle, "ground_shadow", Some("view.ground_shadow")),
     slot!("ambient_occlusion", Toggle, "ambient_occlusion", Some("view.ambient_occlusion")),
+    slot!("true_scale", Toggle, "true_scale", None),
     slot!("separator", Separator, "", None),
 ];
 
@@ -114,6 +115,15 @@ pub enum Position {
     Left,
     #[serde(alias = "bottom_right")]
     Right,
+}
+
+/// The edge of the 3D view the bar sits on (#8183): the bottom, or the top, under the ribbon.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Edge {
+    #[default]
+    Bottom,
+    Top,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -166,6 +176,7 @@ pub struct NavigationBar {
     pub slots: Vec<String>,
     pub slot_options: std::collections::BTreeMap<String, SlotOptions>,
     pub position: Position,
+    pub edge: Edge,
     pub size: Size,
     pub labels: Labels,
     pub idle: Idle,
@@ -174,12 +185,13 @@ pub struct NavigationBar {
 impl Default for NavigationBar {
     fn default() -> Self {
         Self {
-            slots: ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display"]
+            slots: ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display", "true_scale"]
                 .into_iter()
                 .map(str::to_owned)
                 .collect(),
             slot_options: Default::default(),
             position: Position::default(),
+            edge: Edge::default(),
             size: Size::default(),
             labels: Labels::default(),
             idle: Idle::default(),
@@ -223,6 +235,9 @@ impl<'de> Deserialize<'de> for NavigationBar {
         if let Some(v) = value.get("position") {
             bar.position = serde_json::from_value(v.clone()).unwrap_or_default();
         }
+        if let Some(v) = value.get("edge") {
+            bar.edge = serde_json::from_value(v.clone()).unwrap_or_default();
+        }
         if let Some(v) = value.get("size") {
             bar.size = serde_json::from_value(v.clone()).unwrap_or_default();
         }
@@ -252,6 +267,7 @@ pub(crate) fn validate(value: &Value) -> Result<(), String> {
                     })
             }),
             "position" => serde_json::from_value::<Position>(value.clone()).is_ok(),
+            "edge" => serde_json::from_value::<Edge>(value.clone()).is_ok(),
             "size" => serde_json::from_value::<Size>(value.clone()).is_ok(),
             "labels" => serde_json::from_value::<Labels>(value.clone()).is_ok(),
             "idle" => serde_json::from_value::<Idle>(value.clone()).is_ok(),

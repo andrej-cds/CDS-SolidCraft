@@ -37,16 +37,16 @@ light = "#6f879c"
 dark  = "#8093a4"
 [roles.active-1]   # changed or result geometry, palest face
 source = "#b9ddf8"
-light = "#b9ddf8"
-dark  = "#4ea1dc"
+light = "#f3e2b4"
+dark  = "#c9a24a"
 [roles.active-2]
 source = "#328bd3"
-light = "#328bd3"
-dark  = "#3287d1"
+light = "#d4a12a"
+dark  = "#c8961f"
 [roles.active-3]   # strongest blue: strokes and accents
 source = "#236ead"
-light = "#236ead"
-dark  = "#2976b8"
+light = "#9a6d0a"
+dark  = "#a87812"
 
 # Simultaneous component colours for inspection icons; existing workspace ramps stay unchanged.
 
@@ -188,7 +188,7 @@ surface = [
 sketch = [
   "arc3", "arc_center", "arc_slot", "arc_slot_center", "arc_tangent",
   "blend", "circle", "circle2", "circle3", "circle_tt",
-  "circle_ttt", "conic", "constrainer", "dimension", "ellipse",
+  "circle_ttt", "conic", "constrainer", "dimension", "ellipse", "equation_curve",
   "extend", "finish", "fit_section", "include",
   "intersect", "intersection_curve", "iso_curve", "line", "line_mid",
   "offset", "offset_two_sides", "offset_symmetric", "point", "polygon", "polygon_circumscribed", "polygon_edge",

@@ -1,0 +1,16 @@
+{
+  "en": {
+    "navbar.true_scale": "1:1 (true size)",
+    "navbar.description.true_scale": "Shows the model at its real size on the screen; click again to go back to the view before.",
+    "ui.screen_width_mm": "Screen width for 1:1",
+    "ui.screen_width_auto": "Automatic",
+    "ui.true_scale_unknown": "The screen's size is not known: set Screen width for 1:1 in Preferences › Navigation."
+  },
+  "sl": {
+    "navbar.true_scale": "1:1 (prava velikost)",
+    "navbar.description.true_scale": "Pokaže model v pravi velikosti na zaslonu; ponoven klik vrne prejšnji pogled.",
+    "ui.screen_width_mm": "Širina zaslona za 1:1",
+    "ui.screen_width_auto": "Samodejno",
+    "ui.true_scale_unknown": "Velikost zaslona ni znana: nastavite Širina zaslona za 1:1 v Nastavitve › Navigacija."
+  }
+}
