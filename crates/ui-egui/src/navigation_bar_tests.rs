@@ -73,7 +73,7 @@ fn catalogue_slot_descriptions_explain_slots_without_settings_jargon() {
 #[test]
 fn default_slots_and_canvas_availability_preserve_navigation() {
     let bar = NavigationBar::default();
-    assert_eq!(bar.slots, ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display"]);
+    assert_eq!(bar.slots, ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display", "true_scale"]);
     let flat = NavCaps { orbit: false, pick: false };
     for caps in [NavCaps::MODEL, NavCaps::RENDER, flat] {
         let shown: Vec<_> = CATALOGUE.iter().filter(|slot| slot.available(caps)).map(|slot| slot.id).collect();

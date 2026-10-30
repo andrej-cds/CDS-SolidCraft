@@ -258,6 +258,11 @@ pub(super) fn interface(app: &mut SolveApp, ui: &mut egui::Ui, t: &Tokens) {
                         let check = setting::status_bar(app, ui).on_hover_text(app.tr("prefs.status_bar_note"));
                         crate::scenario::publish_target("prefs:status_bar", check.rect);
                     });
+                    // Two screens: the tools in a window of their own (the model keeps the main window).
+                    ui_kit::row(ui, "", |ui| {
+                        let check = setting::tools_window(app, ui).on_hover_text(app.tr("prefs.tools_window_note"));
+                        crate::scenario::publish_target("prefs:tools_window", check.rect);
+                    });
                     ui_kit::text(ui, app.tr("prefs.layout_note"), ui_kit::Text::Hint("layout"));
                     ui_kit::text(ui, app.tr("prefs.history_sketches_note"), ui_kit::Text::Hint("history_sketches"));
                     ui_kit::LayoutPreview {

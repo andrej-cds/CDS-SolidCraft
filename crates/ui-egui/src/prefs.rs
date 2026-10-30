@@ -1086,6 +1086,11 @@ preference_settings! {
     /// A thin bar along the window's bottom edge: what is being edited, the open sketch's state
     /// and the design's units (#7243). Off by default.
     status_bar: bool = false, PAGE_INTERFACE => check_id("prefs.status_bar");
+    /// Two screens: the ribbon, History and Browser go to a window of their own and the main
+    /// window keeps only the model and its dialogs. Off by default.
+    tools_window: bool = false, PAGE_INTERFACE => check_id("prefs.tools_window");
+    /// The tools window's place and size (x, y, width, height), kept so it opens on the same screen.
+    tools_window_place: Option<[f32; 4]> = None, PAGE_INTERFACE;
     /// Put the feature history to the left of the browser instead of below the viewport.
     timeline_left: bool = false, PAGE_INTERFACE;
     /// Measured outer width; the contents react to this width without a names mode.
@@ -1160,6 +1165,8 @@ preference_settings! {
     orbit_reverse: bool = false, PAGE_NAVIGATION => check("Reverse trackpad orbit direction", "Shift with two-finger scrolling orbits the other way");
     /// View changes (axis view, Look At, Home) animate; `look_at_speed` scales how fast.
     look_at_anim: bool = true, PAGE_NAVIGATION => check("Animate view changes", "Axis view, Look At, Home and Fit");
+    /// The screen's visible width in millimetres for the 1:1 view (CDS); 0 reads it from the monitor.
+    screen_width_mm: f32 = 0.0, PAGE_NAVIGATION, accept(0.0..=3000.0) => slider("ui.screen_width_mm", 0.0..=1500.0, 1.0, |v| if v <= 0.0 { crate::i18n::tr("ui.screen_width_auto").to_string() } else { format!("{v:.0} mm") }, "prefs:screen_width_mm");
     look_at_speed: f32 = 1.0, PAGE_NAVIGATION, accept(0.25..=4.0) => enabled_slider(look_at_anim, "Animation speed", 0.5..=3.0, 0.25, |v| format!("{v:.2}×"));
     /// Default modelling orientation: `z` (Z up) or `y` (Y up) (#3).
     up_axis: String = "z".into(), PAGE_DESIGN;
@@ -1199,6 +1206,9 @@ preference_settings! {
     color_vision: crate::theme::ColorVision = crate::theme::ColorVision::Off, PAGE_INTERFACE;
     /// Check for updates at start and once a day (docs/updates.md).
     check_updates: bool = true, 0;
+    /// When a start finds a newer release, open the Update window by itself (CDS fork). Off: only
+    /// the quiet button in the application bar shows it.
+    update_popup: bool = true, 0;
     /// When the last update check ran, and the versions skipped or put off (`update::Memo`).
     update: crate::update::Memo = crate::update::Memo::default();
     /// The variant last started in each split tool family (Rectangle, Circle, Arc, Slot, Polygon, Line,
@@ -3386,6 +3396,9 @@ pub fn set(app: &mut SolveApp, p: &serde_json::Value) -> Result<serde_json::Valu
     }
     if !accepted::ui_scale(&new) || !accepted::look_at_speed(&new) {
         return Err("`ui_scale` must be 0.5…2.5 and `look_at_speed` 0.25…4".into());
+    }
+    if !accepted::screen_width_mm(&new) {
+        return Err("`screen_width_mm` must be 0 (automatic) to 3000".into());
     }
     if !accepted::perspective_fov(&new) {
         return Err("`perspective_fov` must be 15°…90° in radians (0.2618…1.5708)".into());

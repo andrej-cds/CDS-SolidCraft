@@ -147,6 +147,7 @@ fn selected(app: &SolveApp, id: &str) -> bool {
         "grid" => app.ui.show_grid,
         "ground_shadow" => app.ui.ground_shadow,
         "ambient_occlusion" => app.preferences.ambient_occlusion,
+        "true_scale" => crate::true_scale::active(),
         _ => false,
     }
 }
@@ -167,6 +168,7 @@ fn activate(app: &mut SolveApp, slot: &Slot) {
     match slot.id {
         "look_at" => crate::viewport::look_at_selection(app),
         "projection" => toggle_projection(app),
+        "true_scale" => crate::true_scale::toggle(app),
         _ => {
             if let Some(command) = slot.command {
                 let params = match slot.kind {
@@ -196,6 +198,12 @@ fn tooltip(app: &SolveApp, response: egui::Response, slot: &Slot, hidden: Option
 }
 
 pub(crate) fn show(app: &mut SolveApp, ui: &mut egui::Ui, rect: Rect) {
+    crate::true_scale::note_screen(ui.ctx());
+    // CDS: a bar saved before the 1:1 button existed gets it once, at the end.
+    const BEFORE_TRUE_SCALE: [&str; 10] = ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display"];
+    if app.preferences.navigation_bar.slots == BEFORE_TRUE_SCALE {
+        app.preferences.navigation_bar.slots.push("true_scale".into());
+    }
     if !app.ui.show_navigation_bar {
         return;
     }

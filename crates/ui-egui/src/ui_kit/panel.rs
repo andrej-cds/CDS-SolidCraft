@@ -89,6 +89,10 @@ fn header_actions(
     } else {
         rect.right() - t.space_8
     };
+    // The gold SolidCraft mark sits at the right end of every window title, before the buttons.
+    let logo = egui::Rect::from_center_size(egui::pos2(right - t.space_8 - 9.0, rect.center().y), vec2(18.0, 18.0));
+    crate::icons::glyphs::brand_mark(ui.painter(), logo.center());
+    let right = (logo.left() - t.space_4).max(icon_rect.right());
     let left = (icon_rect.right() + t.space_8).min(right);
     let title_rect = egui::Rect::from_min_max(egui::pos2(left, rect.top()), egui::pos2(right.max(left), rect.bottom()));
     paint_text(ui, title_rect, title, crate::fonts::semibold(if icon.0.is_empty() { t.font_label } else { t.font_heading }), t.form_ink, false);
