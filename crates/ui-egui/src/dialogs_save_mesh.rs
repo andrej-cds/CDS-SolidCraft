@@ -182,6 +182,23 @@ fn send_to_slicer(app: &mut SolveApp, params: Value) {
     begin_wait(app, params, &result);
 }
 
+/// Quick Send to Slicer (CDS fork): the selected bodies, else every visible one, to the slicer
+/// chosen last, without the dialog.
+pub fn quick_send(app: &mut SolveApp) {
+    let slicer = app.preferences.send_slicer.clone();
+    let picked: Vec<String> = app.session.selection.iter().filter_map(|x| if let solidcraft_engine::Sel::Body { name } = x { Some(name.clone()) } else { None }).collect();
+    let bodies = if picked.is_empty() {
+        app.session.world_state().bodies.iter().map(|b| b.name.clone()).filter(|n| app.session.body_visible(n)).collect()
+    } else {
+        picked
+    };
+    if bodies.is_empty() {
+        app.set_status(crate::i18n::tr("print.nothing_to_send").to_string(), true);
+        return;
+    }
+    send_to_slicer(app, json!({"slicer": slicer, "bodies": bodies}));
+}
+
 /// The command started the slicer on its own (`result.starting`): wait for it in the background.
 fn begin_wait(app: &mut SolveApp, params: Value, result: &Value) {
     let name = result.get("starting").and_then(Value::as_str).unwrap_or_default().to_string();

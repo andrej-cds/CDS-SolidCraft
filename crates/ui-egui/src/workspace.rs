@@ -28,6 +28,10 @@ pub fn word_cased(name: &str) -> String {
 /// A ribbon tab's name as the ribbon shows it, in the current language: "SHEET METAL" reads
 /// "Sheet Metal", or "Blech" in German. A partial catalog may translate only the word-cased name.
 pub fn tab_name(tab: &str) -> String {
+    // "3D" does not survive word casing ("3d Print"): the CDS tab has a name of its own.
+    if tab == "3D PRINT" {
+        return crate::i18n::tr("ui.tab_3d_print").to_string();
+    }
     let cased = word_cased(crate::i18n::tr_label(tab_label(tab)));
     crate::i18n::tr_label(&cased).to_string()
 }
@@ -253,7 +257,7 @@ pub const SECTIONS: &[Section] = &[
         tab: "SKETCH",
         panel: "MODIFY",
         promoted: 3,
-        ids: &["sketch.trim", "sketch.offset", "sketch.fillet", "sketch.transform", "sketch.copy", "sketch.cut", "sketch.paste"],
+        ids: &["sketch.trim", "sketch.offset", "print.offset_sketch", "sketch.fillet", "sketch.transform", "sketch.copy", "sketch.cut", "sketch.paste"],
     },
     Section { tab: "SKETCH", panel: "PATTERN", promoted: 3, ids: &["sketch.mirror", "sketch.pattern.circular", "sketch.pattern.rectangular"] },
     Section {
@@ -306,6 +310,11 @@ pub const SECTIONS: &[Section] = &[
     Section { tab: "SHEET METAL", panel: "RULES", promoted: 1, ids: &["sheet.manage_rules"] },
     Section { tab: "SHEET METAL", panel: "CONFIGURE", promoted: 2, ids: CONFIGURE },
     // A frame starts from a sketch of its lines; its profile sizes are often parameters.
+    // The 3D PRINT tab (CDS fork): generators, print fixes and getting parts to the printer.
+    Section { tab: "3D PRINT", panel: "SKETCH", promoted: 1, ids: &["sketch.create"] },
+    Section { tab: "3D PRINT", panel: "CREATE", promoted: 4, ids: &["print.lego", "print.supershape", "print.airfoil", "print.infill"] },
+    Section { tab: "3D PRINT", panel: "MODIFY", promoted: 3, ids: &["print.vent", "print.dogbone", "print.offset_body", "material.assign"] },
+    Section { tab: "3D PRINT", panel: "OUTPUT", promoted: 3, ids: &["print.send", "print.export", "file.send_to_slicer", "assembly.bom"] },
     Section { tab: "WELDMENTS", panel: "SKETCH", promoted: 1, ids: &["sketch.create"] },
     Section { tab: "WELDMENTS", panel: "CREATE", promoted: 1, ids: &["frame.member"] },
     Section { tab: "WELDMENTS", panel: "CONFIGURE", promoted: 2, ids: CONFIGURE },
@@ -603,7 +612,7 @@ pub struct SpecialtyTab {
 }
 
 pub const SPECIALTY_TABS: &[SpecialtyTab] =
-    &[SpecialtyTab { tab: "SHEET METAL", icon: "sheet" }, SpecialtyTab { tab: "WELDMENTS", icon: "frame_member" }];
+    &[SpecialtyTab { tab: "SHEET METAL", icon: "sheet" }, SpecialtyTab { tab: "WELDMENTS", icon: "frame_member" }, SpecialtyTab { tab: "3D PRINT", icon: "mesh_export" }];
 
 /// A tab's row in the toolbar menu: the icon of the command that leads the tab (Model › Create ›
 /// Extrude, Inspect › Measure, View › Views and so on).
@@ -931,7 +940,7 @@ mod tests {
     fn contextual_tabs_follow_the_active_body_and_allow_other_tabs() {
         let mut h = crate::scenario::Harness::new();
         let mut fresh = TABS.to_vec();
-        fresh.extend(["SHEET METAL", "WELDMENTS"]);
+        fresh.extend(["SHEET METAL", "WELDMENTS", "3D PRINT"]);
         assert_eq!(visible_tabs(&h.app), fresh, "SHEET METAL and WELDMENTS are reachable before any sheet body or member exists");
         h.app.run("sketch.create", json!({"plane":"XY"})).unwrap();
         assert_eq!(h.app.ui.tab, "SKETCH");

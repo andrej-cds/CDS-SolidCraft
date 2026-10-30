@@ -313,7 +313,7 @@ mod tests {
             assert_eq!(*row, json!({"name":name,"density_g_cm3":density}));
             let inspected = s.execute("material.inspect", &json!({"material":name.to_lowercase()})).unwrap();
             assert_eq!(inspected["density_g_cm3"], density);
-            assert!(inspected["physical_card"].is_null());
+            assert_eq!(inspected["physical_card"].is_null(), !name.ends_with("(3D print)"));
             assert_eq!(inspected["user"], false);
         }
         s.execute("material.edit", &json!({"material":"Synthetic","physical_card":card()})).unwrap();
