@@ -611,6 +611,11 @@ Original SolidCraft drawings, Open for owner review; no runtime assignments.
 | assets/locales/pending/render-wear.json | SolidCraft contributors | Original UI labels and translations | MIT OR Apache-2.0 |
 | assets/icons/ui/design/svg/model/equation_curve.svg | SolidCraft contributors | two-tone modelling icon master (64 grid), original SolidCraft artwork | MIT OR Apache-2.0 |
 | assets/locales/pending/sketch-recent-snap.json | SolidCraft contributors | Original preference messages for the recent centre and midpoint snap | MIT OR Apache-2.0 |
+| assets/branding/cds/cds-logo.png | Andrej Češarek (CDS) | CDS company logo, supplied by its owner for this fork | All rights reserved, used with the owner's permission |
+| assets/platforms/windows/banner.bmp | Andrej Češarek (CDS) | Installer banner: the gold SolidCraft mark, drawn for this fork | MIT OR Apache-2.0 |
+| assets/platforms/windows/dialog.bmp | Andrej Češarek (CDS) | Installer side panel with the CDS logo, drawn for this fork | All rights reserved, used with the owner's permission |
+| assets/icons/app/web/apple-touch-icon.png | Andrej Češarek (CDS) | The gold SolidCraft mark for the web app's home-screen icon | MIT OR Apache-2.0 |
+| assets/icons/app/web/solidcraft-icon.svg | Andrej Češarek (CDS) | The gold SolidCraft mark as the web app's page icon | MIT OR Apache-2.0 |
 
 ## Code adapted from sibling projects
 

@@ -200,6 +200,7 @@ pub(super) fn show(app: &mut SolveApp, ui: &mut egui::Ui, t: &Tokens) {
             });
             setting::look_at_anim(app, ui);
             setting::look_at_speed(app, ui);
+            setting::screen_width_mm(app, ui);
         });
         // The existing ring editor is part of the real product and remains available.
         crate::mouse_gesture::nav_rows(app, ui, t);

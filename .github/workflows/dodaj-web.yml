@@ -1,0 +1,33 @@
+# CDS fork: adds the web app zip of a finished release build to an already published release,
+# without building again.
+name: Add web app zip
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Release run whose web app is added"
+        required: true
+      tag:
+        description: "Release tag, for example v0.25.3"
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Download, add to the checksums, upload
+        run: |
+          gh run download "${{ inputs.run_id }}" --name release-web --dir web
+          cd web
+          ls -l
+          gh release download "${{ inputs.tag }}" --pattern SHA256SUMS.txt --dir ../sums
+          { cat ../sums/SHA256SUMS.txt; sha256sum -- solidcraft-web-*.zip; } > SHA256SUMS.txt
+          gh release upload "${{ inputs.tag }}" --clobber -- solidcraft-web-*.zip SHA256SUMS.txt

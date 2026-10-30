@@ -365,6 +365,8 @@ fn the_title_bar_offers_the_new_version_and_opens_the_update_window() {
     let mut h = crate::scenario::Harness::new();
     let report = crate::scenario::rect_of("titlebar:report").unwrap();
     assert!(crate::scenario::rect_of("titlebar:update").is_none(), "nothing offered before a check");
+    // The quiet way: the window doesn't open by itself.
+    h.app.preferences.update_popup = false;
     h.app.updater.feed = Some(feed);
     h.frame();
     wait_for_check(&mut h);
@@ -391,6 +393,35 @@ fn the_title_bar_offers_the_new_version_and_opens_the_update_window() {
     h.frames(2);
     assert!(!h.app.updater.open);
     assert!(h.widget(&label).is_none(), "Remind me later hides it");
+}
+
+#[test]
+fn a_start_that_finds_an_update_opens_the_window_once_unless_turned_off() {
+    let dir = scratch();
+    let (feed, _) = next_release_feed(&dir.0);
+    let mut h = crate::scenario::Harness::new();
+    assert!(h.app.preferences.update_popup, "on by default");
+    h.app.updater.feed = Some(feed.clone());
+    h.frame();
+    wait_for_check(&mut h);
+    h.frames(2);
+    assert!(h.app.updater.open, "the first check after a start opens the Update window");
+    // Closed, it stays closed: later automatic checks only keep the pill.
+    h.app.updater.open = false;
+    h.app.preferences.update.next_check = 0.0;
+    h.frame();
+    wait_for_check(&mut h);
+    h.frames(2);
+    assert!(!h.app.updater.open, "only once per start");
+
+    let mut quiet = crate::scenario::Harness::new();
+    quiet.app.preferences.update_popup = false;
+    quiet.app.updater.feed = Some(feed);
+    quiet.frame();
+    wait_for_check(&mut quiet);
+    quiet.frames(2);
+    assert!(!quiet.app.updater.open, "turned off: only the pill in the title bar");
+    assert!(super::offered(&quiet.app).is_some());
 }
 
 #[test]
@@ -502,7 +533,7 @@ fn releases_under_either_owner_are_accepted() {
         )
         .unwrap()
     };
-    for owner in ["bherbruck/solidcraft", "tangency-labs/solidcraft"] {
+    for owner in ["andrej-cds/CDS-SolidCraft", "bherbruck/solidcraft", "tangency-labs/solidcraft"] {
         let r = parse(owner);
         assert_eq!(r.page, format!("https://github.com/{owner}/releases/tag/v1.0.0"));
         assert_eq!(r.assets.len(), 1, "{owner}");
@@ -522,12 +553,12 @@ fn releases_under_either_owner_are_accepted() {
 fn the_version_links_to_its_release_notes() {
     // A release build opens the page of its own release; stable, candidate and nightly tags all exist.
     for v in ["0.17.0", "0.21.0-rc.2", "0.20.0-nightly.20261023.69.1"] {
-        assert_eq!(release_notes_url(v, true), format!("https://github.com/tangency-labs/solidcraft/releases/tag/v{v}"));
+        assert_eq!(release_notes_url(v, true), format!("https://github.com/andrej-cds/CDS-SolidCraft/releases/tag/v{v}"));
     }
     // A development build has no release of its own: the release history, which is what the issue asks for.
-    assert_eq!(release_notes_url("0.17.0", false), "https://github.com/tangency-labs/solidcraft/releases");
+    assert_eq!(release_notes_url("0.17.0", false), "https://github.com/andrej-cds/CDS-SolidCraft/releases");
     // Anything that is not a version never ends up in a URL.
-    assert_eq!(release_notes_url("0.1/../../x", true), "https://github.com/tangency-labs/solidcraft/releases");
+    assert_eq!(release_notes_url("0.1/../../x", true), "https://github.com/andrej-cds/CDS-SolidCraft/releases");
 }
 
 #[test]
