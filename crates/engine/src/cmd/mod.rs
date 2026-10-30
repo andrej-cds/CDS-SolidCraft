@@ -75,6 +75,8 @@ mod kernel_heal_tests;
 mod parameter_sweep;
 mod parameters;
 mod plastic;
+mod print3d;
+mod print3d_shapes;
 mod render;
 mod render_ui;
 #[cfg(test)]
@@ -309,6 +311,7 @@ pub fn command_specs() -> Vec<&'static CommandSpec> {
     v.extend(construct::COMMANDS.iter());
     v.extend(sheet::COMMANDS.iter());
     v.extend(plastic::COMMANDS.iter());
+    v.extend(print3d::COMMANDS.iter());
     v.extend(frame::COMMANDS.iter());
     v.extend(component::COMMANDS.iter());
     v.extend(component_link::COMMANDS.iter());

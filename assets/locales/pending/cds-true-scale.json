@@ -1,0 +1,51 @@
+{
+  "en": {
+    "navbar.description.true_scale": "Draws the model at its real size on the screen; click again to go back to the view before.",
+    "navbar.true_scale": "1:1 (true size)",
+    "ui.screen_width_auto": "Automatic",
+    "ui.screen_width_mm": "Screen width for 1:1",
+    "ui.true_scale_unknown": "The screen's size is not known: set Screen width for 1:1 in Preferences › Navigation."
+  },
+  "sl": {
+    "navbar.description.true_scale": "Nariše model v pravi velikosti na zaslonu; ponoven klik vrne prejšnji pogled.",
+    "navbar.true_scale": "1:1 (prava velikost)",
+    "ui.screen_width_auto": "Samodejno",
+    "ui.screen_width_mm": "Širina zaslona za 1:1",
+    "ui.true_scale_unknown": "Velikost zaslona ni znana: nastavite Širina zaslona za 1:1 v Nastavitve › Navigacija."
+  },
+  "ja": {
+    "navbar.description.true_scale": "モデルを画面上に実寸で表示します。もう一度クリックすると前の表示に戻ります。",
+    "navbar.true_scale": "1:1（実寸）",
+    "ui.screen_width_auto": "自動",
+    "ui.screen_width_mm": "1:1 用の画面の幅",
+    "ui.true_scale_unknown": "画面の大きさがわかりません。環境設定 › ナビゲーションで「1:1 用の画面の幅」を設定してください。"
+  },
+  "zh": {
+    "navbar.description.true_scale": "在屏幕上以实际尺寸显示模型；再次点击返回之前的视图。",
+    "navbar.true_scale": "1:1（实际尺寸）",
+    "ui.screen_width_auto": "自动",
+    "ui.screen_width_mm": "1:1 的屏幕宽度",
+    "ui.true_scale_unknown": "屏幕尺寸未知：请在“首选项 › 导航”中设置“1:1 的屏幕宽度”。"
+  },
+  "ar": {
+    "navbar.description.true_scale": "يعرض النموذج بحجمه الحقيقي على الشاشة؛ انقر مرة أخرى للعودة إلى العرض السابق.",
+    "navbar.true_scale": "1:1 (الحجم الحقيقي)",
+    "ui.screen_width_auto": "تلقائي",
+    "ui.screen_width_mm": "عرض الشاشة لمقياس 1:1",
+    "ui.true_scale_unknown": "حجم الشاشة غير معروف: اضبط عرض الشاشة لمقياس 1:1 في التفضيلات › التنقل."
+  },
+  "he": {
+    "navbar.description.true_scale": "מציג את הדגם בגודלו האמיתי על המסך; לחיצה נוספת מחזירה לתצוגה הקודמת.",
+    "navbar.true_scale": "1:1 (גודל אמיתי)",
+    "ui.screen_width_auto": "אוטומטי",
+    "ui.screen_width_mm": "רוחב המסך ל־1:1",
+    "ui.true_scale_unknown": "גודל המסך אינו ידוע: הגדירו רוחב מסך ל־1:1 בהעדפות › ניווט."
+  },
+  "vi": {
+    "navbar.description.true_scale": "Hiện mô hình đúng kích thước thật trên màn hình; nhấp lần nữa để về khung nhìn trước.",
+    "navbar.true_scale": "1:1 (kích thước thật)",
+    "ui.screen_width_auto": "Tự động",
+    "ui.screen_width_mm": "Chiều rộng màn hình cho 1:1",
+    "ui.true_scale_unknown": "Chưa biết kích thước màn hình: đặt Chiều rộng màn hình cho 1:1 trong Tùy chọn › Điều hướng."
+  }
+}

@@ -17,6 +17,10 @@ pub fn tab_label(tab: &str) -> &str {
 pub fn word_cased(name: &str) -> String {
     name.split_whitespace()
         .map(|word| {
+            // "3D" stays as it is written.
+            if word.starts_with(|c: char| c.is_ascii_digit()) {
+                return word.to_string();
+            }
             let lower = word.to_lowercase();
             let mut chars = lower.chars();
             chars.next().map(|c| c.to_uppercase().collect::<String>() + chars.as_str()).unwrap_or_default()
@@ -253,7 +257,7 @@ pub const SECTIONS: &[Section] = &[
         tab: "SKETCH",
         panel: "MODIFY",
         promoted: 3,
-        ids: &["sketch.trim", "sketch.offset", "sketch.fillet", "sketch.transform", "sketch.copy", "sketch.cut", "sketch.paste"],
+        ids: &["sketch.trim", "sketch.offset", "print.offset_sketch", "sketch.fillet", "sketch.transform", "sketch.copy", "sketch.cut", "sketch.paste"],
     },
     Section { tab: "SKETCH", panel: "PATTERN", promoted: 3, ids: &["sketch.mirror", "sketch.pattern.circular", "sketch.pattern.rectangular"] },
     Section {
@@ -306,6 +310,11 @@ pub const SECTIONS: &[Section] = &[
     Section { tab: "SHEET METAL", panel: "RULES", promoted: 1, ids: &["sheet.manage_rules"] },
     Section { tab: "SHEET METAL", panel: "CONFIGURE", promoted: 2, ids: CONFIGURE },
     // A frame starts from a sketch of its lines; its profile sizes are often parameters.
+    // The 3D PRINT tab (CDS fork): generators, print fixes and getting parts to the printer.
+    Section { tab: "3D PRINT", panel: "SKETCH", promoted: 1, ids: &["sketch.create"] },
+    Section { tab: "3D PRINT", panel: "CREATE", promoted: 4, ids: &["print.lego", "print.supershape", "print.airfoil", "print.infill"] },
+    Section { tab: "3D PRINT", panel: "MODIFY", promoted: 3, ids: &["print.vent", "print.dogbone", "print.offset_body", "material.assign"] },
+    Section { tab: "3D PRINT", panel: "OUTPUT", promoted: 3, ids: &["print.send", "print.export", "file.send_to_slicer", "assembly.bom"] },
     Section { tab: "WELDMENTS", panel: "SKETCH", promoted: 1, ids: &["sketch.create"] },
     Section { tab: "WELDMENTS", panel: "CREATE", promoted: 1, ids: &["frame.member"] },
     Section { tab: "WELDMENTS", panel: "CONFIGURE", promoted: 2, ids: CONFIGURE },
@@ -401,6 +410,7 @@ pub const RIBBON_LABELS: &[(&str, &str)] = &[
     ("contact.enable_sets", "Contact Sets"),
     ("document.inspect", "Inspect"),
     ("document.units", "Units"),
+    ("file.send_to_slicer", "To Slicer"),
     ("inspect.accessibility", "Access"),
     ("inspect.center_of_mass", "Mass Center"),
     ("inspect.curvature_comb", "Curv. Comb"),
@@ -420,6 +430,12 @@ pub const RIBBON_LABELS: &[(&str, &str)] = &[
     ("parts.resize", "Resize Part"),
     ("plastic.assign_rule", "Assign Rule"),
     ("plastic.manage_rules", "Plastic Rules"),
+    ("print.airfoil", "Airfoil"),
+    ("print.dogbone", "Dogbone"),
+    ("print.export", "For Printing"),
+    ("print.offset_sketch", "Offset All"),
+    ("print.send", "Quick Send"),
+    ("print.supershape", "Supershape"),
     ("pointcloud.insert", "Point Clouds"),
     ("render.scene", "Scene"),
     ("sheet.export_bend_table", "Bend Table"),
@@ -603,7 +619,7 @@ pub struct SpecialtyTab {
 }
 
 pub const SPECIALTY_TABS: &[SpecialtyTab] =
-    &[SpecialtyTab { tab: "SHEET METAL", icon: "sheet" }, SpecialtyTab { tab: "WELDMENTS", icon: "frame_member" }];
+    &[SpecialtyTab { tab: "SHEET METAL", icon: "sheet" }, SpecialtyTab { tab: "WELDMENTS", icon: "frame_member" }, SpecialtyTab { tab: "3D PRINT", icon: "mesh_export" }];
 
 /// A tab's row in the toolbar menu: the icon of the command that leads the tab (Model › Create ›
 /// Extrude, Inspect › Measure, View › Views and so on).
@@ -931,7 +947,7 @@ mod tests {
     fn contextual_tabs_follow_the_active_body_and_allow_other_tabs() {
         let mut h = crate::scenario::Harness::new();
         let mut fresh = TABS.to_vec();
-        fresh.extend(["SHEET METAL", "WELDMENTS"]);
+        fresh.extend(["SHEET METAL", "WELDMENTS", "3D PRINT"]);
         assert_eq!(visible_tabs(&h.app), fresh, "SHEET METAL and WELDMENTS are reachable before any sheet body or member exists");
         h.app.run("sketch.create", json!({"plane":"XY"})).unwrap();
         assert_eq!(h.app.ui.tab, "SKETCH");
@@ -1082,7 +1098,7 @@ mod tests {
         let rows: Vec<_> = crate::toolbar_custom::toolbar_items(&h.app).into_iter().filter(|i| i.id == "ui.toolbarTab").collect();
         assert_eq!(
             rows.iter().map(|i| i.label.as_str()).collect::<Vec<_>>(),
-            ["Model", "Surface", "Assemble", "Insert", "Inspect", "Manage", "View", "Sheet Metal", "Weldments"]
+            ["Model", "Surface", "Assemble", "Insert", "Inspect", "Manage", "View", "Sheet Metal", "Weldments", "3D Print"]
         );
         assert!(rows.iter().all(|i| i.shortcut == "current"), "all existing tabs stay on by default");
         h.step(&json!({"click":{"handle":"ribbon:add_tab"}})).unwrap();

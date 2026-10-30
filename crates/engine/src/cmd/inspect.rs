@@ -381,6 +381,23 @@ fn body_of<'a>(st: &'a solidcraft_doc::ModelState, p: &Value, cmd: &str) -> Resu
     st.body(n).ok_or_else(|| bad(cmd, format!("no body `{n}`")))
 }
 
+/// Every face of `body` as solid.offset_face and its kin take them: its name, else a point on it.
+pub(crate) fn face_refs(s: &Session, body: &str) -> Result<Vec<Value>> {
+    let st = s.world_state();
+    let b = st.body(body).ok_or_else(|| bad("print.offset_body", format!("no body `{body}`")))?;
+    let names = solidcraft_doc::naming::face_names(b);
+    let spots = solidcraft_doc::naming::face_spots(b);
+    let tol = (b.body.size() * 2e-3).max(1e-3);
+    Ok(b.body
+        .faces(tol)?
+        .iter()
+        .filter_map(|f| match names.get(f.index).filter(|n| !n.is_empty()) {
+            Some(n) => Some(json!(n)),
+            None => spots.get(f.index).copied().flatten().map(|x| json!([x.point.x, x.point.y, x.point.z])),
+        })
+        .collect())
+}
+
 fn model_edges(s: &mut Session, p: &Value) -> Result<Value> {
     let st = s.world_state();
     let b = body_of(&st, p, "model.edges")?;

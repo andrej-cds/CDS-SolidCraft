@@ -48,6 +48,7 @@ pub mod dialogs_move;
 pub mod dialogs_part_size;
 pub mod dialogs_parts;
 pub mod dialogs_plastic;
+pub mod dialogs_print;
 pub mod dialogs_save_mesh;
 pub mod dialogs_sheet;
 pub mod dialogs_surface;
@@ -1570,6 +1571,31 @@ impl SolveApp {
             let _ = self.run(id, json!({"enabled": !self.preferences.ambient_occlusion}));
             return;
         }
+        // Quick Send to Slicer (CDS fork): the slicer chosen last, at once; the first time, the
+        // Send to Slicer dialog to choose one.
+        if id == "print.send" {
+            if !dialogs_save_mesh::available(self) {
+                self.set_status(self.tr("ui.send_to_slicer_unavailable").to_string(), true);
+            } else if self.preferences.send_slicer.trim().is_empty() {
+                self.start("file.send_to_slicer");
+            } else {
+                dialogs_save_mesh::quick_send(self);
+            }
+            return;
+        }
+        // Export for Printing (CDS fork): every part into the print folder, by its settings file.
+        if id == "print.export" {
+            match self.run(id, json!({"folder_suffix": self.tr("print.folder_suffix")})) {
+                Ok(v) => {
+                    let n = v["files"].as_array().map_or(0, Vec::len).to_string();
+                    let folder = v["folder"].as_str().unwrap_or_default().to_string();
+                    let line = crate::i18n::format("print.exported", &[("count", &n), ("folder", &folder)]);
+                    self.set_status(line, false);
+                }
+                Err(e) => self.set_status(e.to_string(), true),
+            }
+            return;
+        }
         // Send to Slicer always asks which slicer (the dialog pre-selects the last one).
         if matches!(id, "file.send_to_slicer" | "file.open_in_easyprint") && !dialogs_save_mesh::available(self) {
             self.set_status(self.tr("ui.send_to_slicer_unavailable").to_string(), true);
@@ -2547,7 +2573,11 @@ impl SolveApp {
         if self.custom_titlebar && !self.native_resize_border {
             titlebar::resize_zones(ui);
         }
-        (self.ui.layout, self.custom_titlebar) = saved;
+        // Only this mode's own changes are put back: a layout chosen this frame (Preferences,
+        // view.layout, an embedded app) stays.
+        if tools {
+            (self.ui.layout, self.custom_titlebar) = saved;
+        }
         if self.file_picker.is_none() {
             issue_report::show(self, ui.ctx());
         }

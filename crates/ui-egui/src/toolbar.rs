@@ -313,7 +313,8 @@ pub fn app_bar(app: &mut SolveApp, ui: &mut egui::Ui) {
         }
         let left = r.left() + if app.integrated_titlebar { crate::titlebar::TRAFFIC_LIGHTS } else { 0.0 };
         // Keep the current header controls and product name when merging the new mark.
-        let compact_actions = r.right() - left < 640.0;
+        // CDS fork: "SolidCraft by CDS" is longer, so the name gives way a little sooner.
+        let compact_actions = r.right() - left < 820.0;
         // Brand mark: the SolidCraft logo, drawn in code from the SVG's own coordinates
         // (viewBox 357 x 412). Same 20 px height and centre as the old block.
         {

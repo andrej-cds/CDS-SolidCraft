@@ -375,6 +375,8 @@ crate::dialog_descriptor::dialog_descriptors! {
             InsertDrawing(crate::dialogs_insert_drawing::Place),
             /// Plastic features (`dialogs_plastic`).
             Plastic(crate::dialogs_plastic::Pl),
+            /// The 3D PRINT tab's tools (`dialogs_print`, CDS fork).
+            Print(crate::dialogs_print::Pr),
             /// Frame members (`dialogs_frame`).
             Frame(crate::dialogs_frame::Member),
             /// Appearance (`dialogs_appearance`).
@@ -1049,6 +1051,7 @@ impl Dialog {
                     .or_else(|| crate::dialogs_save_mesh::start(app, id))
                     .or_else(|| crate::dialogs_view_dxf::start(app, id))
                     .or_else(|| crate::dialogs_plastic::start(app, id))
+                    .or_else(|| crate::dialogs_print::start(app, id))
                     .or_else(|| crate::dialogs_frame::start(app, id))
                     .or_else(|| crate::dialogs_appearance::start(app, id))
                     .or_else(|| crate::dialogs_motion::start(app, id))
@@ -2249,6 +2252,7 @@ fn title(k: &Kind) -> &'static str {
         Kind::ViewDxf { .. } => "Export Current View as DXF",
         Kind::InsertDrawing(p) => crate::dialogs_insert_drawing::title(p),
         Kind::Plastic(k) => k.title(),
+        Kind::Print(k) => k.title,
         Kind::Frame(_) => "FRAME MEMBER",
         Kind::Appearance(_) => "APPEARANCE",
         Kind::Motion(k) => k.title(),
@@ -4858,6 +4862,7 @@ fn dialog_commands(app: &SolveApp, d: &Dialog) -> Result<Vec<(String, Value)>, S
         Kind::ViewDxf { .. } => return Ok(Vec::new()),
         Kind::InsertDrawing(p) => return crate::dialogs_insert_drawing::commands(p),
         Kind::Plastic(k) => return crate::dialogs_plastic::commands(app, k, &d.inputs, &d.extra),
+        Kind::Print(k) => return crate::dialogs_print::commands(app, k, &d.inputs),
         Kind::Frame(k) => return crate::dialogs_frame::commands(app, k, &d.inputs, &d.extra),
         Kind::Appearance(k) => return Ok(crate::dialogs_appearance::commands(k, &d.inputs)),
         Kind::Motion(k) => return crate::dialogs_motion::commands(app, k, &d.inputs),

@@ -699,7 +699,7 @@ fn open_update_window(managed: Option<&str>) -> (crate::scenario::Harness, Scrat
 fn a_managed_install_points_to_its_manager_instead_of_updating_itself() {
     let (mut h, _dir) = open_update_window(Some("ArtCraft Launcher"));
     assert_eq!(install_method(&mut h.app), None, "no AppImage self-replace");
-    assert!(h.widget("Update available: update SolidCraft in ArtCraft Launcher").is_some());
+    assert!(h.widget("Update available: update SolidCraft by CDS in ArtCraft Launcher").is_some());
     for gone in ["Update now", "Download", "Open release page"] {
         assert!(h.widget(gone).is_none(), "{gone} is not offered");
     }
@@ -715,7 +715,7 @@ fn an_unmanaged_install_updates_itself_as_before() {
     assert_eq!(install_method(&mut h.app), Some(install::Method::AppImage("/home/me/SolidCraft.AppImage".into())));
     assert!(h.widget("Update now").is_some());
     assert!(h.widget("Download").is_some());
-    assert!(h.widget("Update available: update SolidCraft in ArtCraft Launcher").is_none());
+    assert!(h.widget("Update available: update SolidCraft by CDS in ArtCraft Launcher").is_none());
 }
 
 #[test]

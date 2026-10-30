@@ -31,7 +31,7 @@ impl Tokens {
             file_image_tint: Color32::WHITE,
             file_rail: Color32::from_rgb(150, 105, 10),
             file_rail_ink: Color32::WHITE,
-            file_rail_hover: Color32::from_rgb(170, 122, 20),
+            file_rail_hover: Color32::from_rgb(128, 90, 8),
             file_primary: Color32::from_rgb(251, 243, 222),
             file_primary_ink: Color32::from_rgb(110, 78, 8),
             file_primary_border: Color32::from_rgb(200, 150, 40),
