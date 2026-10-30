@@ -17,6 +17,10 @@ pub fn tab_label(tab: &str) -> &str {
 pub fn word_cased(name: &str) -> String {
     name.split_whitespace()
         .map(|word| {
+            // "3D" stays as it is written.
+            if word.starts_with(|c: char| c.is_ascii_digit()) {
+                return word.to_string();
+            }
             let lower = word.to_lowercase();
             let mut chars = lower.chars();
             chars.next().map(|c| c.to_uppercase().collect::<String>() + chars.as_str()).unwrap_or_default()
@@ -28,10 +32,6 @@ pub fn word_cased(name: &str) -> String {
 /// A ribbon tab's name as the ribbon shows it, in the current language: "SHEET METAL" reads
 /// "Sheet Metal", or "Blech" in German. A partial catalog may translate only the word-cased name.
 pub fn tab_name(tab: &str) -> String {
-    // "3D" does not survive word casing ("3d Print"): the CDS tab has a name of its own.
-    if tab == "3D PRINT" {
-        return crate::i18n::tr("ui.tab_3d_print").to_string();
-    }
     let cased = word_cased(crate::i18n::tr_label(tab_label(tab)));
     crate::i18n::tr_label(&cased).to_string()
 }
@@ -410,6 +410,7 @@ pub const RIBBON_LABELS: &[(&str, &str)] = &[
     ("contact.enable_sets", "Contact Sets"),
     ("document.inspect", "Inspect"),
     ("document.units", "Units"),
+    ("file.send_to_slicer", "To Slicer"),
     ("inspect.accessibility", "Access"),
     ("inspect.center_of_mass", "Mass Center"),
     ("inspect.curvature_comb", "Curv. Comb"),
@@ -429,6 +430,12 @@ pub const RIBBON_LABELS: &[(&str, &str)] = &[
     ("parts.resize", "Resize Part"),
     ("plastic.assign_rule", "Assign Rule"),
     ("plastic.manage_rules", "Plastic Rules"),
+    ("print.airfoil", "Airfoil"),
+    ("print.dogbone", "Dogbone"),
+    ("print.export", "For Printing"),
+    ("print.offset_sketch", "Offset All"),
+    ("print.send", "Quick Send"),
+    ("print.supershape", "Supershape"),
     ("pointcloud.insert", "Point Clouds"),
     ("render.scene", "Scene"),
     ("sheet.export_bend_table", "Bend Table"),
@@ -1091,7 +1098,7 @@ mod tests {
         let rows: Vec<_> = crate::toolbar_custom::toolbar_items(&h.app).into_iter().filter(|i| i.id == "ui.toolbarTab").collect();
         assert_eq!(
             rows.iter().map(|i| i.label.as_str()).collect::<Vec<_>>(),
-            ["Model", "Surface", "Assemble", "Insert", "Inspect", "Manage", "View", "Sheet Metal", "Weldments"]
+            ["Model", "Surface", "Assemble", "Insert", "Inspect", "Manage", "View", "Sheet Metal", "Weldments", "3D Print"]
         );
         assert!(rows.iter().all(|i| i.shortcut == "current"), "all existing tabs stay on by default");
         h.step(&json!({"click":{"handle":"ribbon:add_tab"}})).unwrap();

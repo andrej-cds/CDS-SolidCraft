@@ -2573,7 +2573,11 @@ impl SolveApp {
         if self.custom_titlebar && !self.native_resize_border {
             titlebar::resize_zones(ui);
         }
-        (self.ui.layout, self.custom_titlebar) = saved;
+        // Only this mode's own changes are put back: a layout chosen this frame (Preferences,
+        // view.layout, an embedded app) stays.
+        if tools {
+            (self.ui.layout, self.custom_titlebar) = saved;
+        }
         if self.file_picker.is_none() {
             issue_report::show(self, ui.ctx());
         }

@@ -3592,7 +3592,7 @@
   "ui.3d_mouse_reading": "Branje",
   "ui.3d_mouse_reset_axes": "Ponastavi dodelitev osi",
   "ui.3d_mouse_reset_view": "Ponastavi pogled",
-  "ui.3d_mouse_restore": "Obnovi privzeto",
+  "ui.3d_mouse_restore": "Obnovi privzeto miške 3D",
   "ui.3d_mouse_restore_ask": "Nastavitve miške 3D vrnem na privzete? Umerjanje in preslikava gumbov ostaneta.",
   "ui.3d_mouse_section": "Miška 3D",
   "ui.3d_mouse_show_in_view": "Pokaži miško 3D v pogledu 3D",
