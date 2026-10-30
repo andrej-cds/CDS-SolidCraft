@@ -568,7 +568,7 @@ fn offset_body(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn offset_sketch(s: &mut Session, p: &Value) -> Result<Value> {
     let cmd = "print.offset_sketch";
-    let id = s.active_sketch.ok_or_else(|| bad(cmd, "open a sketch first"))?;
+    let id = super::sketch_store::active(s).ok_or_else(|| bad(cmd, "open a sketch first"))?;
     let distance = match p.get("distance") {
         Some(Value::String(t)) => s.doc.eval(t, solidcraft_doc::expr::Kind::Length).map_err(|e| bad(cmd, format!("`distance`: {e}")))?,
         _ => num(p, "distance").ok_or_else(|| bad(cmd, "`distance` must be a length"))?,
@@ -577,7 +577,7 @@ fn offset_sketch(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad(cmd, "`distance` must be above 0 and at most 1000 mm"));
     }
     let inward = bool_(p, "inward").unwrap_or(false);
-    let sk = s.doc.sketch(id)?.clone();
+    let sk = super::sketch_store::read(&s.doc, id)?.clone();
     // Connected chains of drawn (not construction or projected) curves.
     let drawn: Vec<usize> = (0..sk.curves.len()).filter(|i| sk.curves.get(*i).is_some_and(|c| !c.construction && !c.centerline && c.link.is_none())).collect();
     let mut group: Vec<usize> = (0..sk.curves.len()).collect();
