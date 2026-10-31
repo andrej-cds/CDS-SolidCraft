@@ -13,6 +13,13 @@ fn versions_compare_as_semver() {
     assert!(is_newer("v0.11.0", "0.11.0-rc.2"));
     // A prerelease is never offered (releases/latest never returns one anyway).
     assert!(!is_newer("v0.12.0-rc.1", "0.11.0"));
+    // CDS fork: a fix between upstream releases is offered, and gives way to the next upstream one.
+    assert!(is_newer("v0.27.2-cds.1", "0.27.1"));
+    assert!(is_newer("v0.27.2-cds.2", "0.27.2-cds.1"));
+    assert!(is_newer("v0.27.2", "0.27.2-cds.1"));
+    assert!(!is_newer("v0.27.2-cds.1", "0.27.2-cds.1"));
+    assert!(!is_newer("v0.27.2-cds.1", "0.27.2"));
+    assert!(!is_newer("v0.27.2-cdsx", "0.27.1"));
     assert!(!is_newer("garbage", "0.9.0"));
     assert!(!is_newer("v0.10.0", "not a version"));
 }

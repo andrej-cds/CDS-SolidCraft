@@ -126,15 +126,16 @@ dark  = "#ab8f00"
 light = "#e0b200"
 dark  = "#c6a800"
 
+# CDS fork: Sketch icons are gold like the rest (was green).
 [accents.sketch.active-1]
-light = "#bfe2cc"
-dark  = "#7ab792"
+light = "#f3e2b4"
+dark  = "#c9a24a"
 [accents.sketch.active-2]
-light = "#439a65"
-dark  = "#3a965e"
+light = "#d4a12a"
+dark  = "#c8961f"
 [accents.sketch.active-3]
-light = "#057f45"
-dark  = "#128d45"
+light = "#9a6d0a"
+dark  = "#a87812"
 
 [accents.constraint.active-1]
 light = "#f0cfca"

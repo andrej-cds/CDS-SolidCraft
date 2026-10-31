@@ -85,8 +85,8 @@ impl Tokens {
             form_primary_fill: Color32::from_rgb(150, 105, 10),
             form_error: Color32::from_rgb(161, 52, 44),
             form_error_fill: Color32::from_rgb(252, 239, 237),
-            form_success: Color32::from_rgb(39, 107, 44),
-            form_success_fill: Color32::from_rgb(229, 242, 230),
+            form_success: Color32::from_rgb(110, 78, 8),
+            form_success_fill: Color32::from_rgb(246, 236, 208),
             control_radius: 6,
             form_label_width: 70.0,
             form_gap_y: 5.0,
@@ -124,8 +124,8 @@ impl Tokens {
             mesh_accent: Color32::from_rgb(130, 103, 0),
             form_accent: Color32::from_rgb(115, 73, 205),
             render_accent: Color32::from_rgb(174, 45, 113),
-            sketch_ink: Color32::from_rgb(5, 127, 69),
-            sketch_soft: Color32::from_rgb(237, 247, 241),
+            sketch_ink: Color32::from_rgb(110, 78, 8),
+            sketch_soft: Color32::from_rgb(246, 236, 208),
             surface_fill: Color32::from_rgb(164, 80, 0),
             surface_ink: Color32::from_rgb(164, 80, 0),
             surface_soft: Color32::from_rgb(251, 235, 216),
@@ -135,9 +135,9 @@ impl Tokens {
             form_fill: Color32::from_rgb(115, 73, 205),
             form_tab_ink: Color32::from_rgb(115, 73, 205),
             form_soft: Color32::from_rgb(238, 232, 250),
-            sheet_fill: Color32::from_rgb(30, 111, 150),
-            sheet_ink: Color32::from_rgb(30, 111, 150),
-            sheet_soft: Color32::from_rgb(225, 240, 247),
+            sheet_fill: Color32::from_rgb(150, 105, 10),
+            sheet_ink: Color32::from_rgb(110, 78, 8),
+            sheet_soft: Color32::from_rgb(246, 236, 208),
             render_fill: Color32::from_rgb(168, 50, 110),
             render_ink: Color32::from_rgb(168, 50, 110),
             render_soft: Color32::from_rgb(248, 230, 239),
@@ -311,8 +311,8 @@ impl Tokens {
         t.mesh_accent = Color32::from_rgb(133, 113, 0);
         t.form_accent = Color32::from_rgb(123, 99, 166);
         t.render_accent = Color32::from_rgb(224, 116, 174);
-        t.sketch_ink = Color32::from_rgb(70, 190, 120);
-        t.sketch_soft = Color32::from_rgb(31, 59, 43);
+        t.sketch_ink = Color32::from_rgb(240, 210, 140);
+        t.sketch_soft = Color32::from_rgb(88, 70, 30);
         t.surface_fill = Color32::from_rgb(178, 106, 20);
         t.surface_ink = Color32::from_rgb(224, 145, 74);
         t.surface_soft = Color32::from_rgb(69, 51, 30);
@@ -322,9 +322,9 @@ impl Tokens {
         t.form_fill = Color32::from_rgb(138, 111, 204);
         t.form_tab_ink = Color32::from_rgb(179, 155, 238);
         t.form_soft = Color32::from_rgb(55, 47, 79);
-        t.sheet_fill = Color32::from_rgb(42, 127, 168);
-        t.sheet_ink = Color32::from_rgb(79, 179, 217);
-        t.sheet_soft = Color32::from_rgb(31, 58, 71);
+        t.sheet_fill = Color32::from_rgb(230, 185, 60);
+        t.sheet_ink = Color32::from_rgb(240, 210, 140);
+        t.sheet_soft = Color32::from_rgb(88, 70, 30);
         t.render_fill = Color32::from_rgb(200, 88, 143);
         t.render_ink = Color32::from_rgb(224, 116, 174);
         t.render_soft = Color32::from_rgb(64, 35, 54);
@@ -395,8 +395,8 @@ impl Tokens {
         t.form_primary_fill = t.form_primary;
         t.form_error = t.error;
         t.form_error_fill = t.timeline_item_error;
-        t.form_success = Color32::from_rgb(143, 219, 154);
-        t.form_success_fill = Color32::from_rgb(44, 74, 51);
+        t.form_success = Color32::from_rgb(240, 210, 140);
+        t.form_success_fill = Color32::from_rgb(88, 70, 30);
         t
     }
 

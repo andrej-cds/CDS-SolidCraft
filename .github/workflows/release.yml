@@ -87,7 +87,8 @@ jobs:
             echo "::error::Draft releases must be built from the release branch"
             exit 1
           fi
-          case "$VERSION" in *-*) pre=true ;; *) pre=false ;; esac
+          # A CDS fix between upstream releases (0.27.2-cds.1) is a normal release, so the app finds it.
+          case "$VERSION" in *-cds.*) pre=false ;; *-*) pre=true ;; *) pre=false ;; esac
           { echo "version=$VERSION"; echo "date=$(date -u +%Y-%m-%d)"; echo "prerelease=$pre"; } >>"$GITHUB_OUTPUT"
           echo "### SolidCraft v$VERSION (\`${GITHUB_SHA::9}\`)" >>"$GITHUB_STEP_SUMMARY"
 

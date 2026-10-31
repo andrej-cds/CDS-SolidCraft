@@ -14,41 +14,41 @@ use crate::params::{bad, bool_, num, str_, vec3};
 use crate::{EngineError, Result, Session};
 
 pub static COMMANDS: &[CommandSpec] = &[
-    CommandSpec::new("print.lego", "Lego Brick", lego).at("3D PRINT", "CREATE").icon("box").enabled(not_in_sketch).params(
+    CommandSpec::new("print.lego", "Lego Brick", lego).at("3D PRINT", "CREATE").icon("print_lego").enabled(not_in_sketch).params(
         "studs_x?, studs_y?: whole numbers 1…32 (default 4 × 2); kind?: brick|plate|tile (default brick: 9.6 mm high; plate and tile 3.2 mm, a tile without studs); \
          clearance?: mm taken off each side for printing (default 0.1); position?: [x,y,z] corner (default the origin); name? → body, features",
     ),
-    CommandSpec::new("print.supershape", "Supershape", supershape).at("3D PRINT", "CREATE").icon("equation_curve").enabled(not_in_sketch).params(
+    CommandSpec::new("print.supershape", "Supershape", supershape).at("3D PRINT", "CREATE").icon("print_supershape").enabled(not_in_sketch).params(
         "m?, n1?, n2?, n3?, a?, b?: the superformula's numbers (default 6, 1, 1.7, 1.7, 1, 1); size?: mm across (default 50); \
          height?: mm extruded (default 10; 0: the sketch alone); solid?: bool (true: a 3D Supershape as a mesh body, size across); plane?: XY|XZ|YZ → sketch, body",
     ),
-    CommandSpec::new("print.airfoil", "Airfoil Profile", airfoil).at("3D PRINT", "CREATE").icon("spline").enabled(not_in_sketch).params(
+    CommandSpec::new("print.airfoil", "Airfoil Profile", airfoil).at("3D PRINT", "CREATE").icon("print_airfoil").enabled(not_in_sketch).params(
         "naca?: four NACA digits (default \"2412\"), or path: an airfoil .dat file (Selig or Lednicer); chord?: mm (default 100); points?: per side 10…200 (default 60); \
          span?: mm extruded (default 0: the sketch alone); plane?: XY|XZ|YZ → sketch, body?",
     ),
-    CommandSpec::new("print.infill", "Infill Block", infill).at("3D PRINT", "CREATE").icon("pattern_rect").enabled(not_in_sketch).params(
+    CommandSpec::new("print.infill", "Infill Block", infill).at("3D PRINT", "CREATE").icon("print_infill").enabled(not_in_sketch).params(
         "pattern?: honeycomb|grid|gyroid (default honeycomb; gyroid is a mesh body); size?: [x,y,z] mm (default the body's size, else 40 × 40 × 10); body?: a body whose box it fills; \
          position?: [x,y,z] corner (default the body's corner, else the origin); cell?: mm (default 8); wall?: mm (default 0.8); frame?: mm border (honeycomb and grid, default 2) → body",
     ),
-    CommandSpec::new("print.vent", "Vent Slots", vent).at("3D PRINT", "MODIFY").icon("slot").enabled(not_in_sketch).params(
+    CommandSpec::new("print.vent", "Vent Slots", vent).at("3D PRINT", "MODIFY").icon("print_vent").enabled(not_in_sketch).params(
         "face: [x,y,z] on a flat face (the middle of the vents); body?; shape?: round|rectangle|slot (default slot); columns?, rows?: 1…40 (default 6 × 1); \
          width?, height?: mm of one opening (default 4 × 20; round: width is the diameter); pitch_x?, pitch_y?: mm centre to centre (default width + 3, height + 3); \
          depth?: mm (default through all) → sketch, feature",
     ),
-    CommandSpec::new("print.dogbone", "Dogbone Corners", dogbone).at("3D PRINT", "MODIFY").icon("hole").enabled(not_in_sketch).params(
+    CommandSpec::new("print.dogbone", "Dogbone Corners", dogbone).at("3D PRINT", "MODIFY").icon("print_dogbone").enabled(not_in_sketch).params(
         "edges: [[x,y,z] points on straight inside corner edges]; diameter?: mm of the tool (default 3); body? → features: one cut cylinder per corner",
     ),
-    CommandSpec::new("print.offset_body", "Offset Body", offset_body).at("3D PRINT", "MODIFY").icon("offset_face").enabled(not_in_sketch).params(
+    CommandSpec::new("print.offset_body", "Offset Body", offset_body).at("3D PRINT", "MODIFY").icon("print_offset_body").enabled(not_in_sketch).params(
         "body: name; distance: mm or expression (positive grows the body, negative shrinks it, e.g. -0.2 for a printing clearance) → feature",
     ),
-    CommandSpec::new("print.offset_sketch", "Offset Whole Sketch", offset_sketch).at("SKETCH", "MODIFY").icon("offset").enabled(in_sketch).params(
+    CommandSpec::new("print.offset_sketch", "Offset Whole Sketch", offset_sketch).at("SKETCH", "MODIFY").icon("print_offset_sketch").enabled(in_sketch).params(
         "distance: mm or expression; inward?: bool (default false: every loop and chain grows outward) → the offset of every connected chain of the open sketch",
     ),
-    CommandSpec::new("print.export", "Export for Printing", export).at("3D PRINT", "OUTPUT").icon("export").noundo().params(
+    CommandSpec::new("print.export", "Export for Printing", export).at("3D PRINT", "OUTPUT").icon("print_export").noundo().params(
         "folder?: where the files go; config?: a .json settings file (default `<design>.print.json` beside the saved design, written with the defaults when missing); \
          format?: 3mf|stl; quality?: standard|fine|finest; per?: body|component; name?: file name pattern with {design}, {body}, {n}; folder_suffix?: the default folder's last word (`<design> - print`) → files, folder, config",
     ),
-    CommandSpec::new("print.send", "Quick Send to Slicer", quick_send).at("3D PRINT", "OUTPUT").icon("mesh_export").noundo().params(
+    CommandSpec::new("print.send", "Quick Send to Slicer", quick_send).at("3D PRINT", "OUTPUT").icon("print_send").noundo().params(
         "slicer: as file.send_to_slicer takes it (the app passes the one chosen last); bodies?: [names] (default the selected bodies, else every visible body) → as file.send_to_slicer",
     ),
 ];

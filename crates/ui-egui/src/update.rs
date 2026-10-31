@@ -119,10 +119,17 @@ pub fn release_notes_url(version: &str, release_build: bool) -> String {
     }
 }
 
-/// `latest` (a release tag) is a stable release newer than the `current` build.
+/// `latest` (a release tag) is a stable release newer than the `current` build. A CDS fix
+/// between upstream releases (`0.27.2-cds.1`: after 0.27.1, before upstream 0.27.2) counts as
+/// stable too.
 pub fn is_newer(latest: &str, current: &str) -> bool {
     let (Some(latest), Some(current)) = (parse_version(latest), parse_version(current)) else { return false };
-    latest.pre.is_empty() && latest > comparable(&current)
+    (latest.pre.is_empty() || is_cds_fix(&latest)) && latest > comparable(&current)
+}
+
+/// A CDS fork release between upstream ones: `<next upstream>-cds.N`.
+pub fn is_cds_fix(v: &semver::Version) -> bool {
+    v.pre.as_str().strip_prefix("cds.").is_some_and(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()))
 }
 
 /// This build's version: the release workflow's `SOLIDCRAFT_VERSION` (with any nightly suffix)
