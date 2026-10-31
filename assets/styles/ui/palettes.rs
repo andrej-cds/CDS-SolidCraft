@@ -446,6 +446,10 @@ impl Tokens {
     pub(super) const fn blue_yellow(self, dark: bool) -> Tokens {
         let mut t = self;
         t.analysis.hatch = true;
+        // CDS fork: gold success badges and the error red merge for a weak blue-yellow sense;
+        // this mode keeps the original green ones, which stay apart.
+        t.form_success = if dark { Color32::from_rgb(143, 219, 154) } else { Color32::from_rgb(39, 107, 44) };
+        t.form_success_fill = if dark { Color32::from_rgb(44, 74, 51) } else { Color32::from_rgb(229, 242, 230) };
         t.surface_accent = if dark { Color32::from_rgb(210, 120, 95) } else { Color32::from_rgb(164, 65, 50) };
         t.mesh_accent = if dark { Color32::from_rgb(200, 175, 135) } else { Color32::from_rgb(130, 103, 65) };
         t.form_accent = if dark { Color32::from_rgb(150, 140, 210) } else { Color32::from_rgb(115, 73, 170) };

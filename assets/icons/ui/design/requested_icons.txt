@@ -191,6 +191,16 @@ polygon	false
 polygon_circumscribed	false
 polygon_edge	false
 presspull	false
+print_airfoil	false
+print_dogbone	false
+print_export	false
+print_infill	false
+print_lego	false
+print_offset_body	false
+print_offset_sketch	false
+print_send	false
+print_supershape	false
+print_vent	false
 project	false
 project_surface	false
 rack_pinion	false
@@ -298,6 +308,7 @@ timeline_stop	false
 torus	false
 trace	false
 trim	false
+true_scale	false
 undo	false
 unfold	false
 update	false

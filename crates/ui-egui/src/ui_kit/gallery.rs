@@ -2298,7 +2298,8 @@ fn confirm_radial_and_history_rows_keep_multitone_artwork() {
             }
             output.textures_delta.clear();
         }
-        for (group, count) in [("confirm", 3), ("radial", 5), ("radial_hover", 5), ("history_names", 5), ("history_icons", 5)] {
+        // CDS fork: the Sketch ramp is the base gold, so one mapping fewer is told apart.
+        for (group, count) in [("confirm", 3), ("radial", 4), ("radial_hover", 4), ("history_names", 4), ("history_icons", 4)] {
             assert_eq!(dominant_accents[group].len(), count, "{group}, dark={dark}: dominant accent pixels must differ across mappings");
         }
     }

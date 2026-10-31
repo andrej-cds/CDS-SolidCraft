@@ -643,7 +643,7 @@ fn pairs(t: &Tokens) -> Vec<(String, Rgb8, Rgb8)> {
 const GOLD_TOKENS: &[&str] = &[
     "accent", "accent_soft", "selected_bg", "selected_ink", "sel_face", "sel_edge", "body_selected", "form_primary", "file_rail",
     "preview_add", "preview_new", "box_window", "box_crossing", "agent_ok", "agent_busy", "joint_manipulator", "hover",
-    "timeline_item", "timeline_item_error",
+    "timeline_item", "timeline_item_error", "sketch_accent", "form_success", "form_success_fill", "sheet_fill",
 ];
 
 fn left_as_they_are(mode: ColorVision, dark: bool) -> BTreeSet<String> {
