@@ -540,8 +540,8 @@ jobs:
     # in .config/nextest.toml), so they start at once and no core idles at the end.
     runs-on: ubuntu-24.04
     # CDS fork: the free GitHub runner has 4 cores and no persistent compiler cache, so a full
-    # build and the slow engine tests need far longer than upstream's 60 minutes on 8 cores.
-    timeout-minutes: 180
+    # build and the slow engine tests need far longer than upstream's 60 minutes on 8 cores (about 31 min build + 3.5 h of tests).
+    timeout-minutes: 340
     env:
       # Pictures (snapshots, screenshots, ui.render, the viewport's offscreen tests) are drawn on
       # the GPU. The runner has none: Mesa's lavapipe (software Vulkan) draws them, and a test that
