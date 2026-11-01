@@ -815,6 +815,9 @@ fn each_mode_changes_only_its_table() {
                 "preview_sketch",
                 "sketch_conflict",
                 "analysis.hatch",
+                // CDS fork: Tritan keeps the green success badges.
+                "form_success",
+                "form_success_fill",
             ]),
         ),
         (
@@ -832,6 +835,9 @@ fn each_mode_changes_only_its_table() {
                 "preview_sketch",
                 "sketch_conflict",
                 "analysis.hatch",
+                // CDS fork: Tritan keeps the green success badges.
+                "form_success",
+                "form_success_fill",
             ]),
         ),
     ] {
