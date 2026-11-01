@@ -281,7 +281,7 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
 /// The panel's contents (CDS fork: also drawn docked in the tools window, two screens).
 fn body(app: &mut SolveApp, ui: &mut egui::Ui, d: &mut ParamsDialog, all: &Arc<Vec<Row>>, live: bool) {
     ui_kit::text(ui, hint(live), ui_kit::Text::Hint("manage"));
-    apply_live_checkbox(app, ui, d, &all);
+    apply_live_checkbox(app, ui, d, all);
     ui_kit::row(ui, "Filter", |ui| {
         let id = ui.make_persistent_id("parameter_filter");
         ui_kit::search_field(ui, id, &mut d.filter, "Filter");
@@ -361,7 +361,7 @@ fn body(app: &mut SolveApp, ui: &mut egui::Ui, d: &mut ParamsDialog, all: &Arc<V
 /// Apply button of their own here.
 pub(crate) fn docked(app: &mut SolveApp, ui: &mut egui::Ui, slot: &mut Option<ParamsDialog>) {
     publish(app, ui.ctx());
-    let mut d = slot.take().unwrap_or_else(ParamsDialog::new);
+    let mut d = slot.take().unwrap_or_default();
     d.sort = ui.ctx().data_mut(|m| m.get_persisted(sort_id())).unwrap_or_default();
     let sort = d.sort;
     let all = if let Some((_, rows)) = d.listed.as_ref().filter(|(rev, _)| *rev == app.session.revision) {
