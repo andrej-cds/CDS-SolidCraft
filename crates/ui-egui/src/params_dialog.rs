@@ -250,82 +250,7 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
             false,
             true,
             |ui| {
-                ui_kit::text(ui, hint(live), ui_kit::Text::Hint("manage"));
-                apply_live_checkbox(app, ui, &mut d, &all);
-                ui_kit::row(ui, "Filter", |ui| {
-                    let id = ui.make_persistent_id("parameter_filter");
-                    ui_kit::search_field(ui, id, &mut d.filter, "Filter");
-                });
-                ui.horizontal_wrapped(|ui| {
-                    if ui_kit::icon_label_button(ui, "Import…", "import_tray", true, false)
-                        .on_hover_text(crate::i18n::tr_label("CSV or JSON: updates existing parameters, adds new ones"))
-                        .clicked()
-                    {
-                        app.pick_open_command("parameters.import", json!({}), IMPORT_TYPES);
-                    }
-                    for (label, ext) in [("Export CSV…", "csv"), ("Export JSON…", "json")] {
-                        if ui_kit::icon_label_button(ui, label, "export_tray", true, false).clicked() {
-                            app.pick_save_command(&format!("parameters.{ext}"), &[ext], "parameters.export", json!({"format": ext}));
-                        }
-                    }
-                });
-                if let Some(error) = &d.error {
-                    ui_kit::text(ui, error, ui_kit::Text::Error("parameters_error"));
-                }
-                let filter = d.filter.to_ascii_lowercase();
-                let visible: Vec<_> = all
-                    .iter()
-                    .filter(|r| {
-                        filter.is_empty()
-                            || r.name.to_ascii_lowercase().contains(&filter)
-                            || r.comment.to_ascii_lowercase().contains(&filter)
-                            || r.group.to_ascii_lowercase().contains(&filter)
-                    })
-                    .collect();
-                // One Name-column floor for every table in this dialog so Favorites, User and
-                // Model sections stay lined up when only some lists hold a long name (#8551 review).
-                let name_floor = visible
-                    .iter()
-                    .map(|r| ui_kit::ContentWidth::name(ui, &r.name))
-                    .fold(crate::theme::Tokens::get().form_label_width, f32::max)
-                    .min(crate::theme::Tokens::get().form_card_width);
-                let Sections { favorites, users, groups } = sections(&visible, d.sort);
-                if !favorites.is_empty() {
-                    ui_kit::section_count(ui, "favorites", "Favorites", true, Some(favorites.len()), |ui| {
-                        table(app, ui, &mut d, &favorites, "fav", name_floor)
-                    });
-                }
-                ui_kit::section_count(ui, "users", "User Parameters", true, Some(users.len()), |ui| {
-                    table(app, ui, &mut d, &users, "user", name_floor);
-                });
-                ui_kit::section(ui, "models", "Model Parameters", true, |ui| {
-                    ui.scope(|ui| {
-                        ui.spacing_mut().indent = crate::theme::Tokens::get().space_14;
-                        ui.indent("model_groups", |ui| {
-                            let layout = GroupLayout {
-                                revision: app.session.revision,
-                                filter: filter.clone(),
-                                width: ui.available_width(),
-                                pixels_per_point: ui.ctx().pixels_per_point(),
-                                style: ui.style().clone(),
-                                font: app.applied_ui_font.clone(),
-                                system_fonts: app.applied_system_fonts,
-                                language: crate::i18n::language(),
-                            };
-                            if d.group_layout.as_ref() != Some(&layout) {
-                                d.group_sizes.clear();
-                                d.group_layout = Some(layout);
-                            }
-                            #[cfg(test)]
-                            {
-                                d.groups_drawn = 0;
-                            }
-                            for (group, members) in groups {
-                                model_group(app, ui, &mut d, group, &members, name_floor);
-                            }
-                        });
-                    });
-                });
+                body(app, ui, &mut d, &all, live);
                 ui_kit::ComputeStatus { text: held_status, busy: false, applying: false }
             },
         );
@@ -351,6 +276,119 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
     if !close {
         app.params = Some(d);
     }
+}
+
+/// The panel's contents (CDS fork: also drawn docked in the tools window, two screens).
+fn body(app: &mut SolveApp, ui: &mut egui::Ui, d: &mut ParamsDialog, all: &Arc<Vec<Row>>, live: bool) {
+        ui_kit::text(ui, hint(live), ui_kit::Text::Hint("manage"));
+        apply_live_checkbox(app, ui, d, &all);
+        ui_kit::row(ui, "Filter", |ui| {
+            let id = ui.make_persistent_id("parameter_filter");
+            ui_kit::search_field(ui, id, &mut d.filter, "Filter");
+        });
+        ui.horizontal_wrapped(|ui| {
+            if ui_kit::icon_label_button(ui, "Import…", "import_tray", true, false)
+                .on_hover_text(crate::i18n::tr_label("CSV or JSON: updates existing parameters, adds new ones"))
+                .clicked()
+            {
+                app.pick_open_command("parameters.import", json!({}), IMPORT_TYPES);
+            }
+            for (label, ext) in [("Export CSV…", "csv"), ("Export JSON…", "json")] {
+                if ui_kit::icon_label_button(ui, label, "export_tray", true, false).clicked() {
+                    app.pick_save_command(&format!("parameters.{ext}"), &[ext], "parameters.export", json!({"format": ext}));
+                }
+            }
+        });
+        if let Some(error) = &d.error {
+            ui_kit::text(ui, error, ui_kit::Text::Error("parameters_error"));
+        }
+        let filter = d.filter.to_ascii_lowercase();
+        let visible: Vec<_> = all
+            .iter()
+            .filter(|r| {
+                filter.is_empty()
+                    || r.name.to_ascii_lowercase().contains(&filter)
+                    || r.comment.to_ascii_lowercase().contains(&filter)
+                    || r.group.to_ascii_lowercase().contains(&filter)
+            })
+            .collect();
+        // One Name-column floor for every table in this dialog so Favorites, User and
+        // Model sections stay lined up when only some lists hold a long name (#8551 review).
+        let name_floor = visible
+            .iter()
+            .map(|r| ui_kit::ContentWidth::name(ui, &r.name))
+            .fold(crate::theme::Tokens::get().form_label_width, f32::max)
+            .min(crate::theme::Tokens::get().form_card_width);
+        let Sections { favorites, users, groups } = sections(&visible, d.sort);
+        if !favorites.is_empty() {
+            ui_kit::section_count(ui, "favorites", "Favorites", true, Some(favorites.len()), |ui| {
+                table(app, ui, d, &favorites, "fav", name_floor)
+            });
+        }
+        ui_kit::section_count(ui, "users", "User Parameters", true, Some(users.len()), |ui| {
+            table(app, ui, d, &users, "user", name_floor);
+        });
+        ui_kit::section(ui, "models", "Model Parameters", true, |ui| {
+            ui.scope(|ui| {
+                ui.spacing_mut().indent = crate::theme::Tokens::get().space_14;
+                ui.indent("model_groups", |ui| {
+                    let layout = GroupLayout {
+                        revision: app.session.revision,
+                        filter: filter.clone(),
+                        width: ui.available_width(),
+                        pixels_per_point: ui.ctx().pixels_per_point(),
+                        style: ui.style().clone(),
+                        font: app.applied_ui_font.clone(),
+                        system_fonts: app.applied_system_fonts,
+                        language: crate::i18n::language(),
+                    };
+                    if d.group_layout.as_ref() != Some(&layout) {
+                        d.group_sizes.clear();
+                        d.group_layout = Some(layout);
+                    }
+                    #[cfg(test)]
+                    {
+                        d.groups_drawn = 0;
+                    }
+                    for (group, members) in groups {
+                        model_group(app, ui, d, group, &members, name_floor);
+                    }
+                });
+            });
+        });
+}
+
+/// Parameters kept open in the tools window (two screens, CDS fork): the same contents as the
+/// panel, with their own draft state, which stay until the mode is turned off. Held edits get an
+/// Apply button of their own here.
+pub(crate) fn docked(app: &mut SolveApp, ui: &mut egui::Ui, slot: &mut Option<ParamsDialog>) {
+    publish(app, ui.ctx());
+    let mut d = slot.take().unwrap_or_else(ParamsDialog::new);
+    d.sort = ui.ctx().data_mut(|m| m.get_persisted(sort_id())).unwrap_or_default();
+    let sort = d.sort;
+    let all = if let Some((_, rows)) = d.listed.as_ref().filter(|(rev, _)| *rev == app.session.revision) {
+        rows.clone()
+    } else {
+        let rows = Arc::new(rows(app));
+        d.listed = Some((app.session.revision, rows.clone()));
+        d.lists += 1;
+        rows
+    };
+    let live = app.preferences.parameters_apply_live;
+    body(app, ui, &mut d, &all, live);
+    if !live {
+        if let Some(text) = held_status(held(&d, &all).len()) {
+            ui_kit::text(ui, &text, ui_kit::Text::Hint("held"));
+        }
+        if ui_kit::button(ui, "Apply", ui_kit::Button::Normal).clicked() {
+            apply_held(app, &mut d, &all);
+        }
+    }
+    if d.sort != sort {
+        let chosen = d.sort;
+        ui.ctx().data_mut(|m| m.insert_persisted(sort_id(), chosen));
+    }
+    *slot = Some(d);
 }
 
 /// Where the chosen order is kept: egui's persisted memory, like a section's open state.

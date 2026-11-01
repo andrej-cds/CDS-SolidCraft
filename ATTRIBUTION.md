@@ -630,6 +630,11 @@ Original SolidCraft drawings, Open for owner review; no runtime assignments.
 | docs/book/src/generated/equation-wave.png | SolidCraft contributors | rendered by `cargo xtask book` (`solidcraft-cli snapshot docs/book/scripts/equation-wave.json`; gitignored) | MIT OR Apache-2.0 |
 | assets/icons/ui/design/svg/model/print_face.svg | SolidCraft contributors | two-tone modelling icon master (64 grid), original SolidCraft artwork | MIT OR Apache-2.0 |
 | assets/locales/fi.json | SolidCraft contributors | Original Finnish translation of SolidCraft's English catalog, AI-assisted (Claude Code) clean-room from the English and not yet reviewed line by line by a native speaker; no commercial CAD text used | MIT OR Apache-2.0 |
+| assets/branding/cds/cds-logo.png | Andrej Češarek (CDS) | CDS company logo, supplied by its owner for this fork | All rights reserved, used with the owner's permission |
+| assets/platforms/windows/banner.bmp | Andrej Češarek (CDS) | Installer banner: the gold SolidCraft mark, drawn for this fork | MIT OR Apache-2.0 |
+| assets/platforms/windows/dialog.bmp | Andrej Češarek (CDS) | Installer side panel with the CDS logo, drawn for this fork | All rights reserved, used with the owner's permission |
+| assets/icons/app/web/apple-touch-icon.png | Andrej Češarek (CDS) | The gold SolidCraft mark for the web app's home-screen icon | MIT OR Apache-2.0 |
+| assets/icons/app/web/solidcraft-icon.svg | Andrej Češarek (CDS) | The gold SolidCraft mark as the web app's page icon | MIT OR Apache-2.0 |
 
 ## Code adapted from sibling projects
 

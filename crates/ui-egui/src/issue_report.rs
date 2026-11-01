@@ -17,7 +17,7 @@ const MAX_BODY: usize = 24_000;
 // Room for all three answers and the original bounded diagnostic context.
 const MAX_REPORT: usize = 32_000;
 const MAX_IMAGE_PIXELS: usize = 16_000_000;
-const ISSUE_URL: &str = "https://github.com/tangency-labs/solidcraft/issues/new";
+const ISSUE_URL: &str = "https://github.com/andrej-cds/CDS-SolidCraft/issues/new";
 
 thread_local! {
     static CAD_INPUT_BLOCKED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
@@ -988,7 +988,7 @@ mod tests {
         for label in [
             "Open GitHub issue form",
             "Copy report",
-            "SolidCraft cannot submit reports directly. Submit on GitHub; no token is needed in the app.",
+            "SolidCraft by CDS cannot submit reports directly. Submit on GitHub; no token is needed in the app.",
             "If you are offline or GitHub does not open, use Copy report and keep the text to submit later.",
         ] {
             assert!(h.widget(label).is_some(), "missing submission action or explanation: {label}");

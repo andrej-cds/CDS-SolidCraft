@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Export for Printing</title>
+  <path d="M7 56L7 15L10 12L24 12L28 16L57 16L57 56Z" fill="#b8c3cf"/>
+  <path d="M7 56L7 15L10 12L24 12L28 16L57 16L57 56Z" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M19.84 12.96L32 19.98L32 34.02L19.84 27Z" fill="#328bd3"/>
+  <path d="M44.16 12.96L32 19.98L32 34.02L44.16 27Z" fill="#236ead"/>
+  <path d="M32 5.94L44.16 12.96L32 19.98L19.84 12.96Z" fill="#b9ddf8"/>
+  <path d="M32 5.94L44.16 12.96L44.16 27L32 34.02L19.84 27L19.84 12.96Z" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M19.84 12.96L32 19.98L44.16 12.96" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M32 19.98L32 34.02" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M4 33L60 33L56 58L8 58Z" fill="#e2e8ef"/>
+  <path d="M4 33L60 33L56 58L8 58Z" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

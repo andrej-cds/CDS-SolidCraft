@@ -3,11 +3,8 @@
 # repository is private.
 name: Pages
 
+# CDS fork: only by hand; the web app of each release goes to Pages through pages-cds.yml.
 on:
-  push:
-    branches: [main]
-    # The site is the book and the web app: test data and the GitHub bots' scripts change neither.
-    paths-ignore: ["tests/**", "scripts/claim/**", "scripts/triage/**"]
   workflow_dispatch:
     inputs:
       release_tag:

@@ -1,0 +1,10 @@
+| assets/icons/ui/design/svg/model/print_airfoil.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| assets/icons/ui/design/svg/model/print_dogbone.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| assets/icons/ui/design/svg/model/print_export.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| assets/icons/ui/design/svg/model/print_infill.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| assets/icons/ui/design/svg/model/print_lego.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| assets/icons/ui/design/svg/model/print_offset_body.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| assets/icons/ui/design/svg/model/print_offset_sketch.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| assets/icons/ui/design/svg/model/print_send.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| assets/icons/ui/design/svg/model/print_supershape.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| assets/icons/ui/design/svg/model/print_vent.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |

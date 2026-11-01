@@ -18,25 +18,29 @@
   <!-- Never change the UpgradeCode: it is what lets a new MSI replace every earlier install,
        including those from before the SolveCraft -> SolidCraft rename (docs/compatibility.md). -->
   <Package
-      Name="SolidCraft"
-      Manufacturer="SolidCraft contributors"
+      Name="SolidCraft by CDS"
+      Manufacturer="CDS"
       Version="$(var.Version)"
       UpgradeCode="6A145FD6-D285-428D-AE84-A69570CDF4DB"
       Scope="perMachine"
       Compressed="yes"
       Language="1033">
-    <SummaryInformation Description="SolidCraft parametric 3D CAD" Manufacturer="SolidCraft contributors" />
+    <SummaryInformation Description="SolidCraft by CDS parametric 3D CAD" Manufacturer="CDS" />
     <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other. -->
     <MajorUpgrade AllowSameVersionUpgrades="yes"
         DowngradeErrorMessage="A newer version of SolidCraft is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
+    <!-- The CDS logo in the wizard: left panel of Welcome/Finish and the banner of the other pages. -->
+    <WixVariable Id="WixUIDialogBmp" Value="$(sys.SOURCEFILEDIR)dialog.bmp" />
+    <WixVariable Id="WixUIBannerBmp" Value="$(sys.SOURCEFILEDIR)banner.bmp" />
+
     <!-- Advertised shortcuts to an .exe need an .exe icon identifier (ICE50). -->
     <Icon Id="SolidcraftIcon.exe" SourceFile="$(var.IconPath)" />
     <Property Id="ARPPRODUCTICON" Value="SolidcraftIcon.exe" />
     <Property Id="ARPURLINFOABOUT" Value="https://docs.solidcraft.io/" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/bherbruck/solidcraft/releases" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/bherbruck/solidcraft/issues" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/andrej-cds/CDS-SolidCraft/releases" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/andrej-cds/CDS-SolidCraft/issues" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="INSTALLFOLDER" Name="SolidCraft" />
@@ -51,7 +55,7 @@
       <RegistrySearch Id="PreviousInstallFolder" Root="HKLM" Key="Software\SolidCraft" Name="InstallDir" Type="raw" />
     </Property>
 
-    <Feature Id="Main" Title="SolidCraft" Level="1">
+    <Feature Id="Main" Title="SolidCraft by CDS" Level="1">
       <ComponentGroupRef Id="SolidcraftFiles" />
     </Feature>
 
@@ -65,8 +69,8 @@
     </UI>
 
     <Property Id="SolidcraftVersion" Value="$(var.DisplayVersion)" />
-    <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="SolidCraft $(var.DisplayVersion) is installed. You can start it any time from the Start menu." />
-    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch SolidCraft" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="SolidCraft by CDS $(var.DisplayVersion) is installed. You can start it any time from the Start menu." />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch SolidCraft by CDS" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
     <Property Id="WixShellExecTarget" Value="[#SolidcraftExe]" />
     <!-- Runs in the wizard's own (unelevated) process, so the app starts as the user. -->

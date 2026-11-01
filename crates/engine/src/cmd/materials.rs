@@ -133,13 +133,38 @@ fn inspect(s: &mut Session, p: &Value) -> Result<Value> {
             .find(|(n, _)| *n == canonical.as_str())
             .map(|(_, density)| *density)
             .ok_or_else(|| bad(cmd, "material is unavailable"))?;
-        json!({"name":canonical,"density_g_cm3":density,"user":false})
+        let mut v = json!({"name":canonical,"density_g_cm3":density,"user":false});
+        if let Some(card) = print_card(&canonical, density) {
+            v["physical_card"] = card;
+        }
+        v
     };
     out["appearance"] = json!(s.doc.material_look(&canonical).as_ref().map(look_json));
     if out.get("physical_card").is_none() {
         out["physical_card"] = Value::Null;
     }
     Ok(out)
+}
+
+/// Typical properties of a part printed in a filament (CDS fork): stiffness and tensile strength
+/// along the layers (XY) at room temperature, from the usual published filament data sheets; a
+/// part across its layers is weaker.
+fn print_card(name: &str, density: f64) -> Option<Value> {
+    let (young_gpa, tensile_mpa, poisson) = match name {
+        "PLA (3D print)" => (3.5, 50.0, 0.36),
+        "PETG (3D print)" => (2.1, 45.0, 0.38),
+        "ABS (3D print)" => (2.0, 38.0, 0.35),
+        "ASA (3D print)" => (2.0, 40.0, 0.35),
+        "CF-Nylon (3D print)" => (6.0, 80.0, 0.35),
+        _ => return None,
+    };
+    let at = json!({"temperature_k": 293.15, "state": "printed, along the layers"});
+    Some(json!({"schema_version": 1, "designation": format!("{name}: a printed part, typical data sheet values"), "family": "polymer",
+        "sources": [{"id": "filament", "title": "Typical filament data sheet values for printed parts", "kind": "public_reference", "license": null, "reference": null}],
+        "properties": [
+            {"source_id": "filament", "conditions": at, "data": {"kind": "density", "kg_m3": density * 1000.0}},
+            {"source_id": "filament", "conditions": at, "data": {"kind": "elasticity", "model": {"symmetry": "isotropic", "young_modulus_pa": young_gpa * 1e9, "poisson_ratio": poisson}}},
+            {"source_id": "filament", "conditions": at, "data": {"kind": "tensile_strength", "pa": tensile_mpa * 1e6}}]}))
 }
 
 /// The index of the design material `material` names.

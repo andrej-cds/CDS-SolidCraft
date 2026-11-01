@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/icons/app/linux/exports/hicolor/256x256/apps/io.tangencylabs.solidcraft.png" width="96" height="96" alt="SolidCraft" />
+  <img src="assets/icons/app/linux/exports/hicolor/256x256/apps/io.tangencylabs.solidcraft.png" width="96" height="96" alt="SolidCraft by CDS" />
 </p>
 
-<h1 align="center">SolidCraft</h1>
+<h1 align="center">SolidCraft by CDS</h1>
 
 <p align="center">
   <strong>An open-source parametric 3D CAD application built in pure Rust.</strong><br />
