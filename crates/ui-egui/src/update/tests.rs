@@ -388,7 +388,7 @@ fn help_menu_checks_with_automatic_checks_off_and_offers_installation() {
     assert!(h.app.updater.open);
     assert!(h.app.preferences.update.skipped.is_empty());
     assert_eq!(h.app.preferences.update.remind_after, 0.0);
-    assert!(h.widget(&format!("SolidCraft {version} is available")).is_some());
+    assert!(h.widget(&format!("SolidCraft by CDS {version} is available")).is_some());
     assert!(h.widget("Download and open").is_some(), "the macOS installation is offered immediately");
     assert!(h.app.updater.job.is_none());
 }
@@ -420,7 +420,7 @@ fn help_check_shows_progress_and_up_to_date_then_closes() {
     tx.send(Ok(release)).unwrap();
     h.frames(2);
     assert_eq!(h.app.updater.status, Status::UpToDate);
-    assert!(h.widget("SolidCraft is up to date.").is_some());
+    assert!(h.widget("SolidCraft by CDS is up to date.").is_some());
     assert!(h.widget("Download").is_none() && h.widget("Update now").is_none());
     let [x, y] = h.widget("Close").unwrap();
     h.call("ui.click", json!({"x": x, "y": y}));
@@ -428,7 +428,7 @@ fn help_check_shows_progress_and_up_to_date_then_closes() {
     // Reopening during the cooldown still shows the result, without another request.
     h.app.updater.last_manual = unix_now();
     h.call("ui.help", json!({"item": "updates"}));
-    assert!(h.widget("SolidCraft is up to date.").is_some());
+    assert!(h.widget("SolidCraft by CDS is up to date.").is_some());
     assert!(h.app.updater.rx.is_none());
 }
 
@@ -441,7 +441,7 @@ fn help_check_reports_network_errors_and_rate_limits_in_the_window() {
         h.frames(2);
         assert_eq!(h.app.updater.status, Status::Failed(error.to_string()));
         assert!(h.widget(&format!("Couldn't check: {error}")).is_some());
-        assert!(h.widget("SolidCraft is up to date.").is_none());
+        assert!(h.widget("SolidCraft by CDS is up to date.").is_none());
         if matches!(error, FetchError::RateLimited { .. }) {
             h.call("ui.help", json!({"item": "updates"}));
             assert!(h.app.updater.rx.is_none(), "the server's rate limit is honoured");
@@ -467,7 +467,7 @@ fn help_check_result_follows_the_selected_language() {
         h.call("ui.prefs", json!({"language": language}));
         assert!(h.widget(title).is_some(), "the window title follows {language}");
         assert!(h.widget(message).is_some(), "the result follows {language}");
-        assert!(h.widget("SolidCraft is up to date.").is_none());
+        assert!(h.widget("SolidCraft by CDS is up to date.").is_none());
     }
 }
 
@@ -477,7 +477,7 @@ fn help_check_explains_when_checks_are_unavailable() {
     h.app.updater.off = true;
     h.call("ui.help", json!({"item": "updates"}));
     assert!(h.widget("Update checks are not available for this installation.").is_some());
-    assert!(h.widget("SolidCraft is up to date.").is_none());
+    assert!(h.widget("SolidCraft by CDS is up to date.").is_none());
     assert!(h.app.updater.rx.is_none());
 }
 
