@@ -32,11 +32,7 @@ pub(crate) fn active() -> bool {
 fn mm_per_point(app: &SolveApp) -> Option<f64> {
     let (ppp, monitor_px) = SCREEN.get();
     let width_mm = f64::from(app.preferences.screen_width_mm);
-    let mm_per_px = if width_mm > 0.0 && monitor_px > 0.0 {
-        width_mm / f64::from(monitor_px)
-    } else {
-        detected_mm_per_px(monitor_px)?
-    };
+    let mm_per_px = if width_mm > 0.0 && monitor_px > 0.0 { width_mm / f64::from(monitor_px) } else { detected_mm_per_px(monitor_px)? };
     (mm_per_px.is_finite() && mm_per_px > 0.0).then(|| mm_per_px * f64::from(ppp))
 }
 
@@ -65,11 +61,7 @@ fn detected_mm_per_px(monitor_px: f32) -> Option<f64> {
     let monitors = EDIDS.get_or_init(read_edids);
     // Prefer the monitor whose width matches this screen; the registry also lists monitors that
     // were connected once.
-    monitors
-        .iter()
-        .find(|(px, _)| (*px - f64::from(monitor_px)).abs() < 0.5)
-        .or_else(|| monitors.first())
-        .map(|(px, mm)| mm / px)
+    monitors.iter().find(|(px, _)| (*px - f64::from(monitor_px)).abs() < 0.5).or_else(|| monitors.first()).map(|(px, mm)| mm / px)
 }
 
 #[cfg(not(target_os = "windows"))]

@@ -37,7 +37,11 @@ pub const RELEASES_PAGE: &str = "https://github.com/andrej-cds/CDS-SolidCraft/re
 /// Release pages and assets must be on GitHub, under this repository. The repository is moving
 /// to the `tangency-labs` organisation, so releases may name either owner (the API request stays
 /// on the old name, which GitHub redirects after a transfer).
-const RELEASE_PREFIXES: [&str; 3] = ["https://github.com/andrej-cds/CDS-SolidCraft/releases/", "https://github.com/bherbruck/solidcraft/releases/", "https://github.com/tangency-labs/solidcraft/releases/"];
+const RELEASE_PREFIXES: [&str; 3] = [
+    "https://github.com/andrej-cds/CDS-SolidCraft/releases/",
+    "https://github.com/bherbruck/solidcraft/releases/",
+    "https://github.com/tangency-labs/solidcraft/releases/",
+];
 
 /// A release page or asset URL: github.com, one of the two owners, exactly `solidcraft`, then
 /// `/releases/` (the trailing slash rules out look-alike names such as `solidcraft-evil`).

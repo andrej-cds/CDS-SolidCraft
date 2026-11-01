@@ -78,7 +78,12 @@ fn run_one(s: &mut Session, command: &str, params: Value) -> Result<Value> {
 fn number(cmd: &str, p: &Value, k: &str, default: f64, lo: f64, hi: f64) -> Result<f64> {
     match p.get(k) {
         None | Some(Value::Null) => Ok(default),
-        Some(Value::String(t)) => t.trim().parse::<f64>().ok().filter(|v| (lo..=hi).contains(v)).ok_or_else(|| bad(cmd, format!("`{k}` must be a number from {lo} to {hi}"))),
+        Some(Value::String(t)) => t
+            .trim()
+            .parse::<f64>()
+            .ok()
+            .filter(|v| (lo..=hi).contains(v))
+            .ok_or_else(|| bad(cmd, format!("`{k}` must be a number from {lo} to {hi}"))),
         Some(_) => num(p, k).filter(|v| (lo..=hi).contains(v)).ok_or_else(|| bad(cmd, format!("`{k}` must be a number from {lo} to {hi}"))),
     }
 }
@@ -135,7 +140,10 @@ fn sketch_of(v: &Value) -> Option<u64> {
 
 /// The point ids a sketch command created, in order.
 fn created_points(v: &Value) -> Vec<String> {
-    v.pointer("/created/points").and_then(Value::as_array).map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default()
+    v.pointer("/created/points")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect())
+        .unwrap_or_default()
 }
 
 fn xy(p: Vec2) -> Value {
@@ -177,7 +185,10 @@ fn lego(s: &mut Session, p: &Value) -> Result<Value> {
     let first = |i: f64, j: f64| Vec3::new(at.x + PITCH / 2.0 - gap + i * PITCH, at.y + PITCH / 2.0 - gap + j * PITCH, 0.0);
     let mut steps = vec![
         step("solid.box", json!({"length": round(len), "width": round(wid), "height": height, "corner": xyz(at), "body_name": body, "name": body})),
-        step("solid.shell", json!({"faces": [xyz(Vec3::new(at.x + len / 2.0, at.y + wid / 2.0, at.z))], "thickness": WALL, "direction": "inside", "body": body})),
+        step(
+            "solid.shell",
+            json!({"faces": [xyz(Vec3::new(at.x + len / 2.0, at.y + wid / 2.0, at.z))], "thickness": WALL, "direction": "inside", "body": body}),
+        ),
     ];
     let mut patterned: Vec<(usize, usize, usize, f64, f64)> = Vec::new();
     if kind != "tile" {
@@ -215,7 +226,9 @@ fn lego(s: &mut Session, p: &Value) -> Result<Value> {
     for (index, cx, cy, sx, sy) in patterned {
         let Some(seed) = results.get(index).and_then(feature_of).and_then(|id| s.doc.feature(id).map(|f| f.name.clone())) else { continue };
         let q = match (cx > 1, cy > 1) {
-            (true, true) => json!({"features": [seed], "dir1": [1, 0, 0], "count1": cx, "spacing1": sx, "dir2": [0, 1, 0], "count2": cy, "spacing2": sy}),
+            (true, true) => {
+                json!({"features": [seed], "dir1": [1, 0, 0], "count1": cx, "spacing1": sx, "dir2": [0, 1, 0], "count2": cy, "spacing2": sy})
+            }
             (true, false) => json!({"features": [seed], "dir1": [1, 0, 0], "count1": cx, "spacing1": sx}),
             (false, true) => json!({"features": [seed], "dir1": [0, 1, 0], "count1": cy, "spacing1": sy}),
             (false, false) => continue,
@@ -294,7 +307,8 @@ fn airfoil(s: &mut Session, p: &Value) -> Result<Value> {
         }
         None => {
             let code = str_(p, "naca").unwrap_or("2412");
-            let pts = shapes::naca4(code, per_side).ok_or_else(|| bad(cmd, "`naca` must be four digits with a thickness above 0, such as 2412 or 0012"))?;
+            let pts =
+                shapes::naca4(code, per_side).ok_or_else(|| bad(cmd, "`naca` must be four digits with a thickness above 0, such as 2412 or 0012"))?;
             (pts, format!("NACA {}", code.trim()))
         }
     };
@@ -305,7 +319,8 @@ fn airfoil(s: &mut Session, p: &Value) -> Result<Value> {
     let span = length(s, cmd, p, "span", 0.0, 0.0, 100_000.0)?;
     let plane = plane(cmd, p)?;
     let scaled: Vec<Value> = pts.iter().map(|q| xy(Vec2::new(q.x * chord, q.y * chord))).collect();
-    let made = run_steps(s, vec![step("sketch.create", json!({"plane": plane, "name": name})), step("sketch.spline.fit_point", json!({"points": scaled}))])?;
+    let made =
+        run_steps(s, vec![step("sketch.create", json!({"plane": plane, "name": name})), step("sketch.spline.fit_point", json!({"points": scaled}))])?;
     let sketch = made.first().and_then(sketch_of);
     let ids = made.get(1).map(created_points).unwrap_or_default();
     let mut close = vec![];
@@ -403,7 +418,11 @@ fn infill(s: &mut Session, p: &Value) -> Result<Value> {
     let made = run_steps(s, steps)?;
     let sketch = made.first().and_then(sketch_of);
     let pick = xy(Vec2::new(at.x + frame / 2.0, at.y + frame / 2.0));
-    let r = run_one(s, "solid.extrude", json!({"sketch": sketch, "profiles": [{"point": pick}], "distance": round(size.z), "body_name": body, "name": name}))?;
+    let r = run_one(
+        s,
+        "solid.extrude",
+        json!({"sketch": sketch, "profiles": [{"point": pick}], "distance": round(size.z), "body_name": body, "name": name}),
+    )?;
     Ok(json!({"body": body, "sketch": sketch, "feature": feature_of(&r), "cells": cells}))
 }
 
@@ -447,10 +466,19 @@ fn vent(s: &mut Session, p: &Value) -> Result<Value> {
             picks.push(json!({"point": xy(c)}));
             steps.push(match shape {
                 "round" => step("sketch.circle.center", json!({"center": xy(c), "diameter": round(w)})),
-                "rectangle" => step("sketch.rectangle.two_point", json!({"p0": xy(Vec2::new(c.x - w / 2.0, c.y - h / 2.0)), "p1": xy(Vec2::new(c.x + w / 2.0, c.y + h / 2.0))})),
+                "rectangle" => step(
+                    "sketch.rectangle.two_point",
+                    json!({"p0": xy(Vec2::new(c.x - w / 2.0, c.y - h / 2.0)), "p1": xy(Vec2::new(c.x + w / 2.0, c.y + h / 2.0))}),
+                ),
                 _ if (w - h).abs() < 1e-9 => step("sketch.circle.center", json!({"center": xy(c), "diameter": round(w)})),
-                _ if w > h => step("sketch.slot.overall", json!({"p0": xy(Vec2::new(c.x - w / 2.0, c.y)), "p1": xy(Vec2::new(c.x + w / 2.0, c.y)), "width": round(h)})),
-                _ => step("sketch.slot.overall", json!({"p0": xy(Vec2::new(c.x, c.y - h / 2.0)), "p1": xy(Vec2::new(c.x, c.y + h / 2.0)), "width": round(w)})),
+                _ if w > h => step(
+                    "sketch.slot.overall",
+                    json!({"p0": xy(Vec2::new(c.x - w / 2.0, c.y)), "p1": xy(Vec2::new(c.x + w / 2.0, c.y)), "width": round(h)}),
+                ),
+                _ => step(
+                    "sketch.slot.overall",
+                    json!({"p0": xy(Vec2::new(c.x, c.y - h / 2.0)), "p1": xy(Vec2::new(c.x, c.y + h / 2.0)), "width": round(w)}),
+                ),
             });
         }
     }
@@ -528,10 +556,8 @@ fn dogbone(s: &mut Session, p: &Value) -> Result<Value> {
         let mid = a.lerp(z, 0.5);
         let mesh = b.mesh();
         let e = (r * 0.2).min(tol * 20.0).max(tol * 2.0);
-        let quadrants: Vec<Vec3> = [(1.0, 1.0), (1.0, -1.0), (-1.0, 1.0), (-1.0, -1.0)]
-            .iter()
-            .filter_map(|(s1, s2)| (*n1 * *s1 + *n2 * *s2).normalized())
-            .collect();
+        let quadrants: Vec<Vec3> =
+            [(1.0, 1.0), (1.0, -1.0), (-1.0, 1.0), (-1.0, -1.0)].iter().filter_map(|(s1, s2)| (*n1 * *s1 + *n2 * *s2).normalized()).collect();
         let open: Vec<Vec3> = quadrants.iter().copied().filter(|q| !mesh.contains(mid + *q * e)).collect();
         let [void] = open.as_slice() else {
             return Err(bad(cmd, "dogbones go on inside corners (where a pocket's walls meet)"));
@@ -579,7 +605,8 @@ fn offset_sketch(s: &mut Session, p: &Value) -> Result<Value> {
     let inward = bool_(p, "inward").unwrap_or(false);
     let sk = super::sketch_store::read(&s.doc, id)?.clone();
     // Connected chains of drawn (not construction or projected) curves.
-    let drawn: Vec<usize> = (0..sk.curves.len()).filter(|i| sk.curves.get(*i).is_some_and(|c| !c.construction && !c.centerline && c.link.is_none())).collect();
+    let drawn: Vec<usize> =
+        (0..sk.curves.len()).filter(|i| sk.curves.get(*i).is_some_and(|c| !c.construction && !c.centerline && c.link.is_none())).collect();
     let mut group: Vec<usize> = (0..sk.curves.len()).collect();
     fn root(g: &mut [usize], mut i: usize) -> usize {
         while g[i] != i {
@@ -593,7 +620,9 @@ fn offset_sketch(s: &mut Session, p: &Value) -> Result<Value> {
             let (Some(ci), Some(cj)) = (sk.curves.get(i), sk.curves.get(j)) else { continue };
             let ends = |c: &solidcraft_sketch::Curve| c.kind.ends().map(|(a, b)| vec![a, b]).unwrap_or_default();
             let touch = ends(ci).iter().any(|a| {
-                ends(cj).iter().any(|b| a == b || matches!((sk.points.get(*a), sk.points.get(*b)), (Some(pa), Some(pb)) if pa.pos.dist(pb.pos) < 1e-6))
+                ends(cj)
+                    .iter()
+                    .any(|b| a == b || matches!((sk.points.get(*a), sk.points.get(*b)), (Some(pa), Some(pb)) if pa.pos.dist(pb.pos) < 1e-6))
             });
             if touch {
                 let (ri, rj) = (root(&mut group, i), root(&mut group, j));
@@ -710,11 +739,8 @@ fn export(s: &mut Session, p: &Value) -> Result<Value> {
     let pattern = cfg["name"].as_str().unwrap_or("{design} - {body}").to_string();
     let safe = |t: &str| -> String { t.chars().map(|c| if "\\/:*?\"<>|".contains(c) || c.is_control() { '_' } else { c }).collect() };
     let mut files = Vec::new();
-    let groups: Vec<(String, Vec<String>)> = if per_component {
-        vec![(stem.clone(), bodies.clone())]
-    } else {
-        bodies.iter().map(|b| (b.clone(), vec![b.clone()])).collect()
-    };
+    let groups: Vec<(String, Vec<String>)> =
+        if per_component { vec![(stem.clone(), bodies.clone())] } else { bodies.iter().map(|b| (b.clone(), vec![b.clone()])).collect() };
     for (n, (label, members)) in groups.iter().enumerate() {
         let file = pattern.replace("{design}", &stem).replace("{body}", label).replace("{n}", &(n + 1).to_string());
         let path = folder.join(format!("{}.{format}", safe(&file))).to_string_lossy().to_string();
@@ -736,7 +762,8 @@ fn quick_send(s: &mut Session, p: &Value) -> Result<Value> {
     let bodies: Vec<String> = match p.get("bodies").and_then(Value::as_array) {
         Some(a) => a.iter().filter_map(|v| v.as_str().map(str::to_string)).collect(),
         None => {
-            let picked: Vec<String> = s.selection.iter().filter_map(|x| if let crate::Sel::Body { name } = x { Some(name.clone()) } else { None }).collect();
+            let picked: Vec<String> =
+                s.selection.iter().filter_map(|x| if let crate::Sel::Body { name } = x { Some(name.clone()) } else { None }).collect();
             if picked.is_empty() { s.world_state().bodies.iter().map(|b| b.name.clone()).filter(|n| s.body_visible(n)).collect() } else { picked }
         }
     };

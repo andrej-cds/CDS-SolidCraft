@@ -428,7 +428,14 @@ fn cell(v: &Value) -> String {
 fn markdown(rows: &[Value], total: u64, titles: Option<&Value>) -> String {
     let t = |k: &str, d: &str| titles.and_then(|x| x.get(k)).and_then(Value::as_str).unwrap_or(d).to_string();
     let columns = ["item", "part_number", "description", "revision", "count", "definition"];
-    let names = [t("item", "Item"), t("part_number", "Part number"), t("description", "Description"), t("revision", "Revision"), t("count", "Count"), t("definition", "Component")];
+    let names = [
+        t("item", "Item"),
+        t("part_number", "Part number"),
+        t("description", "Description"),
+        t("revision", "Revision"),
+        t("count", "Count"),
+        t("definition", "Component"),
+    ];
     let mut out = format!("# {}\n\n", t("title", "Bill of Materials"));
     let lines: Vec<&Value> = rows.iter().flat_map(|r| std::iter::once(r).chain(r["children"].as_array().into_iter().flatten())).collect();
     let purchased = |r: &&Value| r["bom_type"].as_str() == Some("purchased");

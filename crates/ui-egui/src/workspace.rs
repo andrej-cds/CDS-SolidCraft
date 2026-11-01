@@ -271,7 +271,16 @@ pub const SECTIONS: &[Section] = &[
         tab: "SKETCH",
         panel: "MODIFY",
         promoted: 3,
-        ids: &["sketch.trim", "sketch.offset", "print.offset_sketch", "sketch.fillet", "sketch.transform", "sketch.copy", "sketch.cut", "sketch.paste"],
+        ids: &[
+            "sketch.trim",
+            "sketch.offset",
+            "print.offset_sketch",
+            "sketch.fillet",
+            "sketch.transform",
+            "sketch.copy",
+            "sketch.cut",
+            "sketch.paste",
+        ],
     },
     Section { tab: "SKETCH", panel: "PATTERN", promoted: 3, ids: &["sketch.mirror", "sketch.pattern.circular", "sketch.pattern.rectangular"] },
     Section {
@@ -640,8 +649,11 @@ pub struct SpecialtyTab {
     pub icon: &'static str,
 }
 
-pub const SPECIALTY_TABS: &[SpecialtyTab] =
-    &[SpecialtyTab { tab: "SHEET METAL", icon: "sheet" }, SpecialtyTab { tab: "WELDMENTS", icon: "frame_member" }, SpecialtyTab { tab: "3D PRINT", icon: "mesh_export" }];
+pub const SPECIALTY_TABS: &[SpecialtyTab] = &[
+    SpecialtyTab { tab: "SHEET METAL", icon: "sheet" },
+    SpecialtyTab { tab: "WELDMENTS", icon: "frame_member" },
+    SpecialtyTab { tab: "3D PRINT", icon: "mesh_export" },
+];
 
 /// A tab's row in the toolbar menu: the icon of the command that leads the tab (Model › Create ›
 /// Extrude, Inspect › Measure, View › Views and so on).

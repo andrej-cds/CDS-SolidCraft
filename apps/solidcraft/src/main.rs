@@ -1336,7 +1336,9 @@ fn no_window(error: eframe::Error, tried_cpu: bool, failed: eframe::wgpu::Backen
         }
     }
     let message = if explicit {
-        format!("SolidCraft by CDS could not open its window with WGPU_BACKEND.\n\n{error}\n\nChange or remove WGPU_BACKEND to try another graphics API.")
+        format!(
+            "SolidCraft by CDS could not open its window with WGPU_BACKEND.\n\n{error}\n\nChange or remove WGPU_BACKEND to try another graphics API."
+        )
     } else {
         startup::no_window_message(&error.to_string(), settings)
     };

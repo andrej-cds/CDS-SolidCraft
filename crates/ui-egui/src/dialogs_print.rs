@@ -15,12 +15,31 @@ use crate::ui_kit::{choice_row, expr_row, hint_row};
 #[derive(Clone, Debug)]
 pub enum Field {
     /// A value in the design's expressions: `Unitless` ones go to the command as numbers.
-    Value { key: &'static str, label: &'static str, value: String, kind: ValueKind, hint: &'static str },
+    Value {
+        key: &'static str,
+        label: &'static str,
+        value: String,
+        kind: ValueKind,
+        hint: &'static str,
+    },
     /// One of a few choices: (the command's value, the label shown).
-    Choice { key: &'static str, label: &'static str, options: &'static [(&'static str, &'static str)], pick: usize },
-    Flag { key: &'static str, label: &'static str, on: bool },
+    Choice {
+        key: &'static str,
+        label: &'static str,
+        options: &'static [(&'static str, &'static str)],
+        pick: usize,
+    },
+    Flag {
+        key: &'static str,
+        label: &'static str,
+        on: bool,
+    },
     /// Free text, sent as it is.
-    Text { key: &'static str, label: &'static str, value: String },
+    Text {
+        key: &'static str,
+        label: &'static str,
+        value: String,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -119,16 +138,12 @@ pub fn start(_app: &SolveApp, id: &str) -> Option<(Kind, Vec<SelInput>)> {
             vec![SelInput::new("Face", PLANAR_FACES, false)],
         ),
         "print.dogbone" => ("DOGBONE CORNERS", vec![mm("diameter", "Tool diameter", "3 mm")], vec![SelInput::new("Edges", EDGES, true)]),
-        "print.offset_body" => (
-            "OFFSET BODY",
-            vec![mm("distance", "Distance (negative shrinks)", "-0.2 mm")],
-            vec![SelInput::new("Body", BODIES, false)],
-        ),
-        "print.offset_sketch" => (
-            "OFFSET WHOLE SKETCH",
-            vec![mm("distance", "Distance", "0.2 mm"), Field::Flag { key: "inward", label: "Inward", on: false }],
-            vec![],
-        ),
+        "print.offset_body" => {
+            ("OFFSET BODY", vec![mm("distance", "Distance (negative shrinks)", "-0.2 mm")], vec![SelInput::new("Body", BODIES, false)])
+        }
+        "print.offset_sketch" => {
+            ("OFFSET WHOLE SKETCH", vec![mm("distance", "Distance", "0.2 mm"), Field::Flag { key: "inward", label: "Inward", on: false }], vec![])
+        }
         _ => return None,
     };
     let cmd = solidcraft_engine::find_command(id)?.id;
@@ -227,7 +242,12 @@ pub fn commands(app: &SolveApp, k: &Pr, inputs: &[SelInput]) -> Result<Vec<(Stri
         "print.dogbone" => {
             let edges: Vec<Value> = inputs
                 .first()
-                .map(|i| i.items.iter().filter_map(|x| if let Sel::Edge { point, .. } = x { Some(json!([point.x, point.y, point.z])) } else { None }).collect())
+                .map(|i| {
+                    i.items
+                        .iter()
+                        .filter_map(|x| if let Sel::Edge { point, .. } = x { Some(json!([point.x, point.y, point.z])) } else { None })
+                        .collect()
+                })
                 .unwrap_or_default();
             if edges.is_empty() {
                 return Err("select the inside corner edges first".into());

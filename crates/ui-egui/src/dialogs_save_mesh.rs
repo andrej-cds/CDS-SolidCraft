@@ -197,7 +197,8 @@ fn send_to_slicer(app: &mut SolveApp, params: Value) {
 /// chosen last, without the dialog.
 pub fn quick_send(app: &mut SolveApp) {
     let slicer = app.preferences.send_slicer.clone();
-    let picked: Vec<String> = app.session.selection.iter().filter_map(|x| if let solidcraft_engine::Sel::Body { name } = x { Some(name.clone()) } else { None }).collect();
+    let picked: Vec<String> =
+        app.session.selection.iter().filter_map(|x| if let solidcraft_engine::Sel::Body { name } = x { Some(name.clone()) } else { None }).collect();
     let bodies = if picked.is_empty() {
         app.session.world_state().bodies.iter().map(|b| b.name.clone()).filter(|n| app.session.body_visible(n)).collect()
     } else {
