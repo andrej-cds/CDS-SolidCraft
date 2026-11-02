@@ -42,8 +42,8 @@ pub static COMMANDS: &[CommandSpec] = &[
          1.2…); format?: csv|json|md (default from the path; md: Markdown with the purchased parts in a table of their own, \
          titles?: {title, made, purchased, none, total, item, part_number, description, revision, count, definition} its headings). Each component's bom_type counts: phantom has no row (what it holds \
          counts here), reference counts nowhere, purchased and inseparable are one row (in flat, an inseparable one's purchased \
-         parts are listed too) → rows: [{item, part_number, description, revision, bom_type, count, definition, components, \
-         properties, children?}] sorted by part number, total_occurrences (children included)",
+         parts are listed too, under it with group_children and a part number) → rows: [{item, part_number, description, revision, \
+         bom_type, count, definition, components, properties, children?}] sorted by part number, total_occurrences (children included)",
     ),
 ];
 
@@ -281,11 +281,12 @@ fn group_key(g: &str, cmd: &str) -> Result<Group> {
 /// `Top`, the direct children; in `Flat`, the parts at any depth (a part in a subassembly placed
 /// twice counts twice), not below a purchased part, nor below a numbered part when `fold`, and of
 /// what an inseparable part holds only its purchased parts. A phantom's contents count where the
-/// phantom is placed; a reference counts nowhere, and nothing inside it does.
-fn counts(ix: &Index, root: u64, levels: Levels, fold: bool, cmd: &str) -> Result<BTreeMap<u64, u64>> {
+/// phantom is placed; a reference counts nowhere, and nothing inside it does. `walk` chooses
+/// whether the root's contents are listed normally or as an inseparable part's purchased children.
+fn counts(ix: &Index, root: u64, levels: Levels, fold: bool, walk: Walk, cmd: &str) -> Result<BTreeMap<u64, u64>> {
     let mut out: BTreeMap<u64, u64> = BTreeMap::new();
     let mut placed = 0usize;
-    let mut stack: Vec<(u64, usize, Walk)> = vec![(root, 0, Walk::Listed)];
+    let mut stack: Vec<(u64, usize, Walk)> = vec![(root, 0, walk)];
     while let Some((comp, depth, walk)) = stack.pop() {
         for child in ix.children.get(&comp).into_iter().flatten() {
             placed += 1;
@@ -304,7 +305,7 @@ fn counts(ix: &Index, root: u64, levels: Levels, fold: bool, cmd: &str) -> Resul
                 }
                 (BomType::Inseparable, Walk::Listed) => {
                     *out.entry(*child).or_default() += 1;
-                    if levels == Levels::Flat && inside {
+                    if levels == Levels::Flat && inside && !(fold && ix.numbered.contains(child)) {
                         stack.push((*child, depth + 1, Walk::Purchased));
                     }
                 }
@@ -427,7 +428,14 @@ fn cell(v: &Value) -> String {
 fn markdown(rows: &[Value], total: u64, titles: Option<&Value>) -> String {
     let t = |k: &str, d: &str| titles.and_then(|x| x.get(k)).and_then(Value::as_str).unwrap_or(d).to_string();
     let columns = ["item", "part_number", "description", "revision", "count", "definition"];
-    let names = [t("item", "Item"), t("part_number", "Part number"), t("description", "Description"), t("revision", "Revision"), t("count", "Count"), t("definition", "Component")];
+    let names = [
+        t("item", "Item"),
+        t("part_number", "Part number"),
+        t("description", "Description"),
+        t("revision", "Revision"),
+        t("count", "Count"),
+        t("definition", "Component"),
+    ];
     let mut out = format!("# {}\n\n", t("title", "Bill of Materials"));
     let lines: Vec<&Value> = rows.iter().flat_map(|r| std::iter::once(r).chain(r["children"].as_array().into_iter().flatten())).collect();
     let purchased = |r: &&Value| r["bom_type"].as_str() == Some("purchased");
@@ -456,13 +464,18 @@ fn bom(s: &mut Session, p: &Value) -> Result<Value> {
     let root = if p.get("component").is_some_and(|v| !v.is_null()) { component_id(s, p, cmd)? } else { 0 };
     let o = options(p, cmd)?;
     let ix = Index::new(s);
-    let counts = counts(&ix, root, o.levels, o.fold, cmd)?;
-    // Folding: what one of each numbered part holds, as parts at any depth. A purchased or
-    // inseparable part already keeps what it holds out of the list.
+    let counts = counts(&ix, root, o.levels, o.fold, Walk::Listed, cmd)?;
+    // Folding: what one of each numbered part holds, as parts at any depth. Inseparable parts
+    // list only purchased descendants; purchased parts keep all their contents out of the list.
     let mut kits: BTreeMap<u64, BTreeMap<u64, u64>> = BTreeMap::new();
     if o.fold {
-        for id in counts.keys().filter(|id| ix.numbered.contains(id) && ix.bom_type(**id) == BomType::Normal) {
-            let kit = self::counts(&ix, *id, Levels::Flat, false, cmd)?;
+        for id in counts.keys().filter(|id| ix.numbered.contains(id)) {
+            let walk = match ix.bom_type(*id) {
+                BomType::Normal => Walk::Listed,
+                BomType::Inseparable => Walk::Purchased,
+                _ => continue,
+            };
+            let kit = self::counts(&ix, *id, Levels::Flat, false, walk, cmd)?;
             if !kit.is_empty() {
                 kits.insert(*id, kit);
             }

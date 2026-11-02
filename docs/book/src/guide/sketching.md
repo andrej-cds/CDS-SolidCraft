@@ -10,7 +10,17 @@ plane the sketch will lie on before you click.
 keeping what changed since the sketch was created or opened for editing: a new sketch is removed,
 an edited one goes back to how it was, as one step that Undo brings back.
 
-Opening a sketch turns the view to face it. When the sketch ends, the view stays where it is by default. Preferences › Sketch › **When a sketch ends** changes that: **Return to the previous view** goes back to the view from before the sketch, and **Return unless rotated** goes back only when you panned or zoomed the sketch view but didn't turn it.
+Opening a sketch turns the view to face it; to keep the view as it is and face the sketch only with **Look At**, turn off Preferences › Sketch › **Turn to face a sketch when it opens**. When the sketch ends, the view stays where it is by default. Preferences › Sketch › **When a sketch ends** changes that: **Return to the previous view** goes back to the view from before the sketch, and **Return unless rotated** goes back only when you panned or zoomed the sketch view but didn't turn it.
+
+In an assembly a new sketch belongs to the active component and is listed in its Sketches
+folder. Turn on Preferences › Sketch › **Sketching on a part's face makes that part active** to
+keep sketches with the part they are drawn on: a sketch started on a face of another component's
+body first activates that component, at the placement you picked, and is made there, as if you had
+activated the part yourself. The part stays active afterwards, so an extrude or cut made from the
+sketch lands in the same part; activate the design or another part again as usual. Off (the
+default), the sketch belongs to the active component. In scripts the same is
+`sketch.create {"plane": {"face": …}, "activate_part": true}`; the reply's `activated` names the
+component and placement it activated.
 
 In scripts, `XY`, `XZ`, `YZ` and their `Top`, `Front`, `Right` aliases name origin planes.
 Preferences › Interface › **Origin plane names** shows them as Top, Front and Right in the
@@ -33,8 +43,11 @@ Hover over a circle or arc centre, or the midpoint of a straight sketch edge, th
 horizontally or vertically to see a dotted alignment guide. The guide connects that reference
 to the cursor's projection on the sketch axis, within the viewport; it disappears when you
 move away from the axis. SolidCraft keeps the two most recent of these references and can
-draw both guides. One guide on its own does not move the cursor, and endpoints are ordinary
-point snaps rather than remembered references. Preferences › Sketch › **Auto snap to recent
+draw both guides. One guide on its own does not move the cursor. While a drawing tool (Line,
+Rectangle, Circle, Arc, Polygon, Slot, Point…) waits for a point, any sketch point is a
+reference too: the end of a line or arc, a rectangle's corner, or a free point. Preferences ›
+Sketch › **Alignment guides from end points and corners while drawing** turns that off and
+keeps only centres and midpoints. Preferences › Sketch › **Auto snap to recent
 centers and midpoints** is off until you turn it on. With it on, a drawing tool snaps the
 cursor where the horizontal through one reference meets the vertical through the other. On a
 rectangle, the top midpoint and a side midpoint then meet at the rectangle's centre, so that
@@ -57,13 +70,22 @@ fit-point and control-point splines, conics, points and text. **Construction** (
 into reference geometry that doesn't form profiles. Modify tools include trim (T), extend, break,
 fillet, chamfer, offset (O), mirror, patterns, move/copy and scale. With trim on, click a
 piece to remove it, or press and drag a path across several pieces: the ones it crosses light up
-and all go when you let go, in one undo step (`sketch.trim.path`).
+and all go when you let go, in one undo step (`sketch.trim.path`). Fillet and chamfer take
+several corners at once: pick the corners, set the size once, and every corner is rounded or
+cut alike in one undo step.
 
 Line draws a chain: each click adds a segment from the last point, and a right-click or Esc
 ends the chain. To draw one separate line with a press, a drag and the release instead, turn on
 **Preferences › Sketch › Press and drag draws one line**: the line runs from where you press to
 where you let go, snapping and lining up as clicks do, and ends there; clicks still draw a
 chain, and a drag shorter than about 24 points is still a click.
+
+To round corners without changing tool, turn on **Preferences › Sketch › Rest on a line's last
+point to switch to a tangent arc**. With a segment drawn, move the pointer away from the chain's
+last point, bring it back and hold it still for about a third of a second: a label next to the
+pointer says Tangent Arc, and the next click ends an arc tangent to the last segment. The same
+gesture goes back to lines. Arcs and lines join into one chain, each click is one undo step, and a
+right-click or Esc ends the chain as usual.
 
 Tools with several variants (line and midpoint line; two-point, three-point, centre and rounded
 rectangle; the circle, arc, slot, polygon and spline variants) share one toolbar button with a
@@ -85,6 +107,37 @@ is selectable. The option belongs to one sketch and is saved with the design. Ce
 a line type of their own and keep showing. Projected geometry that carries the construction
 line type, such as the trace of a plane, answers to **Projected Geometries** instead. The
 option changes display only. Construction curves were already outside every profile.
+
+The **Construction Line** drop-down in Sketch **CREATE** draws infinite reference lines
+directly. It contains two-point, horizontal, vertical, angle, parallel, perpendicular, tangent
+through an external point, tangent at a curve point, common tangent, and angle-bisector tools.
+These lines remain construction geometry regardless of the Sketch Palette's drawing line type.
+Turn off **Extended construction line tools** in Preferences > Sketch to restore the earlier menu.
+
+For horizontal or vertical lines, click the point to pass through. For a line at an angle,
+click its point, then type the angle from sketch X in the inline box and press Enter, or click
+the direction. Angle expressions can refer to parameters and follow their later changes.
+Parallel and perpendicular lines ask for a straight sketch line, then a point;
+the reference stays picked so you can place several lines. Right-click clears the current
+points and references; Escape ends the tool.
+
+Tangents through an external point take a circle or circular arc, the external point, and a
+click choosing the desired preview. A common tangent takes two circles/arcs and a click choosing
+the solution. Contacts outside an arc's drawn sweep are excluded. A tangent at a curve point
+takes a circle/arc and a contact point, or an endpoint of an open spline or conic. Interior
+free-form contacts and ellipse tangents are not supported by these tools yet. A bisector takes
+two intersecting straight lines; click near the desired one of the two preview lines. Parallel
+or coincident references have no unique angle bisector and are refused.
+
+Each placement is one undo step. Direction, parallel, perpendicular, tangency and bisector
+relations are kept as ordinary sketch constraints; the reference geometry follows later edits
+within those constraints. Programmatic callers can use `sketch.construction_line` with `mode`,
+or one of its named variants. `near` chooses the closest solution; `solution` chooses its
+zero-based index. For example:
+
+```json
+{"command":"sketch.construction_line.parallel","params":{"curve":"l1","at":[20,10]}}
+```
 
 Polygon tools show their edge outline while positioning the second point, so the orientation
 can be checked before placement. Inscribed and circumscribed polygons retain their support
@@ -196,16 +249,10 @@ it smoothly. Right-click finishes an ordinary natural fit. Offset accepts both e
 handles and dense fitted curves; the second click sets the side and distance from the curve.
 
 **Equation Curve** draws a curve from formulas instead of clicks: x(t) and y(t) over a range of
-t, or y = f(x) over a range of x. The formulas use the expression language and the design's
-parameters, so `x = r * (cos(t) + t * sin(t))`, `y = r * (sin(t) - t * cos(t))` with t from 0 to
-1 is the involute of a base circle of radius `r`. The variable is a plain number: `sin(t)` takes
-it in radians, and a result without a unit is in the design's unit. The curve is a fit point
-spline through points worked out from the formulas, as many as keep it within the tolerance
-(0.01 mm unless you set another), up to 500; a curve that ends where it starts closes smoothly.
-Its points are fixed, so other curves can start at its ends and close a profile for Extrude or
-Revolve, and it can be a sweep path. When a parameter it uses changes, the points follow.
-Right-click the curve and choose **Edit Equation Curve** to change the formulas
-(`sketch.equation_curve` and `sketch.equation_curve.edit` from scripts and agents).
+t, or y = f(x) over a range of x, using the design's parameters. [Equation curves](equation-curves.md)
+walks through it step by step, with pictures and examples (a line, a parabola, a wave, a circle,
+a spiral, a gear tooth's involute). Right-click the curve and choose **Edit Equation Curve** to
+change the formulas (`sketch.equation_curve` and `sketch.equation_curve.edit` from scripts and agents).
 
 While drawing in a planar sketch, **Construction** (X) changes the line type without
 ending the tool or losing picked points and inline values. The preview and hover feedback
@@ -394,6 +441,9 @@ Measure shows the currently selected distance (centre, minimum or maximum) and s
 distances on the canvas. The component dimensions follow the world axes and remain visible
 until the Measure dialog closes. To hide these extra lines and labels, turn off
 **Preferences > Graphics > Show X/Y/Z distances**. The choice is saved between runs.
+Drag the distance or an X, Y or Z label to move it away from the part; a moved label keeps a
+line to what it measures. Double-click a label to put it back. Measuring other items starts the
+labels in their own places again.
 
 ### Reviewing mirror, pattern, and offset results
 

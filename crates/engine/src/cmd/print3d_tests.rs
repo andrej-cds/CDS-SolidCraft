@@ -76,7 +76,8 @@ fn supershape_airfoil_and_infill_blocks_build() {
 fn vents_dogbones_and_offsets_change_the_body() {
     let mut s = Session::default();
     run(&mut s, "solid.box", json!({"length": 60, "width": 40, "height": 4, "body_name": "Panel"}));
-    let out = run(&mut s, "print.vent", json!({"face": [30, 20, 4], "shape": "slot", "columns": 5, "rows": 1, "width": 3, "height": 20, "pitch_x": 6}));
+    let out =
+        run(&mut s, "print.vent", json!({"face": [30, 20, 4], "shape": "slot", "columns": 5, "rows": 1, "width": 3, "height": 20, "pitch_x": 6}));
     clean(&s);
     assert_eq!(out["openings"], 5);
     let world = s.world_state();

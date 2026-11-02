@@ -58,7 +58,11 @@ pub fn enter(app: &mut SolveApp, ctx: &egui::Context, tools: bool) {
 
 fn place(saved: Option<[f32; 4]>) -> Option<([f32; 2], [f32; 2])> {
     let [x, y, w, h] = saved?;
-    let usable = [x, y, w, h].iter().all(|v| v.is_finite()) && (200.0..=10_000.0).contains(&w) && (150.0..=10_000.0).contains(&h) && x.abs() <= 100_000.0 && y.abs() <= 100_000.0;
+    let usable = [x, y, w, h].iter().all(|v| v.is_finite())
+        && (200.0..=10_000.0).contains(&w)
+        && (150.0..=10_000.0).contains(&h)
+        && x.abs() <= 100_000.0
+        && y.abs() <= 100_000.0;
     usable.then_some(([x, y], [w, h]))
 }
 

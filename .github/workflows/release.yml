@@ -87,7 +87,8 @@ jobs:
             echo "::error::Draft releases must be built from the release branch"
             exit 1
           fi
-          case "$VERSION" in *-*) pre=true ;; *) pre=false ;; esac
+          # A CDS fix between upstream releases (0.27.2-cds.1) is a normal release, so the app finds it.
+          case "$VERSION" in *-cds.*) pre=false ;; *-*) pre=true ;; *) pre=false ;; esac
           { echo "version=$VERSION"; echo "date=$(date -u +%Y-%m-%d)"; echo "prerelease=$pre"; } >>"$GITHUB_OUTPUT"
           echo "### SolidCraft v$VERSION (\`${GITHUB_SHA::9}\`)" >>"$GITHUB_STEP_SUMMARY"
 
@@ -348,7 +349,7 @@ jobs:
     name: macOS build ${{ matrix.arch }}
     needs: version
     if: needs.version.outputs.build == 'true'
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
@@ -382,7 +383,7 @@ jobs:
     name: macOS universal
     needs: [version, macos-build]
     if: needs.version.outputs.build == 'true'
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       SOLIDCRAFT_VERSION: ${{ needs.version.outputs.version }}
       SOLIDCRAFT_BUILD_DATE: ${{ needs.version.outputs.date }}

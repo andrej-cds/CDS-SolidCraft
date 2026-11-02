@@ -55,7 +55,12 @@ impl NativeMenu {
             &PredefinedMenuItem::show_all(None),
             &PredefinedMenuItem::separator(),
         ])?;
-        add(&application, &format!("{} SolidCraft by CDS", app.tr("ui.quit")), FileAction::Quit, Some(Accelerator::new(Modifiers::META, Code::KeyQ)))?;
+        add(
+            &application,
+            &format!("{} SolidCraft by CDS", app.tr("ui.quit")),
+            FileAction::Quit,
+            Some(Accelerator::new(Modifiers::META, Code::KeyQ)),
+        )?;
         add(&file, app.tr("ui.new_design"), FileAction::New, Some(Accelerator::new(Modifiers::META, Code::KeyN)))?;
         add(&file, &format!("{}\u{2026}", app.tr("ui.open")), FileAction::Open, Some(Accelerator::new(Modifiers::META, Code::KeyO)))?;
         file.append(&recent)?;
@@ -101,6 +106,7 @@ impl NativeMenu {
         ])?;
         for (action, label) in [
             ("docs", "Documentation"),
+            ("updates", app.tr("update.check_for_updates")),
             ("shortcuts", "Keyboard Shortcuts"),
             ("messages", "Messages\u{2026}"),
             ("report", "Report an Issue\u{2026}"),
