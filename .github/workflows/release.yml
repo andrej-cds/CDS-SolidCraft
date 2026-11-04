@@ -111,6 +111,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: icons
+          retention-days: 2
           path: icons
           if-no-files-found: error
 
@@ -167,6 +168,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-linux-${{ matrix.arch }}
+          retention-days: 2
           path: dist/release/*
           if-no-files-found: error
 
@@ -203,6 +205,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-flatpak-${{ matrix.arch }}
+          retention-days: 2
           path: dist/release/*.flatpak
           if-no-files-found: error
 
@@ -242,6 +245,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-arch-${{ matrix.arch }}
+          retention-days: 2
           path: dist/release/*.pkg.tar.zst
           if-no-files-found: error
 
@@ -294,11 +298,13 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: snap-smoke-${{ matrix.arch }}
+          retention-days: 2
           path: snap-smoke/*.png
           if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-snap-${{ matrix.arch }}
+          retention-days: 2
           path: dist/release/*.snap
           if-no-files-found: error
 
@@ -340,6 +346,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-freebsd-x86_64
+          retention-days: 2
           path: dist/release/*
           if-no-files-found: error
 
@@ -373,6 +380,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: macos-bin-${{ matrix.arch }}
+          retention-days: 2
           path: |
             target/${{ matrix.target }}/release/solidcraft
             target/${{ matrix.target }}/release/solidcraft-cli
@@ -418,6 +426,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-macos
+          retention-days: 2
           path: dist/release/*
           if-no-files-found: error
 
@@ -577,6 +586,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-windows-${{ matrix.arch }}
+          retention-days: 2
           path: dist/release/*
           if-no-files-found: error
 
@@ -605,6 +615,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-web
+          retention-days: 2
           path: dist/release/*
           if-no-files-found: error
 
@@ -780,6 +791,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-assets
+          retention-days: 2
           path: artifacts/*
 
   release-mac:

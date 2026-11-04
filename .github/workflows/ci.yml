@@ -925,6 +925,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: oracle-report
+          retention-days: 7
           path: docs/oracle.md
 
   # D3D12's older shader compiler (FXC, used where dxcompiler.dll is absent) is stricter than
