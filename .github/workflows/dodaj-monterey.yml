@@ -27,7 +27,7 @@ jobs:
       matrix:
         include:
           - { arch: aarch64, target: aarch64-apple-darwin, runner: macos-15 }
-          - { arch: x86_64, target: x86_64-apple-darwin, runner: macos-14 }
+          - { arch: x86_64, target: x86_64-apple-darwin, runner: macos-15 }
     env:
       TAG: ${{ inputs.tag }}
     steps:
