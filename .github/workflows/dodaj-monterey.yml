@@ -34,6 +34,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.tag }}
+      - name: Aim the build script at macOS 12 (it fixes 11.0 itself)
+        run: |
+          sed -i '' 's/^export MACOSX_DEPLOYMENT_TARGET=11\.0/export MACOSX_DEPLOYMENT_TARGET=12.0/' packaging/macos/package.sh
+          sed -i '' 's|<string>11\.0</string>|<string>12.0</string>|' assets/platforms/macos/Info.plist.in
+          grep -n 'MACOSX_DEPLOYMENT_TARGET=' packaging/macos/package.sh
+          grep -n -A1 LSMinimumSystemVersion assets/platforms/macos/Info.plist.in
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -79,6 +85,12 @@ jobs:
         with:
           name: monterey-bin-x86_64
           path: target/x86_64-apple-darwin/release
+      - name: Aim the build script at macOS 12 (it fixes 11.0 itself)
+        run: |
+          sed -i '' 's/^export MACOSX_DEPLOYMENT_TARGET=11\.0/export MACOSX_DEPLOYMENT_TARGET=12.0/' packaging/macos/package.sh
+          sed -i '' 's|<string>11\.0</string>|<string>12.0</string>|' assets/platforms/macos/Info.plist.in
+          grep -n 'MACOSX_DEPLOYMENT_TARGET=' packaging/macos/package.sh
+          grep -n -A1 LSMinimumSystemVersion assets/platforms/macos/Info.plist.in
       - name: Join and package (ad-hoc signed)
         run: |
           export SOLIDCRAFT_VERSION="${TAG#v}"
