@@ -211,7 +211,7 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
             }
             ui.separator();
             ui.horizontal(|ui| {
-                for (label, ext) in [("Export CSV…", "csv"), ("Export JSON…", "json")] {
+                for (label, ext) in [("Export CSV…", "csv"), ("Export JSON…", "json"), ("Export Markdown…", "md")] {
                     if crate::ui_kit::button(ui, label, crate::ui_kit::Button::Normal).clicked() {
                         export = Some(ext);
                     }
@@ -224,6 +224,13 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
     if let Some(ext) = export {
         let mut params = d.params();
         params["format"] = json!(ext);
+        if ext == "md" {
+            // The Markdown file's headings, in the reader's language (CDS fork).
+            let tr = |k: &str| crate::i18n::tr(k).to_string();
+            params["titles"] = json!({"title": crate::i18n::tr_label("Bill of Materials"), "made": tr("bom.md_made"), "purchased": tr("bom.md_purchased"),
+                "none": tr("bom.md_none"), "total": tr("bom.md_total"), "item": tr("bom.md_item"), "part_number": tr("bom.md_part_number"),
+                "description": tr("bom.md_description"), "revision": tr("bom.md_revision"), "count": tr("bom.md_count"), "definition": tr("bom.md_definition")});
+        }
         app.pick_save_command(&format!("bill-of-materials.{ext}"), &[ext], "assembly.bom", params);
     }
     if !closed {

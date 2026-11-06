@@ -313,23 +313,26 @@ pub fn app_bar(app: &mut SolveApp, ui: &mut egui::Ui) {
         }
         let left = r.left() + if app.integrated_titlebar { crate::titlebar::TRAFFIC_LIGHTS } else { 0.0 };
         // Keep the current header controls and product name when merging the new mark.
-        let compact_actions = r.right() - left < 640.0;
+        // CDS fork: "SolidCraft by CDS" is longer, so the name gives way a little sooner.
+        let compact_actions = r.right() - left < 820.0;
         // Brand mark: the SolidCraft logo, drawn in code from the SVG's own coordinates
         // (viewBox 357 x 412). Same 20 px height and centre as the old block.
         {
             let c = pos2(left + 20.0, r.center().y);
             crate::icons::glyphs::brand_mark(ui.painter(), c);
         }
+        let mut name_width = 92.0;
         if !compact_actions {
-            ui.painter().text(
+            let name_rect = ui.painter().text(
                 pos2(left + 36.0, r.center().y),
                 Align2::LEFT_CENTER,
-                "SolidCraft",
+                "SolidCraft by CDS",
                 crate::fonts::semibold(t.font_heading),
-                t.app_bar_text,
+                crate::brand::CDS_GOLD,
             );
+            name_width = (name_rect.width() + 28.0).max(92.0);
         }
-        let mut x = left + if compact_actions { 56.0 } else { 128.0 };
+        let mut x = left + if compact_actions { 56.0 } else { 36.0 + name_width };
         let home = Rect::from_center_size(pos2(x - 4.0, r.center().y), vec2(32.0, 32.0));
         let idle = !app.file_load.busy();
         let home_response = ui.interact(home, ui.id().with("appbar_home"), if idle { Sense::click() } else { Sense::hover() });

@@ -14,7 +14,8 @@ use crate::{Sel, Session};
 pub mod colors {
     use solidcraft_render::Rgb;
     pub const BODY: Rgb = Rgb(176, 186, 198);
-    pub const BODY_SELECTED: Rgb = Rgb(110, 170, 235);
+    /// CDS fork: the gold selection, as the window draws it.
+    pub const BODY_SELECTED: Rgb = Rgb(226, 186, 96);
     pub const EDGE: Rgb = Rgb(40, 44, 52);
     pub const SKETCH: Rgb = Rgb(30, 90, 200);
     pub const SKETCH_DONE: Rgb = Rgb(20, 20, 20);

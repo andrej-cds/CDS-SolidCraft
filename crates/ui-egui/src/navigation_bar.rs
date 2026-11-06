@@ -79,6 +79,7 @@ pub(crate) const CATALOGUE: &[Slot] = &[
     slot!("grid", Toggle, "grid", Some("view.grid")),
     slot!("ground_shadow", Toggle, "ground_shadow", Some("view.ground_shadow")),
     slot!("ambient_occlusion", Toggle, "ambient_occlusion", Some("view.ambient_occlusion")),
+    slot!("true_scale", Toggle, "true_scale", None),
     slot!("separator", Separator, "", None),
 ];
 
@@ -154,6 +155,8 @@ pub enum Labels {
     #[default]
     Icons,
     Labels,
+    /// Text only, no icons.
+    Text,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -192,7 +195,7 @@ pub struct NavigationBar {
 impl Default for NavigationBar {
     fn default() -> Self {
         Self {
-            slots: ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display"]
+            slots: ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display", "true_scale"]
                 .into_iter()
                 .map(str::to_owned)
                 .collect(),

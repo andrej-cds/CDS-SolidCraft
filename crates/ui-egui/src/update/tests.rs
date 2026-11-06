@@ -13,6 +13,13 @@ fn versions_compare_as_semver() {
     assert!(is_newer("v0.11.0", "0.11.0-rc.2"));
     // A prerelease is never offered (releases/latest never returns one anyway).
     assert!(!is_newer("v0.12.0-rc.1", "0.11.0"));
+    // CDS fork: a fix between upstream releases is offered, and gives way to the next upstream one.
+    assert!(is_newer("v0.27.2-cds.1", "0.27.1"));
+    assert!(is_newer("v0.27.2-cds.2", "0.27.2-cds.1"));
+    assert!(is_newer("v0.27.2", "0.27.2-cds.1"));
+    assert!(!is_newer("v0.27.2-cds.1", "0.27.2-cds.1"));
+    assert!(!is_newer("v0.27.2-cds.1", "0.27.2"));
+    assert!(!is_newer("v0.27.2-cdsx", "0.27.1"));
     assert!(!is_newer("garbage", "0.9.0"));
     assert!(!is_newer("v0.10.0", "not a version"));
 }
@@ -381,7 +388,7 @@ fn help_menu_checks_with_automatic_checks_off_and_offers_installation() {
     assert!(h.app.updater.open);
     assert!(h.app.preferences.update.skipped.is_empty());
     assert_eq!(h.app.preferences.update.remind_after, 0.0);
-    assert!(h.widget(&format!("SolidCraft {version} is available")).is_some());
+    assert!(h.widget(&format!("SolidCraft by CDS {version} is available")).is_some());
     assert!(h.widget("Download and open").is_some(), "the macOS installation is offered immediately");
     assert!(h.app.updater.job.is_none());
 }
@@ -413,7 +420,7 @@ fn help_check_shows_progress_and_up_to_date_then_closes() {
     tx.send(Ok(release)).unwrap();
     h.frames(2);
     assert_eq!(h.app.updater.status, Status::UpToDate);
-    assert!(h.widget("SolidCraft is up to date.").is_some());
+    assert!(h.widget("SolidCraft by CDS is up to date.").is_some());
     assert!(h.widget("Download").is_none() && h.widget("Update now").is_none());
     let [x, y] = h.widget("Close").unwrap();
     h.call("ui.click", json!({"x": x, "y": y}));
@@ -421,7 +428,7 @@ fn help_check_shows_progress_and_up_to_date_then_closes() {
     // Reopening during the cooldown still shows the result, without another request.
     h.app.updater.last_manual = unix_now();
     h.call("ui.help", json!({"item": "updates"}));
-    assert!(h.widget("SolidCraft is up to date.").is_some());
+    assert!(h.widget("SolidCraft by CDS is up to date.").is_some());
     assert!(h.app.updater.rx.is_none());
 }
 
@@ -434,7 +441,7 @@ fn help_check_reports_network_errors_and_rate_limits_in_the_window() {
         h.frames(2);
         assert_eq!(h.app.updater.status, Status::Failed(error.to_string()));
         assert!(h.widget(&format!("Couldn't check: {error}")).is_some());
-        assert!(h.widget("SolidCraft is up to date.").is_none());
+        assert!(h.widget("SolidCraft by CDS is up to date.").is_none());
         if matches!(error, FetchError::RateLimited { .. }) {
             h.call("ui.help", json!({"item": "updates"}));
             assert!(h.app.updater.rx.is_none(), "the server's rate limit is honoured");
@@ -460,7 +467,7 @@ fn help_check_result_follows_the_selected_language() {
         h.call("ui.prefs", json!({"language": language}));
         assert!(h.widget(title).is_some(), "the window title follows {language}");
         assert!(h.widget(message).is_some(), "the result follows {language}");
-        assert!(h.widget("SolidCraft is up to date.").is_none());
+        assert!(h.widget("SolidCraft by CDS is up to date.").is_none());
     }
 }
 
@@ -470,7 +477,7 @@ fn help_check_explains_when_checks_are_unavailable() {
     h.app.updater.off = true;
     h.call("ui.help", json!({"item": "updates"}));
     assert!(h.widget("Update checks are not available for this installation.").is_some());
-    assert!(h.widget("SolidCraft is up to date.").is_none());
+    assert!(h.widget("SolidCraft by CDS is up to date.").is_none());
     assert!(h.app.updater.rx.is_none());
 }
 
@@ -508,6 +515,8 @@ fn the_title_bar_offers_the_new_version_and_opens_the_update_window() {
     let mut h = crate::scenario::Harness::new();
     let report = crate::scenario::rect_of("titlebar:report").unwrap();
     assert!(crate::scenario::rect_of("titlebar:update").is_none(), "nothing offered before a check");
+    // The quiet way: the window doesn't open by itself.
+    h.app.preferences.update_popup = false;
     h.app.updater.feed = Some(feed);
     h.frame();
     wait_for_check(&mut h);
@@ -534,6 +543,35 @@ fn the_title_bar_offers_the_new_version_and_opens_the_update_window() {
     h.frames(2);
     assert!(!h.app.updater.open);
     assert!(h.widget(&label).is_none(), "Remind me later hides it");
+}
+
+#[test]
+fn a_start_that_finds_an_update_opens_the_window_once_unless_turned_off() {
+    let dir = scratch();
+    let (feed, _) = next_release_feed(&dir.0);
+    let mut h = crate::scenario::Harness::new();
+    assert!(h.app.preferences.update_popup, "on by default");
+    h.app.updater.feed = Some(feed.clone());
+    h.frame();
+    wait_for_check(&mut h);
+    h.frames(2);
+    assert!(h.app.updater.open, "the first check after a start opens the Update window");
+    // Closed, it stays closed: later automatic checks only keep the pill.
+    h.app.updater.open = false;
+    h.app.preferences.update.next_check = 0.0;
+    h.frame();
+    wait_for_check(&mut h);
+    h.frames(2);
+    assert!(!h.app.updater.open, "only once per start");
+
+    let mut quiet = crate::scenario::Harness::new();
+    quiet.app.preferences.update_popup = false;
+    quiet.app.updater.feed = Some(feed);
+    quiet.frame();
+    wait_for_check(&mut quiet);
+    quiet.frames(2);
+    assert!(!quiet.app.updater.open, "turned off: only the pill in the title bar");
+    assert!(super::offered(&quiet.app).is_some());
 }
 
 #[test]
@@ -645,7 +683,7 @@ fn releases_under_either_owner_are_accepted() {
         )
         .unwrap()
     };
-    for owner in ["bherbruck/solidcraft", "tangency-labs/solidcraft"] {
+    for owner in ["andrej-cds/CDS-SolidCraft", "bherbruck/solidcraft", "tangency-labs/solidcraft"] {
         let r = parse(owner);
         assert_eq!(r.page, format!("https://github.com/{owner}/releases/tag/v1.0.0"));
         assert_eq!(r.assets.len(), 1, "{owner}");
@@ -665,12 +703,12 @@ fn releases_under_either_owner_are_accepted() {
 fn the_version_links_to_its_release_notes() {
     // A release build opens the page of its own release; stable, candidate and nightly tags all exist.
     for v in ["0.17.0", "0.21.0-rc.2", "0.20.0-nightly.20261023.69.1"] {
-        assert_eq!(release_notes_url(v, true), format!("https://github.com/tangency-labs/solidcraft/releases/tag/v{v}"));
+        assert_eq!(release_notes_url(v, true), format!("https://github.com/andrej-cds/CDS-SolidCraft/releases/tag/v{v}"));
     }
     // A development build has no release of its own: the release history, which is what the issue asks for.
-    assert_eq!(release_notes_url("0.17.0", false), "https://github.com/tangency-labs/solidcraft/releases");
+    assert_eq!(release_notes_url("0.17.0", false), "https://github.com/andrej-cds/CDS-SolidCraft/releases");
     // Anything that is not a version never ends up in a URL.
-    assert_eq!(release_notes_url("0.1/../../x", true), "https://github.com/tangency-labs/solidcraft/releases");
+    assert_eq!(release_notes_url("0.1/../../x", true), "https://github.com/andrej-cds/CDS-SolidCraft/releases");
 }
 
 #[test]
@@ -894,7 +932,7 @@ fn open_update_window(managed: Option<&str>) -> (crate::scenario::Harness, Scrat
 fn a_managed_install_points_to_its_manager_instead_of_updating_itself() {
     let (mut h, _dir) = open_update_window(Some("ArtCraft Launcher"));
     assert_eq!(install_method(&mut h.app), None, "no AppImage self-replace");
-    assert!(h.widget("Update available: update SolidCraft in ArtCraft Launcher").is_some());
+    assert!(h.widget("Update available: update SolidCraft by CDS in ArtCraft Launcher").is_some());
     for gone in ["Update now", "Download", "Open release page"] {
         assert!(h.widget(gone).is_none(), "{gone} is not offered");
     }
@@ -910,7 +948,7 @@ fn an_unmanaged_install_updates_itself_as_before() {
     assert_eq!(install_method(&mut h.app), Some(install::Method::AppImage("/home/me/SolidCraft.AppImage".into())));
     assert!(h.widget("Update now").is_some());
     assert!(h.widget("Download").is_some());
-    assert!(h.widget("Update available: update SolidCraft in ArtCraft Launcher").is_none());
+    assert!(h.widget("Update available: update SolidCraft by CDS in ArtCraft Launcher").is_none());
 }
 
 #[test]

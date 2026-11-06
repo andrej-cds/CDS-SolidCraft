@@ -67,6 +67,8 @@ pub(crate) struct NavigationButton<'a> {
     pub selected: bool,
     pub kind: Kind,
     pub labels: bool,
+    /// Draw the label only, without the icon (not for menus).
+    pub text_only: bool,
     pub menu: bool,
 }
 
@@ -149,21 +151,28 @@ pub(crate) fn navigation_button_editable(ui: &mut Ui, rect: Rect, button: Naviga
         );
     }
     let ink = navigation_ink(&t, fill);
-    let text = button.labels.then(|| ui.painter().layout_no_wrap(button.label.to_owned(), crate::fonts::medium(NAV_TEXT), ink));
+    let text = (button.labels || button.text_only).then(|| ui.painter().layout_no_wrap(button.label.to_owned(), crate::fonts::medium(NAV_TEXT), ink));
+    let text_only = button.text_only && !button.menu;
     let mut x = if button.menu {
         rect.left() + NAV_MENU_LEFT + if editing { NAV_BORDER } else { 0.0 }
+    } else if text_only {
+        rect.center().x - text.as_ref().map_or(0.0, |g| g.size().x) / 2.0
     } else {
         rect.center().x - (metrics.icon + text.as_ref().map_or(0.0, |g| NAV_LABEL_GAP + g.size().x)) / 2.0
     };
-    icons::paint_ink(
-        ui.painter(),
-        Rect::from_center_size(pos2(x + metrics.icon / 2.0, rect.center().y), vec2(metrics.icon, metrics.icon)),
-        button.icon,
-        ink,
-    );
-    x += metrics.icon;
+    if !text_only {
+        icons::paint_ink(
+            ui.painter(),
+            Rect::from_center_size(pos2(x + metrics.icon / 2.0, rect.center().y), vec2(metrics.icon, metrics.icon)),
+            button.icon,
+            ink,
+        );
+        x += metrics.icon;
+    }
     if let Some(text) = text {
-        x += if button.menu { NAV_MENU_GAP } else { NAV_LABEL_GAP };
+        if !text_only {
+            x += if button.menu { NAV_MENU_GAP } else { NAV_LABEL_GAP };
+        }
         ui.painter().galley(pos2(x, rect.center().y - text.size().y / 2.0), text, ink);
     }
     if button.menu {

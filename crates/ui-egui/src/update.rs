@@ -29,15 +29,19 @@ use crate::theme::Tokens;
 use crate::ui_kit;
 
 /// The repository releases come from.
-pub const REPO: &str = "tangency-labs/solidcraft";
+pub const REPO: &str = "andrej-cds/CDS-SolidCraft";
 /// The one request an update check makes.
-pub const LATEST_API: &str = "https://api.github.com/repos/tangency-labs/solidcraft/releases/latest";
+pub const LATEST_API: &str = "https://api.github.com/repos/andrej-cds/CDS-SolidCraft/releases/latest";
 /// Where Download goes when no package fits this installation.
-pub const RELEASES_PAGE: &str = "https://github.com/tangency-labs/solidcraft/releases/latest";
-/// Release pages and assets must be on GitHub, under this repository. The repository moved to the
-/// `tangency-labs` organisation, so releases may still name either owner (older releases and the
-/// links GitHub redirects keep the old one).
-const RELEASE_PREFIXES: [&str; 2] = ["https://github.com/bherbruck/solidcraft/releases/", "https://github.com/tangency-labs/solidcraft/releases/"];
+pub const RELEASES_PAGE: &str = "https://github.com/andrej-cds/CDS-SolidCraft/releases/latest";
+/// Release pages and assets must be on GitHub, under this repository. The repository is moving
+/// to the `tangency-labs` organisation, so releases may name either owner (the API request stays
+/// on the old name, which GitHub redirects after a transfer).
+const RELEASE_PREFIXES: [&str; 3] = [
+    "https://github.com/andrej-cds/CDS-SolidCraft/releases/",
+    "https://github.com/bherbruck/solidcraft/releases/",
+    "https://github.com/tangency-labs/solidcraft/releases/",
+];
 
 /// A release page or asset URL: github.com, one of the two owners, exactly `solidcraft`, then
 /// `/releases/` (the trailing slash rules out look-alike names such as `solidcraft-evil`).
@@ -111,7 +115,7 @@ pub fn comparable(v: &semver::Version) -> semver::Version {
 /// candidate and nightly releases are all tagged `v<version>`), else, for a development build or
 /// a string that is not a version, the release history.
 pub fn release_notes_url(version: &str, release_build: bool) -> String {
-    const HISTORY: &str = "https://github.com/tangency-labs/solidcraft/releases";
+    const HISTORY: &str = "https://github.com/andrej-cds/CDS-SolidCraft/releases";
     if release_build && parse_version(version).is_some() && version.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '+')) {
         format!("{HISTORY}/tag/v{version}")
     } else {
@@ -119,10 +123,17 @@ pub fn release_notes_url(version: &str, release_build: bool) -> String {
     }
 }
 
-/// `latest` (a release tag) is a stable release newer than the `current` build.
+/// `latest` (a release tag) is a stable release newer than the `current` build. A CDS fix
+/// between upstream releases (`0.27.2-cds.1`: after 0.27.1, before upstream 0.27.2) counts as
+/// stable too.
 pub fn is_newer(latest: &str, current: &str) -> bool {
     let (Some(latest), Some(current)) = (parse_version(latest), parse_version(current)) else { return false };
-    latest.pre.is_empty() && latest > comparable(&current)
+    (latest.pre.is_empty() || is_cds_fix(&latest)) && latest > comparable(&current)
+}
+
+/// A CDS fork release between upstream ones: `<next upstream>-cds.N`.
+pub fn is_cds_fix(v: &semver::Version) -> bool {
+    v.pre.as_str().strip_prefix("cds.").is_some_and(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()))
 }
 
 /// This build's version: the release workflow's `SOLIDCRAFT_VERSION` (with any nightly suffix)
@@ -653,6 +664,8 @@ pub struct Updater {
     started: bool,
     /// An automatic check has started since launch (until then one is due at once).
     launch_checked: bool,
+    /// The Update window already opened by itself since launch (`update_popup`): once per start.
+    popup_done: bool,
     /// `SOLIDCRAFT_UPDATE_CHECK=0`: no checks at all.
     off: bool,
     /// When Check now was last pressed (Unix seconds).
@@ -819,6 +832,14 @@ fn poll(app: &mut SolveApp) {
             }
             if app.updater.job.is_none() && app.updater.release.as_ref().is_none_or(|known| !is_newer(&known.tag, &release.tag)) {
                 app.updater.release = Some(release);
+            }
+            // The first automatic check after a start opens the window by itself, unless the
+            // user turned that off or skipped or put off this version.
+            if newer && !manual && !app.updater.popup_done && app.preferences.update_popup && offered(app).is_some() {
+                app.updater.open = true;
+            }
+            if !manual {
+                app.updater.popup_done = true;
             }
         }
         Err(e) => {
@@ -1207,6 +1228,7 @@ pub fn prefs_rows(app: &mut SolveApp, ui: &mut egui::Ui) {
     ui.add_enabled_ui(can, |ui| {
         let check = ui_kit::checkbox(ui, crate::i18n::tr("update.check_automatically"), &mut app.preferences.check_updates);
         crate::scenario::publish_target("prefs:check_updates", check.rect);
+        ui_kit::checkbox(ui, crate::i18n::tr("update.popup_at_start"), &mut app.preferences.update_popup);
     });
     if let Some(v) = offered_or_newer(app)
         && offered(app).is_none()

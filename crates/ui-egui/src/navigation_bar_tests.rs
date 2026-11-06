@@ -36,7 +36,7 @@ fn slot_catalogue_uses_registered_commands_and_existing_icons() {
         assert!(ids.insert(slot.id), "duplicate catalogue id {}", slot.id);
         match slot.command {
             Some(command) => assert!(solidcraft_engine::find_command(command).is_some(), "{}", slot.id),
-            None => assert!(["projection", "display", "separator"].contains(&slot.id)),
+            None => assert!(["projection", "display", "separator", "true_scale"].contains(&slot.id)),
         }
         if slot.kind != Kind::Separator {
             assert!(!crate::icon_svg::resolve(slot.icon).placeholder, "{}: {}", slot.id, slot.icon);
@@ -73,7 +73,7 @@ fn catalogue_slot_descriptions_explain_slots_without_settings_jargon() {
 #[test]
 fn default_slots_and_canvas_availability_preserve_navigation() {
     let bar = NavigationBar::default();
-    assert_eq!(bar.slots, ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display"]);
+    assert_eq!(bar.slots, ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display", "true_scale"]);
     let flat = NavCaps { orbit: false, pick: false };
     for caps in [NavCaps::MODEL, NavCaps::RENDER, flat] {
         let shown: Vec<_> = CATALOGUE.iter().filter(|slot| slot.available(caps)).map(|slot| slot.id).collect();
@@ -128,7 +128,8 @@ fn measured_bar_drops_labels_then_overflows_in_order_without_compass_overlap() {
     }
     let wide = Rect::from_min_size(pos2(0.0, 0.0), vec2(1400.0, 720.0));
     assert!(measure(wide, &prefs, NavCaps::MODEL, |_| 50.0).labels);
-    let middle = Rect::from_min_size(pos2(0.0, 0.0), vec2(380.0, 720.0));
+    // CDS fork: one more slot (1:1) needs a little more room before it folds.
+    let middle = Rect::from_min_size(pos2(0.0, 0.0), vec2(420.0, 720.0));
     let bar = measure(middle, &prefs, NavCaps::MODEL, |_| 50.0);
     assert!(!bar.labels && bar.overflow.is_empty(), "text disappears before slots fold");
 }
@@ -254,7 +255,16 @@ fn navigation_slot_pointer_clicks_release_focus_and_leave_no_fill() {
                     let response = navigation_button(
                         ui,
                         bounds,
-                        NavigationButton { id: "regression", label: "Fit", icon: "fit", selected, kind, labels: false, menu: false },
+                        NavigationButton {
+                            id: "regression",
+                            label: "Fit",
+                            icon: "fit",
+                            selected,
+                            kind,
+                            labels: false,
+                            text_only: false,
+                            menu: false,
+                        },
                     );
                     focused = response.has_focus();
                     clicked = response.clicked();
