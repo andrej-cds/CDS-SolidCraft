@@ -56,8 +56,6 @@ on:
   push:
     # CDS fork: also the update branches, so GitHub checks an update before it is built.
     branches: [main, "posodobitev-*"]
-  schedule:
-    - cron: "17 6 * * *"
   workflow_dispatch:
     inputs:
       cross_compile:

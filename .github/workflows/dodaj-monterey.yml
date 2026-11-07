@@ -49,7 +49,8 @@ jobs:
       - name: Build
         run: |
           export SOLIDCRAFT_VERSION="${TAG#v}"
-          export SOLIDCRAFT_BUILD_DATE="$(date -u +%F)"
+          SOLIDCRAFT_BUILD_DATE="$(date -u +%F)"
+          export SOLIDCRAFT_BUILD_DATE
           packaging/macos/package.sh --build-only ${{ matrix.target }}
       - name: The executable asks for macOS 12
         run: |
@@ -94,7 +95,8 @@ jobs:
       - name: Join and package (ad-hoc signed)
         run: |
           export SOLIDCRAFT_VERSION="${TAG#v}"
-          export SOLIDCRAFT_BUILD_DATE="$(date -u +%F)"
+          SOLIDCRAFT_BUILD_DATE="$(date -u +%F)"
+          export SOLIDCRAFT_BUILD_DATE
           chmod +x target/*-apple-darwin/release/solidcraft target/*-apple-darwin/release/solidcraft-cli target/*-apple-darwin/release/solvecraft-cli
           packaging/macos/package.sh --arch universal --skip-build
       - name: Check the app inside the disk image asks for macOS 12
