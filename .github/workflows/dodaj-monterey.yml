@@ -112,7 +112,10 @@ jobs:
             vtool -arch x86_64 -show-build "$exe" 2>/dev/null | grep -E 'minos' || true
           done | tee ../check.txt
           hdiutil detach mnt
-          ! grep -E 'minos' ../check.txt | grep -Ev 'minos 12\.0'
+          if grep -E 'minos' ../check.txt | grep -Ev 'minos 12\.0'; then
+            echo 'A part of the app asks for more than macOS 12' >&2
+            exit 1
+          fi
           grep -q 'minos 12\.0' ../check.txt
       - name: Name it, add its checksum, upload
         run: |
