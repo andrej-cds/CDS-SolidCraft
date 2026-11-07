@@ -2091,6 +2091,7 @@
   "navbar.custom.shows": "表示内容",
   "navbar.custom.size": "サイズ",
   "navbar.custom.stale": "バーが変更されました。スロットを再選択してください。",
+  "navbar.custom.text_only": "ラベル",
   "navbar.custom.title": "ナビゲーションバー",
   "navbar.custom.unknown": "このスロットは使用できません。",
   "navbar.description.ambient_occlusion": "くぼみや隅を暗くして奥行きを表現します。",

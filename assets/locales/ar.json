@@ -2091,6 +2091,7 @@
   "navbar.custom.shows": "يعرض",
   "navbar.custom.size": "الحجم",
   "navbar.custom.stale": "تغيّر الشريط. حدّد الخانة مرة أخرى.",
+  "navbar.custom.text_only": "التسميات",
   "navbar.custom.title": "شريط التنقل",
   "navbar.custom.unknown": "هذه الخانة غير متاحة.",
   "navbar.description.ambient_occlusion": "يُعتّم الطيات والزوايا لإضافة عمق.",

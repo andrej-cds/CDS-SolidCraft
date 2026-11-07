@@ -2091,6 +2091,7 @@
   "navbar.custom.shows": "מציג",
   "navbar.custom.size": "גודל",
   "navbar.custom.stale": "הסרגל השתנה. בחרו שוב את המשבצת.",
+  "navbar.custom.text_only": "תוויות",
   "navbar.custom.title": "סרגל ניווט",
   "navbar.custom.unknown": "המשבצת הזו אינה זמינה.",
   "navbar.description.ambient_occlusion": "מכהה קפלים ופינות כדי להוסיף עומק.",

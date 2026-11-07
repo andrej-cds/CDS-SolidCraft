@@ -1,9 +1,0 @@
-{
-  "ar": { "navbar.custom.text_only": "التسميات" },
-  "en": { "navbar.custom.text_only": "Labels" },
-  "he": { "navbar.custom.text_only": "תוויות" },
-  "ja": { "navbar.custom.text_only": "ラベル" },
-  "sl": { "navbar.custom.text_only": "Oznake" },
-  "vi": { "navbar.custom.text_only": "Nhãn" },
-  "zh": { "navbar.custom.text_only": "标签" }
-}

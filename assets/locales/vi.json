@@ -2091,6 +2091,7 @@
   "navbar.custom.shows": "Hiển thị",
   "navbar.custom.size": "Kích thước",
   "navbar.custom.stale": "Thanh đã thay đổi. Hãy chọn lại ô.",
+  "navbar.custom.text_only": "Nhãn",
   "navbar.custom.title": "Thanh điều hướng",
   "navbar.custom.unknown": "Ô này không khả dụng.",
   "navbar.description.ambient_occlusion": "Làm tối các nếp gấp và góc để tạo chiều sâu.",

@@ -2091,6 +2091,7 @@
   "navbar.custom.shows": "Prikazuje",
   "navbar.custom.size": "Velikost",
   "navbar.custom.stale": "Vrstica se je spremenila. Znova izberite mesto.",
+  "navbar.custom.text_only": "Oznake",
   "navbar.custom.title": "Vrstica za navigacijo",
   "navbar.custom.unknown": "To mesto ni na voljo.",
   "navbar.description.ambient_occlusion": "Potemni gube in vogale za večjo globino.",

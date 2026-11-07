@@ -2091,6 +2091,7 @@
   "navbar.custom.shows": "显示内容",
   "navbar.custom.size": "大小",
   "navbar.custom.stale": "导航栏已更改。请重新选择槽位。",
+  "navbar.custom.text_only": "标签",
   "navbar.custom.title": "导航栏",
   "navbar.custom.unknown": "此槽位不可用。",
   "navbar.description.ambient_occlusion": "加深凹槽和角落的阴影，增加深度感。",

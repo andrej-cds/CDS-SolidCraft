@@ -2091,6 +2091,7 @@
   "navbar.custom.shows": "Shows",
   "navbar.custom.size": "Size",
   "navbar.custom.stale": "The bar changed. Select the slot again.",
+  "navbar.custom.text_only": "Labels",
   "navbar.custom.title": "Navigation bar",
   "navbar.custom.unknown": "This slot is not available.",
   "navbar.description.ambient_occlusion": "Darkens creases and corners to add depth.",
