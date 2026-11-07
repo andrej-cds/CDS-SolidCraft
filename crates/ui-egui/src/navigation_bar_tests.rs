@@ -255,7 +255,16 @@ fn navigation_slot_pointer_clicks_release_focus_and_leave_no_fill() {
                     let response = navigation_button(
                         ui,
                         bounds,
-                        NavigationButton { id: "regression", label: "Fit", icon: "fit", selected, kind, labels: false, menu: false },
+                        NavigationButton {
+                            id: "regression",
+                            label: "Fit",
+                            icon: "fit",
+                            selected,
+                            kind,
+                            labels: false,
+                            text_only: false,
+                            menu: false,
+                        },
                     );
                     focused = response.has_focus();
                     clicked = response.clicked();

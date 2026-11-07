@@ -155,6 +155,8 @@ pub enum Labels {
     #[default]
     Icons,
     Labels,
+    /// Text only, no icons.
+    Text,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

@@ -207,6 +207,7 @@ fn drop_on_preview(app: &mut SolveApp, ui: &mut egui::Ui, state: &mut State, tar
                     selected: false,
                     kind: slot.kind,
                     labels: false,
+                    text_only: false,
                     menu: slot.kind == Kind::Menu,
                 },
                 app.preferences.navigation_bar.size,
@@ -385,9 +386,23 @@ fn appearance(app: &mut SolveApp, ui: &mut egui::Ui) {
         segments(ui, "size", &mut usize::from(bar.size == Size::Regular), &["navbar.custom.compact", "navbar.custom.regular"], |i| {
             bar.size = if i == 1 { Size::Regular } else { Size::Compact }
         });
-        segments(ui, "buttons", &mut usize::from(bar.labels == Labels::Labels), &["navbar.custom.icons", "navbar.custom.labels"], |i| {
-            bar.labels = if i == 1 { Labels::Labels } else { Labels::Icons }
-        });
+        segments(
+            ui,
+            "buttons",
+            &mut match bar.labels {
+                Labels::Icons => 0,
+                Labels::Labels => 1,
+                Labels::Text => 2,
+            },
+            &["navbar.custom.icons", "navbar.custom.labels", "navbar.custom.text_only"],
+            |i| {
+                bar.labels = match i {
+                    1 => Labels::Labels,
+                    2 => Labels::Text,
+                    _ => Labels::Icons,
+                }
+            },
+        );
         segments(
             ui,
             "idle",
