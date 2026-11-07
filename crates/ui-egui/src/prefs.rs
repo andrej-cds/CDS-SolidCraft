@@ -4384,7 +4384,7 @@ mod tests {
             json!({"slots":[7]}),
             json!({"position":"top"}),
             json!({"size":true}),
-            json!({"labels":"text"}),
+            json!({"labels":"pictures"}),
             json!({"idle":10}),
             json!({"unknown":true}),
         ] {

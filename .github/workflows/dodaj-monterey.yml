@@ -1,0 +1,123 @@
+# CDS fork: builds a macOS Monterey (macOS 12) disk image of an already published release and adds
+# it to that release as solidcraft-<version>-macos-monterey.dmg. Started by hand (Actions > Add macOS
+# Monterey disk image > Run workflow). It builds only this file; the release build is not run again
+# and no existing release file is replaced (the checksum list only gains one line).
+name: Add macOS Monterey disk image
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag whose source is built, for example v0.29.0"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  # Every binary and the app bundle must run on macOS 12.
+  MACOSX_DEPLOYMENT_TARGET: "12.0"
+
+jobs:
+  build:
+    name: Monterey build ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: aarch64, target: aarch64-apple-darwin, runner: macos-15 }
+          - { arch: x86_64, target: x86_64-apple-darwin, runner: macos-15 }
+    env:
+      TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+      - name: Aim the build script at macOS 12 (it fixes 11.0 itself)
+        run: |
+          sed -i '' 's/^export MACOSX_DEPLOYMENT_TARGET=11\.0/export MACOSX_DEPLOYMENT_TARGET=12.0/' packaging/macos/package.sh
+          sed -i '' 's|<string>11\.0</string>|<string>12.0</string>|' assets/platforms/macos/Info.plist.in
+          grep -n 'MACOSX_DEPLOYMENT_TARGET=' packaging/macos/package.sh
+          grep -n -A1 LSMinimumSystemVersion assets/platforms/macos/Info.plist.in
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: monterey-${{ matrix.arch }}
+      - name: Build
+        run: |
+          export SOLIDCRAFT_VERSION="${TAG#v}"
+          export SOLIDCRAFT_BUILD_DATE="$(date -u +%F)"
+          packaging/macos/package.sh --build-only ${{ matrix.target }}
+      - name: The executable asks for macOS 12
+        run: |
+          vtool -show-build target/${{ matrix.target }}/release/solidcraft | tee build.txt
+          grep -Eq 'minos 12\.0' build.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: monterey-bin-${{ matrix.arch }}
+          retention-days: 2
+          path: |
+            target/${{ matrix.target }}/release/solidcraft
+            target/${{ matrix.target }}/release/solidcraft-cli
+            target/${{ matrix.target }}/release/solvecraft-cli
+          if-no-files-found: error
+
+  package:
+    name: Monterey disk image
+    needs: build
+    runs-on: macos-15
+    env:
+      TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: monterey-bin-aarch64
+          path: target/aarch64-apple-darwin/release
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: monterey-bin-x86_64
+          path: target/x86_64-apple-darwin/release
+      - name: Aim the build script at macOS 12 (it fixes 11.0 itself)
+        run: |
+          sed -i '' 's/^export MACOSX_DEPLOYMENT_TARGET=11\.0/export MACOSX_DEPLOYMENT_TARGET=12.0/' packaging/macos/package.sh
+          sed -i '' 's|<string>11\.0</string>|<string>12.0</string>|' assets/platforms/macos/Info.plist.in
+          grep -n 'MACOSX_DEPLOYMENT_TARGET=' packaging/macos/package.sh
+          grep -n -A1 LSMinimumSystemVersion assets/platforms/macos/Info.plist.in
+      - name: Join and package (ad-hoc signed)
+        run: |
+          export SOLIDCRAFT_VERSION="${TAG#v}"
+          export SOLIDCRAFT_BUILD_DATE="$(date -u +%F)"
+          chmod +x target/*-apple-darwin/release/solidcraft target/*-apple-darwin/release/solidcraft-cli target/*-apple-darwin/release/solvecraft-cli
+          packaging/macos/package.sh --arch universal --skip-build
+      - name: Check the app inside the disk image asks for macOS 12
+        run: |
+          version="${TAG#v}"
+          dmg="dist/release/solidcraft-$version-macos-universal.dmg"
+          mkdir mnt
+          hdiutil attach "$dmg" -mountpoint mnt -nobrowse -readonly
+          for exe in mnt/*.app/Contents/MacOS/*; do
+            echo "== $exe"
+            lipo -archs "$exe" || true
+            vtool -arch arm64 -show-build "$exe" 2>/dev/null | grep -E 'minos' || true
+            vtool -arch x86_64 -show-build "$exe" 2>/dev/null | grep -E 'minos' || true
+          done | tee ../check.txt
+          hdiutil detach mnt
+          ! grep -E 'minos' ../check.txt | grep -Ev 'minos 12\.0'
+          grep -q 'minos 12\.0' ../check.txt
+      - name: Name it, add its checksum, upload
+        run: |
+          version="${TAG#v}"
+          mkdir out
+          cp "dist/release/solidcraft-$version-macos-universal.dmg" "out/solidcraft-$version-macos-monterey.dmg"
+          ls -l out
+          gh release download "$TAG" --pattern SHA256SUMS.txt --dir sums
+          { grep -v 'macos-monterey.dmg' sums/SHA256SUMS.txt || true; (cd out && shasum -a 256 "solidcraft-$version-macos-monterey.dmg"); } > out/SHA256SUMS.txt
+          gh release upload "$TAG" --clobber -- "out/solidcraft-$version-macos-monterey.dmg" out/SHA256SUMS.txt

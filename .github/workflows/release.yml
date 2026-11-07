@@ -362,7 +362,7 @@ jobs:
       matrix:
         include:
           - { arch: aarch64, target: aarch64-apple-darwin, runner: macos-15 }
-          - { arch: x86_64, target: x86_64-apple-darwin, runner: macos-14 }
+          - { arch: x86_64, target: x86_64-apple-darwin, runner: macos-15 }
     env:
       SOLIDCRAFT_VERSION: ${{ needs.version.outputs.version }}
       SOLIDCRAFT_BUILD_DATE: ${{ needs.version.outputs.date }}
