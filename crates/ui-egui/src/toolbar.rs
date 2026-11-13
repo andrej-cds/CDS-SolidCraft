@@ -231,7 +231,8 @@ pub fn app_bar(app: &mut SolveApp, ui: &mut egui::Ui) {
             // Narrow windows retain Save; Undo and Redo remain available from their shortcuts and menus.
             let bar = app_bar::AppBar {
                 mark: &|painter, at| solidcraft_look::glyphs::brand_mark(painter, at),
-                name: "SolidCraft",
+                name: "SolidCraft by CDS",
+                name_ink: Some(crate::brand::CDS_GOLD),
                 home: app_bar::BarButton { id: "home", icon: "home", tip: app.tr("ui.start_page"), enabled: idle, narrow: false, wide_only: false },
                 file: app.tr("ui.file"),
                 file_open,

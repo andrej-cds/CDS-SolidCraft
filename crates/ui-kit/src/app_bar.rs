@@ -94,6 +94,8 @@ pub struct AppBar<'a> {
     /// The app's mark, painted centred at the point given, and its name beside it.
     pub mark: &'a dyn Fn(&Painter, Pos2),
     pub name: &'a str,
+    /// The name's colour; none takes the bar's text colour (CDS fork: its gold).
+    pub name_ink: Option<egui::Color32>,
     pub home: BarButton<'a>,
     /// The File button's label; it is enabled with `home`, and drawn held while its menu is open.
     pub file: &'a str,
@@ -283,7 +285,7 @@ pub fn show(ui: &mut egui::Ui, data: &AppBar, bar: Rect, content: Rect) -> BarOu
             Align2::LEFT_CENTER,
             data.name,
             crate::type_face::semibold(t.font_heading),
-            t.app_bar_text,
+            data.name_ink.unwrap_or(t.app_bar_text),
         );
         // Home's button starts 20 before its place (32 wide, centred 4 before it).
         (left + HOME_MIN).max(name.right() + NAME_GAP + 20.0)

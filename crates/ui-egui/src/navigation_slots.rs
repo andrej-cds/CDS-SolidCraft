@@ -73,6 +73,7 @@ pub(crate) const CATALOGUE: &[Slot] = &[
     slot!("grid", Toggle, "grid", Some("view.grid")),
     slot!("ground_shadow", Toggle, "ground_shadow", Some("view.ground_shadow")),
     slot!("ambient_occlusion", Toggle, "ambient_occlusion", Some("view.ambient_occlusion")),
+    slot!("true_scale", Toggle, "true_scale", None),
     slot!("separator", Separator, "", None),
 ];
 
@@ -81,7 +82,7 @@ pub(crate) const CATALOGUE: &[Slot] = &[
 /// View menu, which only ever shows its icon.
 static HOST: Catalogue = Catalogue {
     slots: CATALOGUE,
-    default_bar: &["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display"],
+    default_bar: &["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display", "true_scale"],
     value_menus: &["selection_mode", "render_mode"],
     icon_menus: &["display"],
 };

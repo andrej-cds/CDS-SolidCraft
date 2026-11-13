@@ -22,6 +22,12 @@ pub const MATERIALS: &[(&str, f64)] = &[
     ("Polycarbonate", 1.20),
     ("Oak", 0.75),
     ("Glass", 2.50),
+    // 3D-printing filaments (CDS fork): the plastic's own density, as a solid printed part has it.
+    ("PLA (3D print)", 1.24),
+    ("PETG (3D print)", 1.27),
+    ("ABS (3D print)", 1.04),
+    ("ASA (3D print)", 1.07),
+    ("CF-Nylon (3D print)", 1.18),
 ];
 
 /// How a physical material looks (sRGB); the default material has no colour of its own.
@@ -40,6 +46,11 @@ pub fn material_color(name: &str) -> Option<[u8; 3]> {
         "Polycarbonate" => [196, 216, 232],
         "Oak" => [190, 146, 92],
         "Glass" => [170, 208, 218],
+        "PLA (3D print)" => [230, 185, 60],
+        "PETG (3D print)" => [120, 190, 210],
+        "ABS (3D print)" => [214, 70, 60],
+        "ASA (3D print)" => [235, 235, 228],
+        "CF-Nylon (3D print)" => [52, 52, 56],
         _ => return None,
     })
 }

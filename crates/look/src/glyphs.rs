@@ -115,8 +115,10 @@ pub fn breadcrumb(p: &egui::Painter, c: egui::Pos2, col: Color32) {
 }
 
 /// The SolidCraft mark in its colours, 20 points high, centred on `c` (the application bar).
+/// CDS fork: the mark is drawn in the CDS gold (lightest, middle and darkest face tones).
 pub fn brand_mark(p: &egui::Painter, c: Pos2) {
-    brand_mark_styled(p, c, 20.0, solidcraft_theme::Tokens::get().logo, true);
+    const GOLD: [Color32; 3] = [Color32::from_rgb(255, 216, 98), Color32::from_rgb(214, 160, 48), Color32::from_rgb(150, 104, 22)];
+    brand_mark_styled(p, c, 20.0, GOLD, true);
 }
 
 /// The same original mark as a single quiet silhouette, without face seams or outlines.

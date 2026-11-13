@@ -37,16 +37,16 @@ light = "#6f879c"
 dark  = "#8093a4"
 [roles.active-1]   # changed or result geometry, palest face
 source = "#b9ddf8"
-light = "#b9ddf8"
-dark  = "#4ea1dc"
+light = "#f3e2b4"
+dark  = "#c9a24a"
 [roles.active-2]
 source = "#328bd3"
-light = "#328bd3"
-dark  = "#3287d1"
+light = "#d4a12a"
+dark  = "#c8961f"
 [roles.active-3]   # strongest blue: strokes and accents
 source = "#236ead"
-light = "#236ead"
-dark  = "#2976b8"
+light = "#9a6d0a"
+dark  = "#a87812"
 
 # Simultaneous component colours for inspection icons; existing workspace ramps stay unchanged.
 
@@ -126,15 +126,16 @@ dark  = "#ab8f00"
 light = "#e0b200"
 dark  = "#c6a800"
 
+# CDS fork: Sketch icons are gold like the rest (was green).
 [accents.sketch.active-1]
-light = "#bfe2cc"
-dark  = "#7ab792"
+light = "#f3e2b4"
+dark  = "#c9a24a"
 [accents.sketch.active-2]
-light = "#439a65"
-dark  = "#3a965e"
+light = "#d4a12a"
+dark  = "#c8961f"
 [accents.sketch.active-3]
-light = "#057f45"
-dark  = "#128d45"
+light = "#9a6d0a"
+dark  = "#a87812"
 
 [accents.constraint.active-1]
 light = "#f0cfca"
