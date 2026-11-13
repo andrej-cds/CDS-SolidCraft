@@ -1,5 +1,6 @@
 use serde_json::{Value, json};
-use solidcraft_geom::Vec3;
+use solidcore_record::Vec3;
+use solidcraft_geom::{MeshGeom, Vec3Geom};
 
 use crate::Session;
 
@@ -24,7 +25,7 @@ fn a_lego_brick_has_studs_tubes_and_one_undo_step() {
     assert_eq!(s.undo.len(), undo + 1, "one tool, one undo step");
     let body = out["body"].as_str().unwrap().to_string();
     assert_eq!(body, "Lego 4x2");
-    let world = s.world_state();
+    let world = s.world_state().unwrap();
     let m = world.body(&body).unwrap().mesh();
     let b = m.bounds();
     assert!((b.max.x - b.min.x - 31.8).abs() < 1e-6 && (b.max.y - b.min.y - 15.8).abs() < 1e-6);
@@ -49,13 +50,13 @@ fn supershape_airfoil_and_infill_blocks_build() {
     let mut s = Session::default();
     let out = run(&mut s, "print.supershape", json!({"m": 5, "n1": 2, "n2": 7, "n3": 7, "size": 40, "height": 6}));
     clean(&s);
-    let world = s.world_state();
+    let world = s.world_state().unwrap();
     let b = world.body(out["body"].as_str().unwrap()).unwrap().mesh().bounds();
     assert!((b.max.z - 6.0).abs() < 1e-6 && b.max.x - b.min.x > 20.0);
     run(&mut s, "print.supershape", json!({"solid": true, "size": 30}));
     let out = run(&mut s, "print.airfoil", json!({"naca": "2412", "chord": 120, "span": 30}));
     clean(&s);
-    let world = s.world_state();
+    let world = s.world_state().unwrap();
     let b = world.body(out["body"].as_str().unwrap()).unwrap().mesh().bounds();
     assert!((b.max.x - b.min.x - 120.0).abs() < 0.5, "{:?}", b);
     assert!(s.execute("print.airfoil", &json!({"naca": "12"})).is_err());
@@ -63,7 +64,7 @@ fn supershape_airfoil_and_infill_blocks_build() {
     for pattern in ["honeycomb", "grid"] {
         let out = run(&mut s, "print.infill", json!({"pattern": pattern, "size": [40, 30, 5], "cell": 8, "wall": 1, "position": [0, 0, 0]}));
         clean(&s);
-        let world = s.world_state();
+        let world = s.world_state().unwrap();
         let m = world.body(out["body"].as_str().unwrap()).unwrap().mesh();
         assert!(m.contains(Vec3::new(0.5, 0.5, 2.5)), "the frame");
         assert!(out["cells"].as_u64().unwrap() > 4);
@@ -80,7 +81,7 @@ fn vents_dogbones_and_offsets_change_the_body() {
         run(&mut s, "print.vent", json!({"face": [30, 20, 4], "shape": "slot", "columns": 5, "rows": 1, "width": 3, "height": 20, "pitch_x": 6}));
     clean(&s);
     assert_eq!(out["openings"], 5);
-    let world = s.world_state();
+    let world = s.world_state().unwrap();
     let m = world.body("Panel").unwrap().mesh();
     assert!(!m.contains(Vec3::new(30.0, 20.0, 2.0)), "a slot through the middle");
     assert!(m.contains(Vec3::new(30.0, 35.0, 2.0)));
@@ -97,7 +98,7 @@ fn vents_dogbones_and_offsets_change_the_body() {
     clean(&s);
     run(&mut s, "print.dogbone", json!({"edges": [[10, 10, 7.5]], "diameter": 3}));
     clean(&s);
-    let world = s.world_state();
+    let world = s.world_state().unwrap();
     let m = world.body("Block").unwrap().mesh();
     assert!(!m.contains(Vec3::new(9.7, 11.06, 7.5)) && !m.contains(Vec3::new(11.06, 9.7, 7.5)), "the relief runs into both walls");
     assert!(m.contains(Vec3::new(9.7, 14.0, 7.5)), "the wall stays further along");
@@ -107,7 +108,7 @@ fn vents_dogbones_and_offsets_change_the_body() {
     run(&mut s, "solid.box", json!({"length": 20, "width": 20, "height": 10, "body_name": "Pin"}));
     run(&mut s, "print.offset_body", json!({"body": "Pin", "distance": -0.2}));
     clean(&s);
-    let world = s.world_state();
+    let world = s.world_state().unwrap();
     let b = world.body("Pin").unwrap().mesh().bounds();
     assert!((b.max.x - b.min.x - 19.6).abs() < 1e-6, "{:?}", b);
 
