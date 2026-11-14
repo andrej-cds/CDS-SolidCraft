@@ -601,7 +601,7 @@ jobs:
         run: if command -v sccache >/dev/null; then sccache --show-stats; else echo "sccache was not set up; built without it"; fi
 
   tests:
-    name: Native Linux tests
+    name: Native Linux tests (${{ matrix.shard }}/3)
     needs: changes
     if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.native == 'true' }}
     # Builds the tests and runs them in one job on a big runner: there is no archive to upload
@@ -612,6 +612,12 @@ jobs:
     # CDS fork: the free GitHub runner has 4 cores and no persistent compiler cache, so a full
     # build and the slow engine tests need far longer than upstream's 60 minutes on 8 cores (about 31 min build + 3.5 h of tests).
     timeout-minutes: 340
+    # CDS fork: three shards (`--partition count:N/3`), each building the workspace and running a
+    # third of the tests, because one job running all of them lost its runner after 80 minutes.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     env:
       # Pictures (snapshots, screenshots, ui.render, the viewport's offscreen tests) are drawn on
       # the GPU. The runner has none: Mesa's lavapipe (software Vulkan) draws them, and a test that
@@ -621,7 +627,8 @@ jobs:
       # The same for the shared viewport crate's own GPU tests, which read no SolidCraft variable.
       VIEWPORT_TEST_GPU: software
       VIEWPORT_TEST_REQUIRE_GPU: "1"
-      ACTION_MATRIX_JOBS: "12"
+      # The free runner has 4 cores: the action matrix sample uses 4 workers, not 12.
+      ACTION_MATRIX_JOBS: "4"
       CARGO_INCREMENTAL: "0"
       RUSTC_WRAPPER: sccache
       SCCACHE_DIR: /home/runner/.cache/sccache
@@ -642,7 +649,7 @@ jobs:
         uses: useblacksmith/stickydisk@3f6be1451e3cad893b778bc93495c80452a5da26 # v1.7.2
         continue-on-error: true
         with:
-          key: ${{ github.repository }}-sccache-tests
+          key: ${{ github.repository }}-sccache-tests-${{ matrix.shard }}
           path: /home/runner/.cache/sccache
           commit: ${{ github.ref == 'refs/heads/main' && 'on-change' || 'false' }}
       # Main saves the cache; every other run restores it, read-only.
@@ -668,6 +675,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           FULL: ${{ needs.changes.outputs.full }}
           PACKAGES: ${{ needs.changes.outputs.packages }}
+          SHARD: ${{ matrix.shard }}
         run: |
           # Pull requests skip the heavy tests (default-filter in .config/nextest.toml); `default()`
           # below is that filter, so a pull request still runs only what it ran before.
@@ -695,7 +703,7 @@ jobs:
           # (a build error, a bad filter) and fails the step at once.
           status=0
           cargo nextest run "${scope[@]}" --cargo-profile ci --locked --profile ci --no-tests=pass \
-            --ignore-default-filter -E "($base) & not (package(=solidcraft-gpu) & test(/^path::/))" || status=$?
+            --ignore-default-filter -E "($base) & not (package(=solidcraft-gpu) & test(/^path::/))" --partition "count:$SHARD/3" || status=$?
           if [ "$status" -ne 0 ] && [ "$status" -ne 100 ]; then exit "$status"; fi
           cargo xtask known-failing --junit "$junit"
       # Every command label needs an English catalog entry (#8542). The label table is the CLI's
@@ -708,6 +716,7 @@ jobs:
       # touches the command table. The binary is only missing when the CLI was not tested (a
       # change to solidcraft-ui-egui or xtask alone); then it is built as before.
       - name: Command labels in the translation catalogs
+        if: matrix.shard == 1
         env:
           FULL: ${{ needs.changes.outputs.full }}
           PACKAGES: ${{ needs.changes.outputs.packages }}
@@ -729,7 +738,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: junit
+          name: junit-tests-${{ matrix.shard }}
           path: ${{ env.CARGO_TARGET_DIR || 'target' }}/nextest/ci/junit.xml
           retention-days: 7
 

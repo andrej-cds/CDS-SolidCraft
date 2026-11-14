@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 use solidcore_record::Vec3;
-use solidcraft_geom::{MeshGeom, Vec3Geom};
+use solidcraft_geom::MeshGeom;
 
 use crate::Session;
 
