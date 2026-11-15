@@ -123,8 +123,8 @@ impl Tokens {
             sketch_mode_tint: 0.12,
             sketch_footer_icon_size: 15.0,
             font_section_tracking: 0.04,
-            app_bar: Color32::from_rgb(52, 56, 64),
-            app_bar_separator: Color32::from_rgb(136, 145, 160),
+            app_bar: Color32::from_rgb(98, 75, 26),
+            app_bar_separator: Color32::from_rgb(170, 140, 70),
             toolbar: Color32::from_rgb(246, 247, 249),
             panel: Color32::from_rgb(250, 251, 252),
             panel_header: Color32::from_rgb(236, 238, 242),
@@ -239,7 +239,7 @@ impl Tokens {
             app_bar_hover_subtle: Color32::from_rgba_unmultiplied_const(255, 255, 255, 18),
             app_bar_hover_button: Color32::from_rgba_unmultiplied_const(255, 255, 255, 30),
             app_bar_hover_strong: Color32::from_rgba_unmultiplied_const(255, 255, 255, 40),
-            app_bar_tab_active: Color32::from_rgb(53, 59, 71),
+            app_bar_tab_active: Color32::from_rgb(122, 95, 34),
             dialog_body: Color32::from_rgb(255, 255, 255),
             dialog_footer: Color32::from_rgb(244, 246, 249),
             dialog_rule: Color32::from_rgb(230, 234, 240),
@@ -346,8 +346,8 @@ impl Tokens {
         t.file_recovery = Color32::from_rgb(67, 51, 28);
         t.file_recovery_ink = Color32::from_rgb(245, 204, 137);
         t.file_recovery_border = Color32::from_rgb(115, 88, 43);
-        t.app_bar = Color32::from_rgb(28, 31, 38);
-        t.toolbar = Color32::from_rgb(39, 43, 52);
+        t.app_bar = Color32::from_rgb(78, 59, 20);
+        t.toolbar = Color32::from_rgb(98, 75, 26);
         t.panel = Color32::from_rgb(39, 43, 52);
         t.panel_header = Color32::from_rgb(47, 52, 62);
         t.border = Color32::from_rgb(63, 69, 82);
@@ -420,7 +420,7 @@ impl Tokens {
         t.sketch_conflict = t.error;
         t.warning = Color32::from_rgb(236, 170, 70);
         t.icon = Color32::from_rgb(208, 214, 226);
-        t.timeline = Color32::from_rgb(33, 37, 45);
+        t.timeline = Color32::from_rgb(86, 66, 23);
         t.hover = Color32::from_rgb(54, 61, 74);
         t.hover_edge_halo = Color32::from_rgb(203, 203, 203);
         t.origin_point = Color32::from_rgb(214, 215, 218);
