@@ -6,7 +6,7 @@ use solidcraft_color::AnalysisColors;
 /// The primary (`active-3`) strokes, light then dark, that the tokens share with SolidCraft's icon artwork
 /// (`crates/look/icons/design/palette.toml`, including its colour vision variants). The look crate's icon tests hold them equal.
 pub mod icon_strokes {
-    pub const SKETCH_PRIMARY: [[u8; 3]; 2] = [[5, 127, 69], [18, 141, 69]];
+    pub const SKETCH_PRIMARY: [[u8; 3]; 2] = [[154, 109, 10], [168, 120, 18]];
     pub const CONSTRAINT_PRIMARY: [[u8; 3]; 2] = [[202, 71, 61], [193, 99, 88]];
     pub const CONSTRUCTION_PRIMARY: [[u8; 3]; 2] = [[156, 86, 0], [167, 93, 0]];
     pub const SKETCH_RED_GREEN: [[u8; 3]; 2] = [[29, 125, 82], [29, 127, 137]];
