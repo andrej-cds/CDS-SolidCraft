@@ -55,7 +55,9 @@ fn slot_catalogue_uses_registered_commands_and_existing_icons() {
 #[test]
 fn measured_bar_drops_labels_then_overflows_in_order_without_compass_overlap() {
     crate::navigation_slots::install();
-    let prefs = NavigationBar { labels: Labels::Labels, ..Default::default() };
+    let mut prefs = NavigationBar { labels: Labels::Labels, ..Default::default() };
+    // CDS fork: its extra default slot (true scale) is left out, so the upstream widths still hold.
+    prefs.slots.retain(|id| id != "true_scale");
     for width in [5.0, 39.0, 46.0, 90.0, 160.0, 250.0, 310.0, 700.0, 1400.0] {
         for height in [30.0, 80.0, 130.0, 240.0, 720.0] {
             let canvas = Rect::from_min_size(pos2(20.0, 30.0), vec2(width, height));

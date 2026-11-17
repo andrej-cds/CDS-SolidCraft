@@ -721,6 +721,7 @@ fn pairs(t: &Tokens) -> Vec<(String, Rgb8, Rgb8)> {
 /// The tokens the CDS gold theme sets (`assets/styles/ui/palettes.rs`), and those made from them.
 const GOLD_TOKENS: &[&str] = &[
     "accent",
+    "toolbar",
     "accent_soft",
     "selected_bg",
     "selected_ink",

@@ -131,7 +131,7 @@ impl Tokens {
             sketch_footer_icon_size: 15.0,
             font_section_tracking: 0.04,
             app_bar: Color32::from_rgb(98, 75, 26),
-            app_bar_separator: Color32::from_rgb(170, 140, 70),
+            app_bar_separator: Color32::from_rgb(205, 172, 96),
             toolbar: Color32::from_rgb(246, 247, 249),
             panel: Color32::from_rgb(250, 251, 252),
             panel_header: Color32::from_rgb(236, 238, 242),
@@ -354,7 +354,7 @@ impl Tokens {
         t.file_recovery_ink = Color32::from_rgb(245, 204, 137);
         t.file_recovery_border = Color32::from_rgb(115, 88, 43);
         t.app_bar = Color32::from_rgb(78, 59, 20);
-        t.toolbar = Color32::from_rgb(98, 75, 26);
+        t.toolbar = Color32::from_rgb(84, 63, 20);
         t.panel = Color32::from_rgb(39, 43, 52);
         t.panel_header = Color32::from_rgb(47, 52, 62);
         t.border = Color32::from_rgb(63, 69, 82);

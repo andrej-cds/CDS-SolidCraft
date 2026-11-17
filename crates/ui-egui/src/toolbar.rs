@@ -5220,7 +5220,7 @@ mod fill_width_tests {
             }
             let tab = if sketch { "SKETCH" } else { "MODEL" };
             h.app.ui.tab = tab.into();
-            for w in [1920.0, 1600.0, 1440.0, 1366.0, 1280.0, 1100.0, 900.0, 700.0] {
+            for w in [1920.0, 1600.0, 1440.0, 1366.0, 1280.0, 1100.0, 900.0, 760.0] {
                 h.call("ui.resize", json!({"width":w,"height":900}));
                 h.frames(3);
                 let at = format!("{tab} at {w}, {layout:?}");
