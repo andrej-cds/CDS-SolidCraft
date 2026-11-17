@@ -136,7 +136,7 @@ mod tests {
         w.app.home.open = false;
         w.frame(vec![]);
         let out = w.frame(vec![]);
-        let name = texts(&out).into_iter().find(|(text, _)| text == "SolidCraft").map(|(_, rect)| rect).expect("the name is drawn");
+        let name = texts(&out).into_iter().find(|(text, _)| text == "SolidCraft by CDS").map(|(_, rect)| rect).expect("the name is drawn");
         let home = crate::scenario::rect_of("titlebar:home").expect("Home is drawn");
         assert_eq!(home.center().x - name.left(), 88.0);
         assert!(name.right() < home.left());

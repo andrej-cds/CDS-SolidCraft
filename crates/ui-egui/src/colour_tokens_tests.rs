@@ -180,7 +180,8 @@ const ALLOWED_LITERALS: &[(&str, usize, &str)] = &[
     ("ui_kit/menu.rs", 1, "a menu entry's swatch: the colour is document data"),
     ("toolbar.rs", 1, "the version text"),
     ("brand.rs", 1, "CDS fork: the gold of the name SolidCraft by CDS"),
-    ("glyphs.rs", 3, "CDS fork: the gold SolidCraft mark"),
+    ("look/glyphs.rs", 3, "CDS fork: the gold SolidCraft mark"),
+    ("ui_kit/panel.rs", 1, "CDS fork: the gold SolidCraft mark in the panel header"),
 ];
 
 const COLOUR_LITERALS: &[&str] = &[

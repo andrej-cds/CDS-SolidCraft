@@ -1971,7 +1971,7 @@ fn the_links_stay_in_help_about_and_home_when_the_pills_are_off() {
     h.app.home.open = false;
     h.settle();
     assert!(rect_of("titlebar:kofi").is_none() && rect_of("titlebar:discord").is_none());
-    for (label, url) in [("Support SolidCraft on Ko-fi…", "https://ko-fi.com/bherbruck"), ("Join the Discord…", "https://discord.gg/FtU4NQNVDH")]
+    for (label, url) in [("Support SolidCraft by CDS on Ko-fi…", "https://ko-fi.com/bherbruck"), ("Join the Discord…", "https://discord.gg/FtU4NQNVDH")]
     {
         h.app.help.menu = true;
         h.frames(2);
