@@ -193,6 +193,9 @@ pub struct PanelView {
     /// The open design's revision: a message's changes can be undone from the chat while they
     /// left this very design.
     pub revision: super::Revision,
+    /// The undo history as a message's changes left it, while it still is: their Undo is offered
+    /// only then, so it never takes a step made after them.
+    pub undo_history: Option<super::Revision>,
     /// Length units and decimals for the summaries of what the agent did.
     pub units: String,
     pub decimals: u8,
@@ -209,6 +212,8 @@ pub struct PanelView {
     pub dialog_open: bool,
     /// Changes allowed in one turn (0: no limit).
     pub turn_limit: u32,
+    /// Each reply's thinking starts folded (`agent_thinking_folded`, #17072).
+    pub thinking_folded: bool,
     /// Why the chosen model may not work, if it may not.
     pub model_warning: Option<String>,
     /// The chat buttons' tooltip: name and shortcut.
@@ -235,6 +240,7 @@ impl PanelView {
             shown: shown(app),
             document: app.session.doc.name.clone(),
             revision: super::Revision::of(&app.session.doc),
+            undo_history: super::UndoMark::current(&app.agent_chat.items, &app.session.undo),
             units: app.session.doc.units.clone(),
             decimals: app.preferences.length_decimals,
             agents: agents::entries(app),
@@ -244,6 +250,7 @@ impl PanelView {
             selected: selected_count(app),
             dialog_open: app.dialog.is_some(),
             turn_limit: app.preferences.agent_chat_turn_limit,
+            thinking_folded: app.preferences.agent_thinking_folded,
             model_warning: settings::model_warning(app),
             toggle_keys: crate::keymap::keys(app, "ui.assistant"),
             capturing_keys: crate::keymap::capturing(app),
@@ -452,7 +459,9 @@ pub(crate) fn finish_shared(app: &mut SolveApp, ctx: &egui::Context) {
         app.agent_chat.hover.clear();
     }
     #[cfg(not(target_arch = "wasm32"))]
-    gallery_window(&mut app.agent_chat, ctx);
+    if !shared_section(app).is_some_and(|section| section.location.zone() == solidcraft_engine::panels::Zone::Window) {
+        gallery_window(&mut app.agent_chat, ctx);
+    }
     show_drop_hint(&app.agent_chat, ctx);
 }
 
@@ -467,8 +476,21 @@ pub(crate) fn shared_content(app: &mut SolveApp, ui: &mut egui::Ui, flow: Flow) 
     let prefs = AgentPanelPrefs::read(&app.preferences);
     draw_content(&mut app.agent_chat, &view, &prefs, ui, flow);
     hand_over(app, ui);
+    let ctx = ui.ctx().clone();
+    #[cfg(not(target_arch = "wasm32"))]
+    if ctx.viewport_id() != egui::ViewportId::ROOT {
+        if ui.is_enabled() {
+            window_input(&mut app.agent_chat, &ctx, ui.max_rect());
+            gallery_window(&mut app.agent_chat, &ctx);
+        }
+        app.agent_chat.panel_rect = None;
+        app.agent_chat.drop_rect = None;
+        app.agent_chat.hovered = None;
+        run_actions(app, &ctx);
+        return;
+    }
     light_hovered(app);
-    run_actions(app, &ui.ctx().clone());
+    run_actions(app, &ctx);
 }
 
 /// The controls and conversation alone, filling `ui` (the shared host's body, which has its own
@@ -845,19 +867,7 @@ fn window(chat: &mut AgentChat, view: &PanelView, ctx: &egui::Context, prefs: &m
             return;
         }
         let ctx = ui.ctx().clone();
-        // A window of its own gets the drops made on it: the whole window is the chat, so there
-        // is no pointer to ask about (the main window's handling never sees them).
-        let dropped = ctx.input_mut(|i| std::mem::take(&mut i.raw.dropped_files));
-        if !dropped.is_empty() {
-            chat.actions.push(PanelAction::AttachDropped(dropped.iter().map(|f| f.path().to_path_buf()).collect()));
-        }
-        if ctx.input(|i| !i.raw.hovered_files.is_empty()) {
-            drop_hint(&ctx, r.response.rect);
-        }
-        // The whole window is the chat, so New chat works anywhere in it.
-        if ctx.input_mut(|i| i.consume_shortcut(&NEW_CHAT_SHORTCUT)) {
-            chat.actions.push(PanelAction::RequestNewChat);
-        }
+        window_input(chat, &ctx, r.response.rect);
         let (outer, inner, close) = ctx.input(|i| (i.viewport().outer_rect, i.viewport().inner_rect, i.viewport().close_requested()));
         if let (Some(o), Some(n)) = (outer, inner) {
             prefs.window = Some([o.min.x, o.min.y, n.width(), n.height()]);
@@ -866,6 +876,21 @@ fn window(chat: &mut AgentChat, view: &PanelView, ctx: &egui::Context, prefs: &m
             chat.open = false;
         }
     });
+}
+
+/// A detached Assistant owns its file drops and keyboard input in that viewport.
+#[cfg(not(target_arch = "wasm32"))]
+fn window_input(chat: &mut AgentChat, ctx: &egui::Context, area: Rect) {
+    let dropped = ctx.input_mut(|input| std::mem::take(&mut input.raw.dropped_files));
+    if !dropped.is_empty() {
+        chat.actions.push(PanelAction::AttachDropped(dropped.iter().map(|file| file.path().to_path_buf()).collect()));
+    }
+    if ctx.input(|input| !input.raw.hovered_files.is_empty()) {
+        drop_hint(ctx, area);
+    }
+    if ctx.input_mut(|input| input.consume_shortcut(&NEW_CHAT_SHORTCUT)) {
+        chat.actions.push(PanelAction::RequestNewChat);
+    }
 }
 
 /// Whether the chat's own window should become active because the pointer is over its text box:
@@ -2046,7 +2071,29 @@ fn conversation(chat: &mut AgentChat, view: &PanelView, ui: &mut egui::Ui) {
             }
             Item::Agent { thought, text } => {
                 if *thought {
-                    super::markdown_view::selectable(ui, egui::Label::new(RichText::new(text).italics().color(t.text_dim)).wrap(), false);
+                    // The model's thinking folds open and shut per reply; it starts as the
+                    // preference says (#17072). Its header and arrow both toggle it.
+                    let id = Id::unique(("agent_chat_thought", n));
+                    let mut open = ui.data(|d| d.get_temp::<bool>(id)).unwrap_or(!view.thinking_folded);
+                    let header = ui.push_id(id, |ui| {
+                        ui.horizontal(|ui| {
+                            let (rect, _) = ui.allocate_exact_size(vec2(t.control_height, t.control_height), Sense::hover());
+                            let label = tr(if open { "ui.agent_chat_thinking_hide" } else { "ui.agent_chat_thinking_show" });
+                            let arrow = ui_kit::disclosure_button_at(ui, rect, open, label).backing_on_hover_text(label);
+                            solidcraft_ui_registry::publish_handle(&format!("agent_chat:thought:{n}"), arrow.rect.center());
+                            let title = RichText::new(tr("ui.agent_chat_thinking")).italics().color(t.text_dim).size(t.font_small);
+                            let title = ui.add(egui::Label::new(title).sense(Sense::click()));
+                            arrow.clicked() || title.clicked()
+                        })
+                        .inner
+                    });
+                    if header.inner {
+                        open = !open;
+                        ui.data_mut(|d| d.insert_temp(id, open));
+                    }
+                    if open {
+                        super::markdown_view::selectable(ui, egui::Label::new(RichText::new(text).italics().color(t.text_dim)).wrap(), false);
+                    }
                 } else {
                     let before = ui.cursor();
                     ui_kit::assistant_prose(ui, |ui| super::markdown_view::show(ui, n, text, all_selected));
@@ -2175,13 +2222,13 @@ fn conversation(chat: &mut AgentChat, view: &PanelView, ui: &mut egui::Ui) {
                     }
                 });
             }
-            Item::Changes { steps, revision, undone } => {
+            Item::Changes { steps, revision, history, undone } => {
                 ui.horizontal(|ui| {
                     let text = trf("ui.agent_chat_changes", &[("n", &steps.to_string())]);
                     ui.label(RichText::new(text).color(t.text_dim).size(solidcraft_theme::Tokens::get().font_caption));
                     if *undone {
                         ui.label(RichText::new(tr("ui.agent_chat_undone")).color(t.text_dim).size(solidcraft_theme::Tokens::get().font_caption));
-                    } else if revision.same(current) {
+                    } else if revision.same(current) && view.undo_history.as_ref().is_some_and(|h| history.same(h)) {
                         let b =
                             ui_kit::button(ui, tr("ui.agent_chat_undo_changes"), ui_kit::Button::Normal).backing_on_hover_text(tr("ui.ai_undo_tip"));
                         solidcraft_ui_registry::publish_handle("agent_chat:undo", b.rect.center());
@@ -3022,6 +3069,7 @@ mod tests {
             shown: true,
             document: "Plate".into(),
             revision: Revision::of(&solidcraft_engine::Session::default().doc),
+            undo_history: None,
             units: "mm".into(),
             decimals: 2,
             agents: Vec::new(),
@@ -3031,6 +3079,7 @@ mod tests {
             selected: 0,
             dialog_open: false,
             turn_limit: 0,
+            thinking_folded: true,
             model_warning: None,
             toggle_keys: Vec::new(),
             capturing_keys: false,

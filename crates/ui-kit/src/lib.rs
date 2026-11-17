@@ -1,6 +1,6 @@
 //! The UI kit: tokenised dense controls (rows, fields, menus, panels, windows) and the components
-//! built from them (the ribbon, app bar, history bar, navigation bar, view compass, preferences
-//! window, start page, window chrome and theme files). Everything is drawn from plain data the host
+//! built from them (the ribbon, app bar, history bar, navigation bar, Browser, view compass,
+//! preferences window, start page, window chrome and theme files). Everything is drawn from plain data the host
 //! passes or installs (its icon set, glyphs, tab table, text and built-in themes) and returns what
 //! the user chose; nothing here reads an app's state.
 //! `Panel` owns card composition; rows own aligned label/control columns and retain egui focus.
@@ -9,6 +9,7 @@
 // Components: each takes plain data and returns the action chosen.
 pub mod app_bar;
 pub mod blur;
+pub mod browser;
 pub mod frame;
 pub mod history_bar;
 pub mod nav_bar;
@@ -40,9 +41,12 @@ mod drag;
 mod fields;
 pub mod file_view;
 mod framing;
+mod grid;
+mod grid_tsv;
 mod history;
 mod history_group;
 pub mod icons;
+mod keyboard_focus;
 mod layout;
 mod look_chain;
 pub mod menu;
@@ -106,8 +110,11 @@ pub use fields::{Expressions, cell_editor, install_expressions, wide_cell_editor
 pub use file_view::Icon;
 pub use file_view::{FileView, RecentRow, RecoveryMessage, SampleCard};
 pub use framing::*;
+pub use grid::{CellEditor, CellKind, Edit, Gesture, Grid, GridColumn, GridOutput, GridSource, RowRef};
+pub use grid_tsv::{read_tsv, write_tsv};
 pub use history::*;
 pub use history_group::*;
+pub use keyboard_focus::*;
 pub use layout::*;
 pub use look_chain::{LookStep, look_chain};
 pub use menu::{Item, ItemIcon, LIST_W};
@@ -119,8 +126,8 @@ pub use navigation::{NavigationEdge, NavigationIdle, NavigationSize};
 pub use navigation_menu::*;
 pub use navigation_settings::*;
 pub use panel::{
-    ComputeStatus, FeatureOptions, InspectorAction, InspectorNames, Panel, Part, WindowPage, WorkspaceOptions, inspector_header, panel_header_hover,
-    within,
+    ComputeStatus, FeatureOptions, InspectorAction, InspectorNames, Panel, Part, StackCard, StackSlot, WindowPage, WorkspaceOptions,
+    inspector_header, panel_header_hover, within,
 };
 pub use panel::{DialogButtons, Window};
 #[cfg(any(test, feature = "test-support"))]

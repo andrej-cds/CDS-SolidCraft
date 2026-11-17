@@ -387,7 +387,15 @@ pub(crate) fn enable_production(app: &mut crate::SolveApp) -> PanelResult<()> {
     let placement = if app.panel_layout_preferences.record.is_none() { &app.preferences } else { &defaults };
     let layout = default_layout(app, placement, workspace.clone(), &registry)?;
     let mut runtime = PanelRuntime::new(
-        LayoutService::new(registry, layout, HostCapabilities { persistence: true, ..Default::default() })?,
+        LayoutService::new(
+            registry,
+            layout,
+            HostCapabilities {
+                persistence: true,
+                native_windows: cfg!(not(target_arch = "wasm32")),
+                max_native_hosts: if cfg!(target_arch = "wasm32") { 0 } else { MAX_SECTIONS },
+            },
+        )?,
         RuntimeEnvironment {
             workspace: workspace.clone(),
             document: Some(DocumentId::new(app.session.document_id.clone())?),
@@ -410,12 +418,18 @@ pub(crate) fn enable_production(app: &mut crate::SolveApp) -> PanelResult<()> {
     let services = ProductionServices {
         models: ProductionModels,
         commands: ProductionCommands,
-        local: ProductionLocal { workspace, document: DocumentId::new(app.session.document_id.clone())?, keyboard: None },
+        local: ProductionLocal {
+            workspace,
+            document: DocumentId::new(app.session.document_id.clone())?,
+            viewport: ViewportId(VIEWPORT.into()),
+            keyboard: None,
+        },
     };
     let mut integration = AppPanelRuntime::new(runtime, Box::new(services))?;
     integration.production = Some(state);
     integration.tick(&app.session)?;
     let mut options = HostOptions { content_header_height: 0.0, ..Default::default() };
+    options.geometry.default_opaque = false;
     options.metrics.footer_height = 0.0;
     integration.enable_host(options)?;
     let mut catalogue = commands::InMemoryCatalogue::default();
@@ -614,7 +628,11 @@ fn place_compatibly(
         let section = if source.location.zone() != zone || needs_stack || needs_column {
             let section = next_section_id_with_reservations(layout, &reserved.sections)?;
             reserved.sections.insert(section.clone());
-            let size = Size { width: width.unwrap_or(source.size.width).clamp(240.0, 1200.0), height: source.size.height };
+            let registry = integration.runtime().layout().registry();
+            let min = registry.get(&layout.instance(&instance)?.kind)?.min_size.width;
+            let (min, max) =
+                below.and_then(|section| section.column.as_ref()).map_or(Ok((min, 1200.0)), |column| column_bounds(layout, registry, column))?;
+            let size = Size { width: width.unwrap_or(source.size.width).clamp(min, max), height: source.size.height };
             let destination = if let Some(browser) = below {
                 Destination::Relative {
                     section: browser.id.clone(),
@@ -637,6 +655,10 @@ fn place_compatibly(
             mutations.push(Mutation::Move { instance, destination });
             if width.is_some() && zone.side() {
                 mutations.push(Mutation::SetSize { section: section.clone(), size });
+                // Compatibility placement supplies a width, so it must not pin an automatic height.
+                if !source.location.zone().side() || source.preferred_extent.is_none() {
+                    mutations.push(Mutation::ResetSideHeight { section: section.clone() });
+                }
             }
             if zone == Zone::Bottom && source.collapsed {
                 mutations.push(Mutation::Collapse { section: section.clone(), collapsed: false });
@@ -644,7 +666,8 @@ fn place_compatibly(
             section
         } else {
             if let (Some(width), Some(column)) = (width, &source.column) {
-                mutations.push(Mutation::SetColumnWidth { column: column.clone(), width: width.clamp(240.0, 1200.0) });
+                let (min, max) = column_bounds(layout, integration.runtime().layout().registry(), column)?;
+                mutations.push(Mutation::SetColumnWidth { column: column.clone(), width: width.clamp(min, max) });
             }
             source.id.clone()
         };
@@ -893,6 +916,7 @@ fn registry() -> PanelResult<PanelRegistry> {
         if history || shots {
             allowed_zones.insert(Zone::Bottom);
         }
+        allowed_zones.insert(Zone::Window);
         registry.register(PanelSpec {
             kind: PanelKind::new(product.kind())?,
             title_key: product.title_key().into(),
@@ -904,7 +928,7 @@ fn registry() -> PanelResult<PanelRegistry> {
                 _ => Zone::Left,
             },
             min_size: Size {
-                width: 240.0,
+                width: if history { crate::ui_kit::history_width(false) } else { 240.0 },
                 height: match product {
                     Product::RenderLibrary => 180.0,
                     Product::Bom => 200.0,
@@ -918,13 +942,17 @@ fn registry() -> PanelResult<PanelRegistry> {
             default_size: Size { width: crate::prefs::DEFAULT_BROWSER_WIDTH, height: if history || shots { bottom_height } else { 320.0 } },
             max_size: Size { width: MAX_LOGICAL, height: MAX_LOGICAL },
             edge_rule: if assistant { EdgeRule::PinOuter } else { EdgeRule::None },
-            surface: PanelSurface::FollowZone,
-            features: PanelFeatures { popout: false, hot_closable: assistant || bom, closable: !sketch, ..Default::default() },
+            surface: PanelSurface::Translucent,
+            features: PanelFeatures { popout: true, hot_closable: assistant || bom, closable: !sketch, ..Default::default() },
             side_height_policy: if assistant { SideHeightPolicy::Fill } else { SideHeightPolicy::Content },
             fixed_bottom_height: (history || shots).then_some(bottom_height),
             header_actions: product.header_actions(),
             text_heavy: assistant || bom || sketch,
         })?;
+        if history {
+            let strip = crate::ui_kit::history_width(false);
+            registry.set_side_widths(&PanelKind::new(product.kind())?, vec![(strip, strip), (crate::ui_kit::history_width(true), MAX_LOGICAL)])?;
+        }
     }
     Ok(registry)
 }
@@ -1042,6 +1070,7 @@ fn default_layout(app: &crate::SolveApp, placement: &crate::prefs::Prefs, worksp
             instance.memory.column_index = column_index;
         }
     }
+    normalize_column_widths(&mut layout, registry)?;
     validate(&layout, registry)?;
     Ok(layout)
 }
@@ -1078,6 +1107,7 @@ impl PanelController for ProductionController {
         let snapshot = self.state.0.try_borrow().map_err(|_| error(Rule::Lifecycle, "content measurement is borrowed"))?;
         Ok(Arc::new(ProductionMetrics {
             extent: snapshot.panels.iter().find(|panel| panel.product == self.product).and_then(|panel| panel.extent),
+            strip_width: (self.product == Product::History).then(|| crate::ui_kit::history_width(false)),
             inset: solidcraft_theme::Tokens::get().space_2 * 2.0,
             policy: spec.side_height_policy,
         }))
@@ -1120,6 +1150,7 @@ impl PanelController for ProductionController {
 #[derive(Debug)]
 struct ProductionMetrics {
     extent: Option<ContentExtent>,
+    strip_width: Option<f32>,
     inset: f32,
     policy: SideHeightPolicy,
 }
@@ -1131,7 +1162,8 @@ impl HostContentMetrics for ProductionMetrics {
             .extent
             .filter(|extent| extent.width_independent || (extent.flow == Flow::Tall && (extent.width - request.width).abs() < 0.5))
             .map_or(MAX_LOGICAL, |extent| (request.chrome_height + extent.height + self.inset).min(MAX_LOGICAL));
-        Ok(SideContentMeasure { request: request.clone(), needed_height, policy: self.policy })
+        let policy = if self.strip_width == Some(request.width) { SideHeightPolicy::Fill } else { self.policy };
+        Ok(SideContentMeasure { request: request.clone(), needed_height, policy })
     }
     fn revision(&self) -> u64 {
         use std::hash::{Hash, Hasher};
@@ -1182,6 +1214,10 @@ impl AppPanelServices for ProductionServices {
         self.local.document = DocumentId::new(session.document_id.clone())?;
         Ok(())
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    fn set_presentation_viewport(&mut self, native: Option<&HostId>) {
+        self.local.viewport = ViewportId(native.map_or(VIEWPORT, |host| host.0.as_str()).into());
+    }
     fn services(&mut self) -> ContentServices<'_> {
         ContentServices { models: &self.models, commands: &mut self.commands, local: &mut self.local }
     }
@@ -1189,13 +1225,14 @@ impl AppPanelServices for ProductionServices {
 struct ProductionLocal {
     workspace: WorkspaceId,
     document: DocumentId,
+    viewport: ViewportId,
     keyboard: Option<(LocalScope, InstanceId)>,
 }
 impl ProductionLocal {
     fn validate(&self, scope: &LocalScope, instance: &InstanceId) -> PanelResult<()> {
         scope.validate()?;
         Product::from_instance(instance)?;
-        if scope.workspace != self.workspace || scope.document.as_ref() != Some(&self.document) || scope.viewport.0 != VIEWPORT {
+        if scope.workspace != self.workspace || scope.document.as_ref() != Some(&self.document) || scope.viewport != self.viewport {
             return Err(error(Rule::Placement, "application panel service has a different owner scope"));
         }
         Ok(())
@@ -1332,7 +1369,7 @@ impl FramePanelContent for ProductionFrame<'_> {
             return Err(error(Rule::Availability, "application panel content owner changed"));
         }
         match product {
-            Product::RenderLibrary | Product::RenderInspector | Product::RenderShots => {
+            Product::RenderLibrary | Product::RenderInspector | Product::RenderShots if !context.preview_geometry => {
                 let rect = super::workspace::egui_rect(context.outer);
                 let id = match product {
                     Product::RenderLibrary => "render:appearances",
@@ -1381,8 +1418,10 @@ impl FramePanelContent for ProductionFrame<'_> {
             return Err(error(Rule::Availability, "application panel document changed while painting"));
         }
         let scope = LocalScope { workspace: context.workspace.clone(), document: context.document.clone(), viewport: context.viewport.clone() };
-        if let Some(capture) = capture {
-            if let Some(mut extent) = capture.extent {
+        if let Some(capture) = capture.filter(|_| !context.preview_geometry) {
+            if let Some(mut extent) = capture.extent
+                && !(product == Product::History && context.outer.size.width == crate::ui_kit::history_width(false))
+            {
                 extent.width = context.outer.size.width;
                 extent.flow = context.flow;
                 extent.composer = capture.composer;
