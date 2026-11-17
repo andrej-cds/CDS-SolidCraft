@@ -1138,9 +1138,9 @@ preference_settings! {
     upright_orbit_unrolls: bool = true, PAGE_NAVIGATION => check_tr("nav.upright_orbit_unrolls.label");
     /// The Donate button (Ko-fi) at the status bar's right end. The button's × turns it off; the Help
     /// menu, About and the start page keep their link.
-    show_donate_button: bool = true, PAGE_GENERAL => check_id("prefs.show_donate_button");
+    show_donate_button: bool = false, PAGE_GENERAL => check_id("prefs.show_donate_button");
     /// The Discord button at the status bar's right end; the × on it turns it off.
-    show_discord_button: bool = true, PAGE_GENERAL => check_id("prefs.show_discord_button");
+    show_discord_button: bool = false, PAGE_GENERAL => check_id("prefs.show_discord_button");
     /// View orientation widget: original signed axes (default) or a custom body.
     navigator_style: NavigatorStyle = NavigatorStyle::default(), PAGE_NAVIGATION;
     /// The custom view gizmo's colours: the theme's (themed) or the body's own (modeled).
@@ -7184,8 +7184,8 @@ mod tests {
             ("viewport_background", json!([255, 255, 255]), PAGE_APPEARANCE),
             ("view_confirm_corner", json!(true), PAGE_LAYOUT),
             ("status_bar", json!(true), PAGE_LAYOUT),
-            ("show_donate_button", json!(false), PAGE_GENERAL),
-            ("show_discord_button", json!(false), PAGE_GENERAL),
+            ("show_donate_button", json!(true), PAGE_GENERAL),
+            ("show_discord_button", json!(true), PAGE_GENERAL),
             ("browser_eye_left", json!(true), PAGE_LAYOUT),
             ("browser_components_open", json!(true), PAGE_LAYOUT),
             ("browser_rows_start_closed", json!(true), PAGE_LAYOUT),

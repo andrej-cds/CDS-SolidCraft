@@ -1887,13 +1887,15 @@ fn opened_url(h: &mut Harness) -> Option<String> {
 #[test]
 fn title_bar_pills_open_their_pages_and_the_x_turns_off_only_that_pill() {
     let mut h = Harness::new();
+    // CDS fork: the Discord and Donate pills are off by default; these tests are about the pills.
+    h.call("ui.prefs", json!({"show_donate_button": true, "show_discord_button": true}));
     h.call("ui.resize", json!({"width":1280,"height":720}));
     h.app.home.open = false;
     h.settle();
     let report = rect_of("titlebar:report").unwrap();
     let (donate, discord) = (rect_of("titlebar:kofi").unwrap(), rect_of("titlebar:discord").unwrap());
     assert!(donate.right() < discord.left() && discord.right() < report.left(), "{donate:?} {discord:?} {report:?}");
-    assert!(h.app.preferences.show_donate_button && h.app.preferences.show_discord_button, "both on by default");
+    assert!(h.app.preferences.show_donate_button && h.app.preferences.show_discord_button, "both on after being turned on");
     for (handle, url) in [("titlebar:kofi", "https://ko-fi.com/bherbruck"), ("titlebar:discord", "https://discord.gg/FtU4NQNVDH")] {
         h.step(&json!({"click":{"handle":handle}})).unwrap();
         assert_eq!(opened_url(&mut h).as_deref(), Some(url), "{handle}");
@@ -1919,6 +1921,8 @@ fn title_bar_pills_open_their_pages_and_the_x_turns_off_only_that_pill() {
 fn an_organizations_policy_says_managed_by_in_the_bar_preferences_and_about() {
     let _language = solidcraft_ui_text::scope("en");
     let mut h = Harness::new();
+    // CDS fork: the Discord and Donate pills are off by default; these tests are about the pills.
+    h.call("ui.prefs", json!({"show_donate_button": true, "show_discord_button": true}));
     h.app.preferences.language = "en".into();
     h.call("ui.resize", json!({"width":1280,"height":720}));
     h.app.home.open = false;
