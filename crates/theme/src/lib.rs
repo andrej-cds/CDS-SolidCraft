@@ -1880,7 +1880,11 @@ mod tests {
             }
             let accent = super::TabAccent::for_ramp(&super::Tokens::light(), ramp);
             // CDS fork: the gold Sketch and Sheet Metal tabs separate ink from fill too.
-            assert_eq!(accent.ink != accent.color, matches!(ramp, Mesh | Sketch | Sheet), "only light Mesh, Sketch and Sheet Metal separate ink from fill");
+            assert_eq!(
+                accent.ink != accent.color,
+                matches!(ramp, Mesh | Sketch | Sheet),
+                "only light Mesh, Sketch and Sheet Metal separate ink from fill"
+            );
         }
         // These existing Model values intentionally take precedence over the board's proposal (CDS fork: gold).
         for (t, values) in [(super::Tokens::light(), [0x96690a, 0x6e4e08, 0xf6ecd0]), (super::Tokens::dark(), [0xe6b93c, 0xf0d28c, 0x58461e])] {
