@@ -63,7 +63,6 @@ jobs:
           path: |
             target/${{ matrix.target }}/release/solidcraft
             target/${{ matrix.target }}/release/solidcraft-cli
-            target/${{ matrix.target }}/release/solvecraft-cli
           if-no-files-found: error
 
   package:
@@ -97,7 +96,7 @@ jobs:
           export SOLIDCRAFT_VERSION="${TAG#v}"
           SOLIDCRAFT_BUILD_DATE="$(date -u +%F)"
           export SOLIDCRAFT_BUILD_DATE
-          chmod +x target/*-apple-darwin/release/solidcraft target/*-apple-darwin/release/solidcraft-cli target/*-apple-darwin/release/solvecraft-cli
+          chmod +x target/*-apple-darwin/release/solidcraft target/*-apple-darwin/release/solidcraft-cli
           packaging/macos/package.sh --arch universal --skip-build
       - name: Check the app inside the disk image asks for macOS 12
         run: |
