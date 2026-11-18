@@ -6057,7 +6057,13 @@ mod tests {
             });
             h.frames(2);
         }
-        panic!("{handle} never came into view");
+        panic!(
+            "{handle} never came into view: target={:?} body={:?} buttons_rect={:?} size1={:?}",
+            crate::scenario::handle_at(handle),
+            crate::scenario::rect_of("prefs:page_body"),
+            crate::scenario::rect_of("prefs:navbar:buttons"),
+            crate::scenario::handle_at("prefs:navbar:size:1")
+        );
     }
 
     #[test]
