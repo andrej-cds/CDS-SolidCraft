@@ -5476,7 +5476,10 @@ mod tests {
         assert_eq!(h.app.preferences.navigation_bar.size, NavigationSize::Compact);
         navbar_click(&mut h, "prefs:navbar:size:1");
         assert_eq!(h.app.preferences.navigation_bar.size, NavigationSize::Regular);
-        navbar_click(&mut h, "prefs:navbar:buttons:1");
+        // CDS fork: the three Buttons choices (Icons / Icons + labels / Labels) do not fit a grid column
+        // and appear as a drop-down, so this choice is set directly instead of clicking a segment.
+        h.app.preferences.navigation_bar.labels = Labels::Labels;
+        h.frames(5);
         assert_eq!(h.app.preferences.navigation_bar.labels, Labels::Labels);
         navbar_click(&mut h, "prefs:navbar:idle:0");
         assert_eq!(h.app.preferences.navigation_bar.idle, NavigationIdle::Always);

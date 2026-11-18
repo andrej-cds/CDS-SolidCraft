@@ -498,10 +498,10 @@ fn option_grid(bar: &mut NavigationBar, ui: &mut egui::Ui, first: usize) {
         1
     };
     let width = (ui.available_width() - t.space_16 * (columns - 1) as f32) / columns as f32;
-    for row in (first..2).step_by(columns) {
+    for row in (first..3).step_by(columns) {
         ui.horizontal_top(|ui| {
             ui.spacing_mut().item_spacing.x = t.space_16;
-            for index in row..(row + columns).min(2) {
+            for index in row..(row + columns).min(3) {
                 ui.allocate_ui_with_layout(vec2(width.max(0.0), t.control_height), egui::Layout::top_down(egui::Align::Min), |ui| match index {
                     0 => anchor_option(bar, ui),
                     1 => {
@@ -513,33 +513,30 @@ fn option_grid(bar: &mut NavigationBar, ui: &mut egui::Ui, first: usize) {
                             |i| bar.size = if i == 1 { NavigationSize::Regular } else { NavigationSize::Compact },
                         );
                     }
+                    2 => {
+                        option(
+                            ui,
+                            "buttons",
+                            &mut match bar.labels {
+                                Labels::Icons => 0,
+                                Labels::Labels => 1,
+                                Labels::Text => 2,
+                            },
+                            &["navbar.custom.icons", "navbar.custom.labels", "navbar.custom.text_only"],
+                            |i| {
+                                bar.labels = match i {
+                                    1 => Labels::Labels,
+                                    2 => Labels::Text,
+                                    _ => Labels::Icons,
+                                }
+                            },
+                        );
+                    }
                     _ => {}
                 });
             }
         });
     }
-}
-
-/// Icons / Icons + labels / Labels. Three segments need the full row: in a grid column they
-/// no longer fit and the control would fall back to a dropdown.
-fn buttons_option(bar: &mut NavigationBar, ui: &mut egui::Ui) {
-    option(
-        ui,
-        "buttons",
-        &mut match bar.labels {
-            Labels::Icons => 0,
-            Labels::Labels => 1,
-            Labels::Text => 2,
-        },
-        &["navbar.custom.icons", "navbar.custom.labels", "navbar.custom.text_only"],
-        |i| {
-            bar.labels = match i {
-                1 => Labels::Labels,
-                2 => Labels::Text,
-                _ => Labels::Icons,
-            }
-        },
-    );
 }
 
 fn anchor_option(bar: &mut NavigationBar, ui: &mut egui::Ui) {
@@ -584,5 +581,4 @@ fn appearance(app: &mut SolveApp, ui: &mut egui::Ui) {
     } else {
         option_grid(bar, ui, 0);
     }
-    buttons_option(bar, ui);
 }
