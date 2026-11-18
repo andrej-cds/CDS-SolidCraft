@@ -264,7 +264,7 @@ fn supershape(s: &mut Session, p: &Value) -> Result<Value> {
     let created = run_steps(
         s,
         vec![
-            step("sketch.create", json!({"plane": plane, "name": "Supershape sketch"})),
+            step("sketch.create", json!({"plane": plane})),
             step("sketch.spline.fit_point", json!({"points": pts.iter().map(|q| xy(*q)).collect::<Vec<_>>(), "periodic": true})),
             step("sketch.finish", json!({})),
         ],
@@ -456,7 +456,7 @@ fn vent(s: &mut Session, p: &Value) -> Result<Value> {
     if let Some(b) = str_(p, "body") {
         plane["body"] = json!(b);
     }
-    let created = run_one(s, "sketch.create", json!({"plane": plane, "name": "Vents sketch"}))?;
+    let created = run_one(s, "sketch.create", json!({"plane": plane}))?;
     let sketch = sketch_of(&created).ok_or_else(|| EngineError::Other("the sketch was not made".into()))?;
     let frame = s.model.state().sketch(sketch).map(|k| k.plane).ok_or_else(|| EngineError::Other("the sketch has no plane".into()))?;
     let d = at - frame.origin;
@@ -487,7 +487,7 @@ fn vent(s: &mut Session, p: &Value) -> Result<Value> {
     }
     steps.push(step("sketch.finish", json!({})));
     run_steps(s, steps)?;
-    let mut q = json!({"sketch": sketch, "profiles": picks, "operation": "cut", "direction": "negative", "name": "Vents"});
+    let mut q = json!({"sketch": sketch, "profiles": picks, "operation": "cut", "direction": "negative"});
     match depth {
         Some(d) => q["distance"] = json!(round(d)),
         None => q["through_all"] = json!(true),
