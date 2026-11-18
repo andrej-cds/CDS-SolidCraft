@@ -138,7 +138,8 @@ mod tests {
         let out = w.frame(vec![]);
         let name = texts(&out).into_iter().find(|(text, _)| text == "SolidCraft by CDS").map(|(_, rect)| rect).expect("the name is drawn");
         let home = crate::scenario::rect_of("titlebar:home").expect("Home is drawn");
-        assert_eq!(home.center().x - name.left(), 88.0);
+        // CDS fork: the name "SolidCraft by CDS" is longer than upstream's, so Home sits further right (136.5).
+        assert!((home.center().x - name.left() - 136.5).abs() < 0.5, "Home offset {}", home.center().x - name.left());
         assert!(name.right() < home.left());
     }
 

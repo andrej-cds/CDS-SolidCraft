@@ -425,6 +425,7 @@ fn a_setting_under_policy_shows_the_organizations_value_and_cannot_be_changed() 
         h.app.home.open = false;
         h.app.preferences.language = "en".into();
         h.app.preferences.check_updates = !on;
+        h.app.preferences.update_popup = false; // CDS: the Update window must not open over Preferences
         h.app.updater.feed = Some(feed);
         h.app.policy = update_policy(on);
         let reply = h.call("ui.prefs", json!({"open":"General"}));
