@@ -215,6 +215,8 @@ mod tests {
         for width in [1280.0, 1600.0] {
             let mut w = Win::new(width);
             w.app.home.open = false;
+            w.app.preferences.show_donate_button = true;
+            w.app.preferences.show_discord_button = true;
             w.frame(vec![]);
             let out = w.frame(vec![]);
             let [min, ..] = CAPTIONS.map(|c| w.caption(c));

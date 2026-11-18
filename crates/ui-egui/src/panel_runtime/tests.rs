@@ -4804,10 +4804,14 @@ fn raw_drag_title_tracks_only_the_source_text_without_changing_host_state_or_foo
                         } else {
                             t.form_primary
                         };
-                        assert!(text.galley.job.sections.iter().all(|section| {
-                            section.format.color == ink.gamma_multiply(opacity)
-                                || (tab && original && section.format.color == ink.gamma_multiply(opacity * 0.7))
-                        }));
+                        assert!(
+                            text.galley.job.sections.iter().all(|section| {
+                                section.format.color == ink.gamma_multiply(opacity)
+                                    || (tab && original && section.format.color == ink.gamma_multiply(opacity * 0.7))
+                            }),
+                            "title {title:?} tab={tab} original={original} faded={faded}: expected {ink:?} got {:?}",
+                            text.galley.job.sections.iter().map(|section| section.format.color).collect::<Vec<_>>()
+                        );
                         if original {
                             originals += 1;
                         } else {
