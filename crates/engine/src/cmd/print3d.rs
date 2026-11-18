@@ -6,7 +6,8 @@
 //! patterns), so every result is plain, editable history; each tool is one undo step.
 
 use serde_json::{Value, json};
-use solidcraft_geom::{Vec2, Vec3};
+use solidcore_record::{Vec2, Vec3};
+use solidcraft_geom::{MeshGeom, Vec2Geom, Vec3Geom};
 
 use super::print3d_shapes as shapes;
 use super::{CommandSpec, in_sketch, not_in_sketch};
@@ -263,7 +264,7 @@ fn supershape(s: &mut Session, p: &Value) -> Result<Value> {
     let created = run_steps(
         s,
         vec![
-            step("sketch.create", json!({"plane": plane, "name": "Supershape"})),
+            step("sketch.create", json!({"plane": plane})),
             step("sketch.spline.fit_point", json!({"points": pts.iter().map(|q| xy(*q)).collect::<Vec<_>>(), "periodic": true})),
             step("sketch.finish", json!({})),
         ],
@@ -286,9 +287,11 @@ fn mesh_body(s: &mut Session, cmd: &str, tris: &[[Vec3; 3]], name: &str) -> Resu
     let file = format!("{name}.stl");
     let bytes = shapes::stl_bytes(tris, name);
     let mf = solidcraft_io::mesh_import_feature(&bytes, &file).map_err(|e| EngineError::Other(format!("{cmd}: {e}")))?;
-    let (id, placed) = super::file::import::add_in_component(s, mf.kind, name, mf.body_names, name, super::file::import::Tree::Flat)?;
+    let (id, placed) = super::file::import::add_in_component(s, mf.kind, name, mf.body_names, &[], name, super::file::import::Tree::Flat)?;
     let mut out = json!({"feature": id, "component": name, "triangles": tris.len()});
-    placed.report(&mut out);
+    out["occurrence"] = json!(placed.occurrence);
+    out["components"] = json!(placed.components);
+    out["joints"] = json!(placed.joints);
     Ok(out)
 }
 
@@ -348,7 +351,7 @@ fn infill(s: &mut Session, p: &Value) -> Result<Value> {
     let pattern = str_(p, "pattern").unwrap_or("honeycomb");
     let body_box = match str_(p, "body").filter(|b| !b.trim().is_empty()) {
         Some(b) => {
-            let st = s.world_state();
+            let st = s.world_state()?;
             let bb = st.body(b).ok_or_else(|| bad(cmd, format!("no body `{b}`")))?.mesh().bounds();
             Some((bb.min, bb.max - bb.min))
         }
@@ -453,7 +456,7 @@ fn vent(s: &mut Session, p: &Value) -> Result<Value> {
     if let Some(b) = str_(p, "body") {
         plane["body"] = json!(b);
     }
-    let created = run_one(s, "sketch.create", json!({"plane": plane, "name": "Vents"}))?;
+    let created = run_one(s, "sketch.create", json!({"plane": plane}))?;
     let sketch = sketch_of(&created).ok_or_else(|| EngineError::Other("the sketch was not made".into()))?;
     let frame = s.model.state().sketch(sketch).map(|k| k.plane).ok_or_else(|| EngineError::Other("the sketch has no plane".into()))?;
     let d = at - frame.origin;
@@ -484,7 +487,7 @@ fn vent(s: &mut Session, p: &Value) -> Result<Value> {
     }
     steps.push(step("sketch.finish", json!({})));
     run_steps(s, steps)?;
-    let mut q = json!({"sketch": sketch, "profiles": picks, "operation": "cut", "direction": "negative", "name": "Vents"});
+    let mut q = json!({"sketch": sketch, "profiles": picks, "operation": "cut", "direction": "negative"});
     match depth {
         Some(d) => q["distance"] = json!(round(d)),
         None => q["through_all"] = json!(true),
@@ -512,7 +515,7 @@ fn dogbone(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let diameter = length(s, cmd, p, "diameter", 3.0, 0.1, 100.0)?;
     let r = diameter / 2.0;
-    let st = s.world_state();
+    let st = s.world_state()?;
     let mut steps = Vec::new();
     for pick in &picks {
         let mut found = None;
@@ -731,7 +734,7 @@ fn export(s: &mut Session, p: &Value) -> Result<Value> {
     let folder_text = folder.to_string_lossy().to_string();
     solidcraft_io::vfs::create_dir_all(&folder_text).map_err(|e| EngineError::Other(format!("{folder_text}: {e}")))?;
     let visible_only = cfg["visible_only"].as_bool().unwrap_or(true);
-    let st = s.world_state();
+    let st = s.world_state()?;
     let bodies: Vec<String> = st.bodies.iter().map(|b| b.name.clone()).filter(|n| !visible_only || s.body_visible(n)).collect();
     if bodies.is_empty() {
         return Err(bad(cmd, "there are no bodies to export"));
@@ -764,7 +767,7 @@ fn quick_send(s: &mut Session, p: &Value) -> Result<Value> {
         None => {
             let picked: Vec<String> =
                 s.selection.iter().filter_map(|x| if let crate::Sel::Body { name } = x { Some(name.clone()) } else { None }).collect();
-            if picked.is_empty() { s.world_state().bodies.iter().map(|b| b.name.clone()).filter(|n| s.body_visible(n)).collect() } else { picked }
+            if picked.is_empty() { s.world_state()?.bodies.iter().map(|b| b.name.clone()).filter(|n| s.body_visible(n)).collect() } else { picked }
         }
     };
     if bodies.is_empty() {

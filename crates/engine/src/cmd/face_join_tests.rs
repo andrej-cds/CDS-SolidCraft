@@ -3,8 +3,9 @@
 
 use crate::Session;
 use serde_json::{Value, json};
+use solidcore_record::Vec3;
 use solidcraft_doc::{Document, FeatureKind};
-use solidcraft_geom::Vec3;
+use solidcraft_geom::prelude::*;
 
 fn run(s: &mut Session, command: &str, params: Value) -> Value {
     s.execute(command, &params).unwrap_or_else(|error| panic!("{command}: {error}"))
@@ -28,7 +29,7 @@ fn check_wall(s: &Session, count: usize) {
     let measure = solidcraft_kernel::measure(&wall.body).unwrap();
     assert!((measure.volume - 30_000.0).abs() < 1e-6, "{measure:?}");
     assert!(measure.bbox.max.dist(Vec3::new(50.0, 30.0, 20.0)) < 1e-9);
-    assert!(wall.body.contains(Vec3::new(49.0, 15.0, 10.0)));
+    assert_eq!(wall.body.classify_point(Vec3::new(49.0, 15.0, 10.0)).unwrap(), solidcraft_kernel::PointClass::Inside);
     let cap = solidcraft_kernel::measure(&state.body("Cap").unwrap().body).unwrap();
     assert!((cap.volume - 6000.0).abs() < 1e-6);
     assert!(cap.bbox.max.dist(Vec3::new(40.0, 30.0, 25.0)) < 1e-9);
@@ -58,6 +59,63 @@ fn face_join_and_press_pull_leave_the_edge_touching_cap_in_either_body_order() {
 }
 
 #[test]
+fn press_pull_selects_either_body_at_a_shared_flat_face() {
+    for (key, both) in [("body", false), ("face_body", false), ("body", true)] {
+        for selected in ["Body1", "Body1 (1)"] {
+            for distance in [-5, 5] {
+                let mut s = Session { param_check: crate::schema::ParamCheck::Strict, ..Session::default() };
+                run(&mut s, "solid.box", json!({"length":20,"width":20,"height":20,"corner":[0,0,0]}));
+                run(&mut s, "solid.split_body", json!({"body":"Body1","plane":{"origin":[0,0,10],"normal":[0,0,1]}}));
+                let before = s.model.state();
+                let mut params = json!({"face":[10,10,10],"distance":distance});
+                params[key] = json!(selected);
+                if both {
+                    params["face_body"] = json!(if selected == "Body1" { "Body1 (1)" } else { "Body1" });
+                }
+                let result = run(&mut s, "solid.press_pull", params);
+                assert_eq!(result["changed_bodies"], json!([selected]));
+                let check = |s: &Session| {
+                    let state = s.model.state();
+                    assert_eq!(state.bodies.len(), 2);
+                    for body in &state.bodies {
+                        let expected = if body.name == selected { 4000.0 + 400.0 * f64::from(distance) } else { 4000.0 };
+                        let measure = solidcraft_kernel::measure(&body.body).unwrap();
+                        assert!((measure.volume - expected).abs() < 1e-6, "{key} {selected} {distance}: {measure:?}");
+                    }
+                };
+                check(&s);
+                let other = before.bodies.iter().find(|body| body.name != selected).unwrap();
+                assert!(s.model.state().body(&other.name).unwrap().body.same(&other.body));
+                let saved = s.doc.to_json();
+                run(&mut s, "edit.undo", json!({}));
+                assert!(s.model.state().body(selected).unwrap().body.same(&before.body(selected).unwrap().body));
+                run(&mut s, "edit.redo", json!({}));
+                assert_eq!(s.doc.to_json(), saved);
+                check(&s);
+                check(&Session::new(Document::from_json(&saved).unwrap()));
+            }
+        }
+    }
+}
+
+#[test]
+fn press_pull_reports_ambiguous_or_unknown_flat_face_bodies_without_changes() {
+    let mut s = assembly(false);
+    let before = s.doc.to_json();
+    for selector in [None, Some("body"), Some("face_body")] {
+        let mut params = json!({"face":[20,15,20],"distance":5});
+        if let Some(key) = selector {
+            params[key] = json!("Missing");
+        }
+        let error = s.execute("solid.press_pull", &params).unwrap_err();
+        let crate::EngineError::BadParams { cmd, msg } = error else { panic!("{error}") };
+        assert_eq!(cmd, "solid.press_pull");
+        assert!(msg.contains(if selector.is_some() { "Missing" } else { "face_body" }), "{msg}");
+        assert_eq!(s.doc.to_json(), before);
+    }
+}
+
+#[test]
 fn face_join_respects_explicit_targets_and_participants() {
     for key in ["targets", "participants"] {
         for all in [false, true] {
@@ -75,22 +133,35 @@ fn face_join_respects_explicit_targets_and_participants() {
 
 #[test]
 fn face_join_maps_the_picked_instance_body_and_point_together() {
-    let mut s = Session::default();
-    let component = run(&mut s, "component.create", json!({"name":"Repeated"}))["component"].as_u64().unwrap();
-    run(&mut s, "solid.box", json!({"length":40,"width":30,"height":20,"body_name":"Wall"}));
-    run(&mut s, "component.activate", json!({"component":0}));
-    let occurrence = run(&mut s, "occurrence.copy", json!({"component":component,"translate":[100,0,0]}))["occurrence"].as_u64().unwrap();
-    run(&mut s, "component.activate", json!({"component":component,"occurrence":occurrence}));
-    let world = s.world_state();
-    let body = world.bodies.iter().find(|body| body.body.contains(Vec3::new(139.0, 15.0, 10.0))).unwrap().name.clone();
-    assert_ne!(body, "Wall", "exercise an instance body name");
-    let result = run(&mut s, "solid.extrude", json!({"face":[140,15,10],"face_body":body,"distance":10,"operation":"join"}));
-    let FeatureKind::Extrude { targets, .. } = &s.doc.feature(result["feature"].as_u64().unwrap()).unwrap().kind else { panic!("extrude") };
-    assert_eq!(targets, &["Wall"]);
-    let world = s.world_state();
-    assert_eq!(world.bodies.len(), 2);
-    for point in [Vec3::new(49.0, 15.0, 10.0), Vec3::new(149.0, 15.0, 10.0)] {
-        assert!(world.bodies.iter().any(|body| body.body.contains(point)), "{point:?}");
+    for (command, key) in [("solid.extrude", "face_body"), ("solid.press_pull", "body"), ("solid.press_pull", "face_body")] {
+        let mut s = Session::default();
+        let component = run(&mut s, "component.create", json!({"name":"Repeated"}))["component"].as_u64().unwrap();
+        run(&mut s, "solid.box", json!({"length":40,"width":30,"height":20,"body_name":"Wall"}));
+        run(&mut s, "component.activate", json!({"component":0}));
+        let occurrence = run(&mut s, "occurrence.copy", json!({"component":component,"translate":[100,0,0]}))["occurrence"].as_u64().unwrap();
+        run(&mut s, "component.activate", json!({"component":component,"occurrence":occurrence}));
+        let world = s.world_state().unwrap();
+        let body = world
+            .bodies
+            .iter()
+            .find(|body| body.body.classify_point(Vec3::new(139.0, 15.0, 10.0)).unwrap() == solidcraft_kernel::PointClass::Inside)
+            .unwrap()
+            .name
+            .clone();
+        assert_ne!(body, "Wall", "exercise an instance body name");
+        let mut params = json!({"face":[140,15,10],"distance":10});
+        params[key] = json!(body);
+        if command == "solid.extrude" {
+            params["operation"] = json!("join");
+        }
+        let result = run(&mut s, command, params);
+        let FeatureKind::Extrude { targets, .. } = &s.doc.feature(result["feature"].as_u64().unwrap()).unwrap().kind else { panic!("extrude") };
+        assert_eq!(targets, &["Wall"]);
+        let world = s.world_state().unwrap();
+        assert_eq!(world.bodies.len(), 2);
+        for point in [Vec3::new(49.0, 15.0, 10.0), Vec3::new(149.0, 15.0, 10.0)] {
+            assert!(world.bodies.iter().any(|body| body.body.classify_point(point).unwrap() == solidcraft_kernel::PointClass::Inside), "{point:?}");
+        }
     }
 }
 
@@ -229,4 +300,51 @@ fn join_extrude_to_another_body_joins_that_body() {
     assert_eq!(state.bodies.len(), 1, "the tool, the base and the target are one body");
     assert!((volume("Base") - 60_000.0).abs() < 1e-6, "the target took the tool: {}", volume("Base"));
     assert_eq!(state.body("Base").unwrap().body.lumps().map_or(1, |l| l.len()), 1, "one piece");
+}
+
+/// #8151: a design saved before a Join To Object also joined the body it runs to (format 39 and
+/// older) keeps that body apart when it opens, so its later features still find it, and an edit
+/// of the extrude keeps it apart too.
+#[test]
+fn join_extrude_to_another_body_saved_before_it_joined_keeps_that_body() {
+    let mut s = Session::default();
+    run(&mut s, "solid.box", json!({"length":40,"width":40,"height":10,"body_name":"Base"}));
+    run(&mut s, "solid.box", json!({"corner":[0,0,40],"length":40,"width":40,"height":20,"body_name":"Target"}));
+    let sketch = run(&mut s, "sketch.create", json!({"plane":{"face":[20,20,10]}}))["sketch"].as_u64().unwrap();
+    let plane = s.model.state().sketch(sketch).unwrap().plane;
+    let at = |x: f64, y: f64| {
+        let p = plane.to_local(Vec3::new(x, y, 10.0));
+        json!([p.x, p.y])
+    };
+    run(&mut s, "sketch.rectangle.two_point", json!({"p0": at(10.0,10.0), "p1": at(30.0,30.0)}));
+    run(&mut s, "sketch.finish", json!({}));
+    // A feature after the extrude names the body it runs to, as the lid's sketch and moves did.
+    // Today's join leaves no such body to name, so the move is made first and put last below.
+    let moved = run(&mut s, "solid.move", json!({"bodies":["Target"],"translate":[0,0,5]}))["feature"].clone();
+    let extrude = run(&mut s, "solid.extrude", json!({"sketch":sketch,"to":[20,20,40],"operation":"join","targets":["Base"]}))["feature"].clone();
+    let mut saved: Value = serde_json::from_str(&s.doc.to_json()).unwrap();
+    let features = saved["features"].as_array_mut().unwrap();
+    let at_move = features.iter().position(|f| f["id"] == moved).unwrap();
+    let feature = features.remove(at_move);
+    features.push(feature);
+    saved["format"] = json!("solidcraft/39");
+    saved.as_object_mut().unwrap().remove("format_pending");
+    let mut old = Session::new(solidcraft_doc::format::read(&saved.to_string()).unwrap());
+    let check = |s: &Session| {
+        assert!(s.model.results.iter().all(|r| r.error.is_none()), "{:?}", s.model.results);
+        let state = s.model.state();
+        let volume = |name: &str| solidcraft_kernel::measure(&state.body(name).unwrap().body).unwrap().volume;
+        assert_eq!(state.bodies.len(), 2, "the body the extrude runs to stays its own body");
+        assert!((volume("Base") - 28_000.0).abs() < 1e-6, "the base took the tool: {}", volume("Base"));
+        assert!((volume("Target") - 32_000.0).abs() < 1e-6, "the target is untouched: {}", volume("Target"));
+    };
+    check(&old);
+    run(
+        &mut old,
+        "timeline.redefine",
+        json!({"feature":extrude,"command":"solid.extrude","params":{"sketch":sketch,"to":[20,20,40],"operation":"join","targets":["Base"]}}),
+    );
+    check(&old);
+    // The design saves the choice and opens with it again.
+    check(&Session::new(solidcraft_doc::format::read(&old.doc.to_json()).unwrap()));
 }

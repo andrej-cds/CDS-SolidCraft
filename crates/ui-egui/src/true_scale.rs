@@ -6,7 +6,7 @@
 //! in the registry), or from Preferences › Navigation › Screen width when that is set (0 means
 //! automatic). Elsewhere the preference is the only source.
 use crate::SolveApp;
-use solidcraft_engine::render::Camera;
+use solidcraft_viewport::Camera;
 use std::cell::Cell;
 
 thread_local! {
@@ -44,7 +44,7 @@ pub(crate) fn toggle(app: &mut SolveApp) {
         return;
     }
     let Some(mm_per_point) = mm_per_point(app) else {
-        app.set_status(crate::i18n::tr("ui.true_scale_unknown"), true);
+        app.set_status(solidcraft_ui_text::tr("ui.true_scale_unknown"), true);
         return;
     };
     let Some(rect) = app.viewport.rect else { return };

@@ -67,11 +67,12 @@ fn validate_whole_reference(value: &Value) -> Result<()> {
         if holes.len() > 128 {
             return Err(invalid());
         }
-        let mut all: BTreeSet<_> = outer.iter().cloned().collect();
+        // Holes may share a curve (a curve splitting an island bounds two of them, #17613), but
+        // never one of the outer boundary's.
         let mut canonical_holes = Vec::with_capacity(holes.len());
         for hole in holes {
             let hole = boundary(hole)?;
-            if hole.iter().any(|curve| !all.insert(curve.clone())) {
+            if hole.iter().any(|curve| outer.binary_search(curve).is_ok()) {
                 return Err(invalid());
             }
             canonical_holes.push(hole);
@@ -268,6 +269,12 @@ mod tests {
     fn whole_boundaries_raw_identity_is_bounded_unique_and_complete() {
         let good = json!({"type":"whole_boundaries","profiles":[{"outer":["s2"],"holes":[["s1"]]}]});
         assert!(matches!(whole_profile_selection_from_value(&good).unwrap(), ProfileSel::WholeBoundaries { profiles } if profiles.len() == 1));
+        // Two holes may share a curve: a curve splitting an island bounds both halves (#17613).
+        let split = json!({"type":"whole_boundaries","profiles":[{"outer":["o"],"holes":[["a","m"],["b","m"]]}]});
+        assert!(
+            matches!(whole_profile_selection_from_value(&split).unwrap(), ProfileSel::WholeBoundaries { profiles } if profiles[0].holes.len() == 2)
+        );
+        assert!(validate_raw(&json!({"features":[{"type":"extrude","profiles":split}]})).is_ok());
         let malformed = [
             json!({"type":"whole_boundaries","profiles":[]}),
             json!({"type":"whole_boundaries","profiles":[{"outer":[],"holes":[]}]}),
@@ -399,7 +406,7 @@ mod tests {
             damaged["features"][1]["profiles"]["associations"] = associations;
             assert!(validate_raw(&damaged).is_err());
             damaged["format"] = json!(crate::format::format_string(crate::format::FORMAT + 1));
-            assert!(crate::format::read(&damaged.to_string()).unwrap_err().to_string().contains("newer SolidCraft"));
+            assert!(crate::format::read(&damaged.to_string()).unwrap().newer_file.is_some());
         }
         // Absent metadata preserves the historical one-to-one chain representation.
         let mut legacy = fixture();
@@ -411,9 +418,9 @@ mod tests {
     #[test]
     fn formats_one_through_eleven_keep_legacy_offset_geometry_and_ids() {
         let mut sketch = solidcraft_sketch::Sketch::new();
-        let center = sketch.add_point(solidcraft_geom::Vec2::new(4., 7.), Some("center")).unwrap();
-        sketch.add_circle(solidcraft_geom::Vec2::new(4., 7.), 10., Some(center), Some("source")).unwrap();
-        sketch.add_circle(solidcraft_geom::Vec2::new(4., 7.), 9., Some(center), Some("offset")).unwrap();
+        let center = sketch.add_point(solidcore_record::Vec2::new(4., 7.), Some("center")).unwrap();
+        sketch.add_circle(solidcore_record::Vec2::new(4., 7.), 10., Some(center), Some("source")).unwrap();
+        sketch.add_circle(solidcore_record::Vec2::new(4., 7.), 9., Some(center), Some("offset")).unwrap();
         sketch.offsets.push(solidcraft_sketch::OffsetChain {
             sources: vec![("source".into(), true)],
             outputs: vec!["offset".into()],
@@ -447,7 +454,7 @@ mod tests {
     fn missing_boundary_or_defining_sketch_reopens_as_a_model_error_without_retarget() {
         for missing_sketch in [false, true] {
             let mut sketch = solidcraft_sketch::Sketch::new();
-            sketch.add_circle(solidcraft_geom::Vec2::new(0., 0.), 10., None, Some("unrelated-circle")).unwrap();
+            sketch.add_circle(solidcore_record::Vec2::new(0., 0.), 10., None, Some("unrelated-circle")).unwrap();
             let mut document = Document::new("repairable lost boundary");
             let id = document.add_feature(FeatureKind::Sketch { plane: crate::PlaneRef::Origin { name: "XY".into() }, sketch }, None).unwrap();
             document
@@ -463,10 +470,15 @@ mod tests {
                             distance2: None,
                             start_offset: None,
                             through_all: false,
+                            second_follows_first: false,
                             taper: None,
+                            corner: Default::default(),
                             to: None,
                             to_offset: None,
                             from: None,
+                            to_body_apart: false,
+                            from_level: false,
+                            picked_placements: Vec::new(),
                         },
                         operation: crate::Operation::NewBody,
                         targets: vec![],

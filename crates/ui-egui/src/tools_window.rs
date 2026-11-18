@@ -1,14 +1,16 @@
-//! Two screens: the application bar, History, the Browser and Parameters live in a window of
-//! their own that can be dragged to another screen, while the main window keeps the ribbon across
-//! its whole width, the model, its dialogs and the feature sheets beside it. Turned on in Preferences › Interface.
+//! Two screens: the application bar and Parameters live in a window of their own that can be
+//! dragged to another screen, while the main window keeps the ribbon across its whole width, the
+//! model, its dialogs, the feature sheets and the workspace panels (Browser, History) beside it.
+//! Turned on in Preferences › Interface. Since 0.41 the Browser and History are panels that can
+//! be popped out through the panel menu, so they no longer move here by themselves.
 //!
 //! While the window is open the main window is laid out docked and uses the system's title bar
 //! (the application bar, which was the custom title bar, is in the tools window). Both are the
 //! frame's, not the user's: `SolveApp::ui` puts the saved layout and title bar back afterwards.
 
 use crate::SolveApp;
-use crate::theme::Tokens;
 use crate::ui_kit::{Container, Surface};
+use solidcraft_theme::Tokens;
 
 const MIN_SIZE: [f32; 2] = [640.0, 360.0];
 const DEFAULT_SIZE: [f32; 2] = [1100.0, 720.0];
@@ -40,7 +42,7 @@ pub fn enter(app: &mut SolveApp, ctx: &egui::Context, tools: bool) {
     }
     app.tools_window.open = tools;
     if tools {
-        app.ui.layout = crate::shell::LayoutMode::Docked;
+        app.ui.layout = crate::ui_kit::LayoutMode::Docked;
         // `custom_titlebar` is still the real one here: remember to give the main window its
         // system title bar, then lay it out as having none of its own.
         if app.custom_titlebar && !app.tools_window.system_bar {
@@ -67,7 +69,7 @@ fn place(saved: Option<[f32; 4]>) -> Option<([f32; 2], [f32; 2])> {
 }
 
 fn builder(app: &SolveApp) -> egui::ViewportBuilder {
-    let title = format!("{} — {}", app.session.doc.name, crate::i18n::tr("ui.tools_window"));
+    let title = format!("{} — {}", app.session.doc.name, solidcraft_ui_text::tr("ui.tools_window"));
     let builder = egui::ViewportBuilder::default().with_title(title).with_min_inner_size(MIN_SIZE);
     if app.tools_window.placed {
         return builder;
@@ -101,27 +103,15 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
             }
             crate::toolbar::shortcuts(app, ui.ctx());
         }
-        let show_timeline = app.ui.show_timeline && !crate::render_workspace::active(app);
-        let left_timeline = show_timeline && app.preferences.timeline_left;
         crate::toolbar::app_bar(app, ui);
-        crate::theme::TabAccent::publish(app, ui.ctx());
-        if show_timeline && !left_timeline {
-            crate::timeline::timeline(app, ui);
-        }
-        if left_timeline {
-            crate::timeline_left::left_panel(app, ui);
-        }
-        if app.ui.show_browser {
-            crate::browser::browser(app, ui);
-        }
+        app.publish_tab_accent(ui.ctx());
         let fill = Tokens::get().toolbar;
         let frame = Container::new(ui.ctx(), Surface::Viewport).edge_frame(fill);
         Container::new(ui.ctx(), Surface::Viewport).central().frame(frame).show(ui, |ui| {
             let mut params = app.tools_window.params.take();
-            // The Browser hugs its contents over the left of the middle (and History sits below
-            // it): Parameters take what they leave free.
-            let content = crate::shell::workspace_content(app, ui.max_rect());
-            let mut free = ui.new_child(egui::UiBuilder::new().max_rect(content));
+            // The Browser and History are panels of the main window's workspace (they can be
+            // popped out with the panel menu): Parameters take this whole window.
+            let mut free = ui.new_child(egui::UiBuilder::new().max_rect(ui.max_rect()));
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(&mut free, |ui| {
                 crate::params_dialog::docked(app, ui, &mut params);
             });
@@ -141,8 +131,5 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
     });
     // These panels were measured in the tools window's own coordinates: the main window's input
     // blocking and layout must not see them.
-    app.shell.browser = None;
-    app.shell.history = None;
-    app.shell.panels.clear();
     app.shell.cards = main_cards;
 }

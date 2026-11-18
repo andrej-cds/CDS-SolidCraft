@@ -155,14 +155,14 @@ pub fn rows(ui: &mut egui::Ui, k: &mut Pr) -> bool {
     let mut enter = false;
     for f in k.fields.iter_mut() {
         match f {
-            Field::Value { label, value, hint, .. } if !hint.is_empty() => enter |= hint_row(ui, label, value, crate::i18n::tr_label(hint)),
+            Field::Value { label, value, hint, .. } if !hint.is_empty() => enter |= hint_row(ui, label, value, solidcraft_ui_text::tr_label(hint)),
             Field::Value { label, value, .. } | Field::Text { label, value, .. } => enter |= expr_row(ui, label, value),
             Field::Choice { key, label, options, pick } => {
-                let shown: Vec<&str> = options.iter().map(|(_, l)| crate::i18n::tr_label(l)).collect();
+                let shown: Vec<&str> = options.iter().map(|(_, l)| solidcraft_ui_text::tr_label(l)).collect();
                 choice_row(ui, label, &format!("print_{key}"), pick, &shown);
             }
             Field::Flag { label, on, .. } => {
-                crate::ui_kit::checkbox(ui, crate::i18n::tr_label(label), on);
+                crate::ui_kit::checkbox(ui, solidcraft_ui_text::tr_label(label), on);
             }
         }
     }

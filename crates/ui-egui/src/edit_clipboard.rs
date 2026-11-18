@@ -31,6 +31,7 @@
 use egui::Pos2;
 use serde_json::{Value, json};
 use solidcraft_engine::Sel;
+use solidcraft_engine::geom::prelude::*;
 
 use crate::SolveApp;
 
@@ -55,7 +56,7 @@ pub fn body_is_cut(app: &SolveApp, name: &str) -> bool {
 }
 
 /// Leave text for the system clipboard: this app's next frame writes it ([`flush`]).
-fn leave_text(app: &mut SolveApp, text: String) {
+pub(crate) fn leave_text(app: &mut SolveApp, text: String) {
     app.clipboard_text = Some(text);
 }
 
@@ -324,7 +325,7 @@ pub fn copy(app: &mut SolveApp) -> bool {
         let names: Vec<String> = placements.iter().filter_map(|p| app.session.occurrence_placement(p).ok()).map(|p| p.name).collect();
         app.set_status(format!("Copied {} (Ctrl+V pastes an instance, Ctrl+Shift+V a new copy)", names.join(", ")), false);
         leave_text(app, format!("SolidCraft components: {}", names.join(", ")));
-        app.foreign_copy = Some(std::sync::Arc::new(solidcraft_engine::ForeignCopy::of(&app.session, Vec::new(), placements.clone())));
+        app.foreign_copy = solidcraft_engine::ForeignCopy::of(&app.session, Vec::new(), placements.clone()).ok().map(std::sync::Arc::new);
         app.copied_placements = placements;
         return true;
     }
@@ -334,7 +335,7 @@ pub fn copy(app: &mut SolveApp) -> bool {
         replace_clipboard(app);
         app.set_status(format!("Copied {}", bodies.join(", ")), false);
         leave_text(app, format!("SolidCraft bodies: {}", bodies.join(", ")));
-        app.foreign_copy = Some(std::sync::Arc::new(solidcraft_engine::ForeignCopy::of(&app.session, bodies.clone(), Vec::new())));
+        app.foreign_copy = solidcraft_engine::ForeignCopy::of(&app.session, bodies.clone(), Vec::new()).ok().map(std::sync::Arc::new);
         app.copied_bodies = bodies;
         return true;
     }
@@ -463,7 +464,7 @@ pub fn cut(app: &mut SolveApp) -> bool {
         // design: a cut that holds any feature leaves another design nothing to paste.
         if set.features.is_empty() {
             app.foreign_copy =
-                Some(std::sync::Arc::new(solidcraft_engine::ForeignCopy::of(&app.session, set.bodies.clone(), set.placements.clone())));
+                solidcraft_engine::ForeignCopy::of(&app.session, set.bodies.clone(), set.placements.clone()).ok().map(std::sync::Arc::new);
         }
         app.cut = set;
         // What is cut is the faded set; the selection that chose it would only muddy which that is.
@@ -547,12 +548,11 @@ pub fn paste_into(app: &mut SolveApp, at: Option<Pos2>, new_copy: bool, into: Op
             app.run("component.insert_design", json!({"path": path, "reuse": true, "translate":translate}))
         });
         let Ok(out) = pasted else { return false };
+        // Move/Copy opens on it, to place it.
         if let Some(id) = out.get("occurrence").and_then(Value::as_u64) {
-            let mut movement = crate::browser::OccMove::new(id);
-            movement.path = parent_path;
-            movement.path.push(id);
-            movement.baseline = app.session.doc.occurrences.iter().find(|o| o.id == id).map(|o| o.transform);
-            app.tree.occurrence_move = Some(movement);
+            let mut path = parent_path;
+            path.push(id);
+            crate::dialogs_move::open_on_occurrence(app, path, true);
         }
         app.set_status("Pasted linked component: use Move/Copy to position it", false);
         return true;
@@ -590,7 +590,8 @@ pub fn paste_into(app: &mut SolveApp, at: Option<Pos2>, new_copy: bool, into: Op
 /// Place the copied design's origin on the pointed solid surface, otherwise its parent's
 /// XY plane. With no viewport point or a parallel/behind-camera ray, use the parent origin.
 fn paste_placement(app: &SolveApp, at: Option<Pos2>) -> (Vec<u64>, [f64; 3]) {
-    use solidcraft_engine::{doc, geom::Vec3};
+    use solidcore_record::Vec3;
+    use solidcraft_engine::doc;
     let path = app.session.active_occurrence_path.clone().unwrap_or_else(|| app.session.doc.first_path(app.session.active_component));
     let frame = app.session.occurrence_placement(&path).map(|p| p.world).unwrap_or(doc::IDENTITY);
     let origin = doc::apply_point(&frame, Vec3::ZERO);

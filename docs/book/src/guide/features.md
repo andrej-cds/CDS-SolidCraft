@@ -8,6 +8,46 @@ Each one can be edited (double-click), suppressed, renamed, reordered (if nothin
 moves after it), rolled back to, and deleted. Deleting asks first when other features depend on
 it.
 
+## Step by step
+
+The sketch from [Sketching step by step](sketching.md#step-by-step) becomes an open box: extruded,
+hollowed, its rim rounded, holes added round the tube, then made taller from the timeline. In each dialog, Enter is the same
+as OK.
+
+**1. Extrude.** Click **Extrude**, then the sketch's profile: a preview appears with an arrow.
+Drag the arrow, or type the distance (12) and press Enter.
+
+<video src="../media/features/extrude.mp4" autoplay loop muted playsinline controls width="100%" aria-label="Extruding the sketch's profile: clicking it, dragging the arrow, then typing 12 and pressing Enter"></video>
+
+**2. Shell.** Click **Shell**, then the face to leave open (the top). Keep the 2 mm wall and press
+Enter.
+
+<video src="../media/features/shell.mp4" autoplay loop muted playsinline controls width="100%" aria-label="Shelling the block with its top face removed and a 2 mm wall, then turning the view to look inside"></video>
+
+**3. Fillet.** Click **Fillet**, then the four outer top edges, type the radius (1.5) and press
+Enter. Rounding after the shell keeps it simple: Shell doesn't have to follow the rounds.
+
+<video src="../media/features/fillet.mp4" autoplay loop muted playsinline controls width="100%" aria-label="Rounding the four outer top edges of the box with a 1.5 mm fillet"></video>
+
+**4. Hole.** Click **Hole**, then the box's floor beside the tube: the hole goes where you
+click. Set **Diameter** to 4 and click **OK**. Its distance from two edges can be set too (below).
+
+<video src="../media/features/hole.mp4" autoplay loop muted playsinline controls width="100%" aria-label="Placing a 4 mm hole on the floor of the box beside the tube"></video>
+
+**5. Pattern.** Open the **Arrange** panel and choose **Circular Pattern**. Set **Object Type** to
+Features and click **Hole1** on the timeline; for **Axis**, click the tube's rim. Type 4 for the
+quantity and press Enter: four holes, evenly round the tube.
+
+<video src="../media/features/pattern.mp4" autoplay loop muted playsinline controls width="100%" aria-label="Patterning the hole four times around the tube with Circular Pattern"></video>
+
+**6. Change it.** Double-click **Extrude1** on the timeline: the model rolls back to it and its
+dialog opens. Type 20 and press Enter. Everything after it (shell, fillet, hole and pattern)
+rebuilds on the taller block.
+
+<video src="../media/features/edit.mp4" autoplay loop muted playsinline controls width="100%" aria-label="Double-clicking Extrude1 on the timeline, changing its distance to 20: the shell, fillet, hole and pattern rebuild"></video>
+
+## The features
+
 | Panel | Features |
 |---|---|
 | Create | extrude (one side, two sides, symmetric, taper, start offset, to a distance or through all; new body, join, cut, intersect; thin walls along curves), revolve, sweep, loft, box, cylinder, sphere, torus, coil, pipe, rib, web, emboss, hole (simple, counterbore, countersink, tapped; on faces, at distances from edges, or at sketch points), thread, rectangular/circular/path patterns, mirror |
@@ -17,8 +57,8 @@ it.
 
 **Quick measurement** (off by default; turn it on under Preferences › Interface): with edges,
 faces, sketch curves or points selected, the view's bottom right corner, above History, shows
-what they measure: an edge's length (Ø and R for a round one), a face's area, a point's position,
-two items' distance and angle, several edges' or faces' total. A click copies it. The Measure tool
+what they measure: an edge's length (Ø and R for a round one), a face's area and perimeter, a point's
+position, two items' distance and angle, several edges' or faces' total. A click copies it. The Measure tool
 (I) does more.
 
 Extrude, Revolve, Sweep, Loft, Coil and the Box, Cylinder, Sphere and Torus choose their
@@ -39,14 +79,23 @@ one as a separate piece, and the feature's warning says so: "`Body1` is now in 2
 pieces". Combine joins the bodies it is given without that warning. Changing the default does not
 alter operations already saved in a design.
 
-**Extrude to a picked target** (Preferences › Design, off by default) lets a pick choose the
+**Extrude to a picked target** (Preferences › Tools, on by default) lets a pick choose the
 extent. With it on and a profile selected in the solid Extrude dialog, picking a face away from
 its plane, a curved face, an off-plane vertex or a parallel plane automatically switches
 **Distance** to **To Object**. Coplanar faces still join the profile selection; non-parallel
-planes are not targets. The extent can still be chosen manually. For a new extrusion without
+planes are not targets. Clicking into the **Profiles** box first makes the next picks profiles
+again, even off the plane. The extent can still be chosen manually. For a new extrusion without
 start or end offsets or a From Object input, the target also sets the stored distance and
 one-sided direction, so returning to **Distance** keeps that reach. Thin Extrude keeps its
-existing picks. With the setting off, picks only add profiles, as before.
+existing picks. With the setting off, picks only add profiles.
+
+Dragging Extrude's distance arrow stops at flat faces parallel to the profile that lie over it,
+such as the far side of the block a cut goes into: once the arrow's tip comes within a few
+screen points of such a face, the distance becomes exactly that face's and the face is
+outlined. Elsewhere the distance moves in round steps. Hold Alt or Ctrl for a free drag, which
+stops at neither. **Extrude arrow stops at faces** (Preferences › Tools, on by default) turns
+the face stops off; the arrow then moves in round steps only, as before. The distance stays a number; to follow the face when the model changes, use
+**To Object** or **Through All**.
 
 A positive extrude taper slopes the side walls outward, so the profile grows along the
 extrusion direction and the far end is larger; a negative taper slopes them inward, making
@@ -110,8 +159,8 @@ angular placement when opened, edited or copied; creating another revolve uses t
 To Object follows that same direction for each selected profile, including curved target faces.
 Pick a target away from the axis so its angular position is defined.
 
-For cylindrical **Emboss**, select a supported exterior cylinder face and a tangent sketch
-profile. **Deboss** cuts radially into the wall. Orthogonal line profiles, including holes and
+For cylindrical **Emboss**, select a supported cylinder face (outside, or a bore) and a tangent sketch
+profile. **Deboss** cuts radially into the wall (outwards from a bore, which an Emboss raises towards the axis; a Deboss that would break through the outer wall is refused). Orthogonal line profiles, including holes and
 concave outlines, wrap with exact radial walls; the profile must stay clear of seams and ends.
 Complete cylinders and coaxial sleeves are supported. Capture pending component positions
 before applying. The feature stores the selected target and author occurrence paths, so edits
@@ -160,19 +209,29 @@ The Hole dialog draws a section through the hole as its options make it (type, e
 point, tapped) and puts each size in a field beside the dimension it sets; hovering a field, or
 typing in it, lights its dimension.
 
-Tapped holes and **Thread** features have a **Thread direction** choice: **Right-hand**
-(the default) or **Left-hand**. Editing and reopening keep the chosen direction. Tapped
-holes carry a cosmetic thread; the separate Thread feature can also cut a **Modeled**
-left-hand helix. Cosmetic direction is recorded with the thread annotation and does not
-change the body. Scripts use `handedness: "left"` or `"right"` on `solid.hole` (with `thread`)
-and `solid.thread`. Existing designs and omitted values remain right-handed. Changing the
-direction keeps the pitch, thread length and axis; it does not change a hole's drill size.
+**Hole Tap Type** is **Simple** (type the diameter), **Clearance** (a hole a bolt passes
+through) or **Tapped** (a thread). With Clearance, pick the bolt **Size** (M1.6 to M64) and the
+**Fit** (Close, Normal or Loose): the hole takes the ISO 273 clearance diameter, shown in
+**Clearance diameter** as a default you can change, the way **Tap drill diameter** works for a
+tapped hole; the section shows the bolt's shank through the hole. Scripts use `clearance: "M4"`
+with `fit: "normal"` on `solid.hole`. The hole stores its diameter, not the bolt: **Edit Feature**
+opens it as a Simple hole of that diameter.
+
+With **Hole Type** Counterbore and Clearance, **Screw head** sizes the counterbore for a cap
+screw: a socket head (ISO 4762) or a button head (ISO 7380-1) of the bolt's size. It fills
+**Counterbore Ø** and **Counterbore depth** with the head's diameter and height plus 0.5 mm each
+side and below; change either to use your own. Scripts use `head: "ISO 4762"` with `clearance`
+on `solid.hole`.
+
+The **Thread** feature's **Hand** is **Right** (the default), **Left**, or **Both** (a right- and
+a left-handed groove crossing, as on a reversing screw). Scripts use `hand: "left"` (or `"right"`,
+`"both"`) on `solid.thread`; omitted, a thread is right-handed. Tapped holes are right-handed.
 
 Fillets and chamfers handle straight edges between planar faces, whole smooth loops, runs of
 neighbouring edges with mitred or spherical corners, and closed chains of curved edges (a rolling
 ball). See the roadmap's known limitations for the rest.
 
-**Curvature (G2)** in the Fillet dialog's **Radius Type** blends straight edges between two
+**Curvature continuous** (G2) in the Fillet dialog's **Type** blends straight edges between two
 planar faces with an exact quintic section. The tangent plane and curvature match each side
 face: curvature goes to zero at both contact rails, unlike a circular G1 fillet. Each end
 must meet one planar face; perpendicular and sloped planar ends are supported. Curved
@@ -188,6 +247,14 @@ Scripts and MCP use the same command, for example on a 20 mm box:
 ```
 `type: "g2"` is an alias. Existing fillets still default to circular, constant-radius G1 blends.
 
+Where three or more rounded edges meet at a corner, the Fillet dialog shows **Corners**: **Ball**
+(the default, a piece of the rolling ball's sphere, tangent (G1) to each round) or **Smooth
+patch** (`corner: "g2"`: the corner is set back along each edge and filled with a
+curvature-continuous (G2) patch, so reflections run through it without a kink). A smooth patch
+takes **Constant radius** and **Exact** fit. Its **Setback** is how far along each edge from the
+corner the patch starts, one distance for every corner (`setbacks`); left empty, it is 1.5 × the
+radius.
+
 Feature references to faces and edges are stored by name, so an upstream edit that moves geometry
 keeps them on the right face (see [Persistent naming](../dev/naming.md)). When a reference can't
 be found, the feature warns instead of silently picking another face.
@@ -198,6 +265,49 @@ and 0.5 places the plane halfway along its length. The plane is perpendicular to
 local segment. Preview does not change the design; OK creates one editable timeline feature.
 The plane follows later path edits. Curved paths use their sampled polyline; absolute distance,
 reference-object placement and multi-curve chains are not yet available in this dialog.
+
+## Section Analysis
+
+Section Analysis cuts the view, not the design: what lies beyond the section's planes is hidden
+and the cut faces are hatched (Hatch off draws them in each body's own colour). It changes no
+geometry and is not saved with the design, but each change to it is a step in the undo history:
+Undo brings back the section as it was. A section has up to six planes, and each hides what lies
+beyond it: the view keeps only what every plane keeps, so two planes square to each other cut an
+L-shaped piece away and keep a quarter, and three keep an eighth. As on a drawing, each plane's cut faces are hatched their own way, by the plane's number:
+45° on Section 1, 135° on Section 2, then 30°, 60°, 120° and 150°, measured on the plane as seen
+from the side it cuts away (upright on a wall, along X on a floor), so where two planes' cut faces
+meet each keeps its own. A plane added after one is removed takes the lowest free number, so no
+two planes share an angle. Hiding one plane leaves the others' hatch as it is. With **Section hatch** set to **By part** in Preferences (the default),
+each cut body is also hatched its own way, in a colour of its own and with the plane's stripes
+turned a quarter round where needed, so bodies whose cuts touch never look alike.
+
+- The toolbar's **Section Analysis** starts a new section on a plane or planar face; its arrow
+  and **Distance** move the cut. A positive distance cuts more away: into the part from a face,
+  against the normal of a plane (below XY, for instance). A negative one moves the cut the other
+  way. **Flip** hides the other side of the plane being edited and leaves it where it is.
+  With a section on show, the toolbar button turns the section off instead (unless
+  Preferences › Interface › **Show viewport section status** is off).
+- While a plane is on show, the view's status shows the section: the first plane on show and
+  whether it is hatched. Click it to edit that plane; its × removes every plane.
+- Right-click a planar face and choose **Section View**: the dialog starts on the face's plane,
+  so dragging the arrow inward cuts into the part. With a section on, the face's plane joins it
+  as another plane, cutting the same way: at distance 0 it hides nothing more, so the cut on show
+  stays as it is, and dragged in it cuts its own side away as well.
+- Right-click a cut face and choose **Edit Section View** to move or flip its plane (the others
+  stay as they are), or **Turn Off Section View** to take that plane out; the last one turns the
+  section off.
+- The browser's **Analysis** folder lists each plane as **Section 1**, **Section 2** and so on,
+  by the plane's number. Its eye hides and shows that plane, a double-click edits it, and Delete
+  in its menu removes it. The folder's own eye hides the planes on show and brings them back;
+  while it is hidden, a plane's eye says only whether that plane comes back with it, and a plane
+  added or moved shows the folder again, with them. **Turn Off Section View** in the folder's
+  menu removes every plane, hidden ones too.
+
+Scripts use `inspect.section`: a `plane` replaces the section, `add: true` adds the plane to it,
+`replace` moves one plane by its id, `remove` takes a plane out by its id, `hide` and `show` take
+plane ids, `folder: false` and `folder: true` hide and show the Analysis folder, and `clear: true`
+removes them all. `offset` moves the cut against the plane's normal,
+so a positive offset cuts more away; `at` is a world coordinate on a named plane's axis.
 
 ## Comparing two bodies
 
@@ -219,12 +329,15 @@ gives the largest and the mean distance each way. Samples further than `toleranc
 the **regions**: `only_in_a` where `a` has material and `b` has none, `only_in_b` the other way
 round. Each region gives its volume, the deviating surface area, the largest deviation and where
 it is, its centre and box, and the faces of each body it lies on (`faces_a`, `faces_b`, numbered
-as `model.faces` lists them), largest volume first. The volume is integrated along a grid of
-parallel lines through the region (`resolution` gives their spacing), so a thin sliver is
-measured as well as a block. `identical` is true when no region is found, and `verdict` says it in
-one line. `warnings` lists what makes the result less certain: a body whose surface does not
-enclose the volume it measures (open, or with faces that failed to import), and lines left out of
-a region's volume because they crossed a gap. With `color`, the faces that hold a region turn
+as `model.faces` lists them), largest volume first. The volume, centre and box are exact
+(`measured_by: "boolean"`): the pieces of the cut a − b (or b − a) that lie in the region,
+measured as `inspect.measure` measures a body. When the cut cannot be made, the region's volume
+and centre are not measured (`measured_by: "not measured"`, null values, `not_measured` gives the
+cut's error), and never estimated; its deviation, area, faces and box are still given, and the
+side's total is null. `identical` is true when no region is found, and `verdict` says it in one
+line. `warnings` lists what makes the result less certain: a body whose surface does not enclose
+the volume it measures (open, or with faces that failed to import), and a cut that could not be
+made. With `color`, the faces that hold a region turn
 red where only `a` has material and green where only `b` has, on both bodies: the faces mostly
 beyond the tolerance (a small change on a large face leaves the face alone), or, for a region
 with none, the face with the largest share.

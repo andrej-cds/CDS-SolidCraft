@@ -11,27 +11,23 @@ use egui::{ColorImage, TextureHandle};
 use crate::{SolveApp, dialogs, help};
 
 mod form;
+pub mod ticket;
 
+/// The most an answer keeps, in characters (as `TextEdit::char_limit` counts them, not bytes).
 const MAX_ANSWER: usize = 2000;
+/// An answer with fewer characters left than this says how many.
+const ANSWER_ROOM: usize = 200;
 const MAX_BODY: usize = 24_000;
-// Room for all three answers and the original bounded diagnostic context.
-const MAX_REPORT: usize = 32_000;
+// Room for all three answers (up to four bytes a character) and the original bounded diagnostic
+// context.
+const MAX_REPORT: usize = 3 * 4 * MAX_ANSWER + MAX_BODY + 1000;
 const MAX_IMAGE_PIXELS: usize = 16_000_000;
 const ISSUE_URL: &str = "https://github.com/andrej-cds/CDS-SolidCraft/issues/new";
-
-thread_local! {
-    static CAD_INPUT_BLOCKED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
-}
-
-/// Tests set the barrier by hand to see what ignores it.
-#[cfg(test)]
-pub(crate) fn set_cad_input_blocked_for_test(blocked: bool) {
-    CAD_INPUT_BLOCKED.with(|cell| cell.set(blocked));
-}
-
-pub(crate) fn cad_input_blocked() -> bool {
-    CAD_INPUT_BLOCKED.with(std::cell::Cell::get)
-}
+/// GitHub answers a longer link with `414 URI Too Long` (from about 8,200 characters).
+const MAX_URL: usize = 6000;
+/// Someone who isn't signed in is sent to sign in with the link to return to, encoded once more;
+/// past about 7,600 characters GitHub drops it and the form comes back empty after signing in.
+const MAX_SIGN_IN_URL: usize = 7000;
 
 /// Draw CAD behind a report or native picker without delivering input or focus to editors.
 /// Fresh focus history also prevents inline editors from committing on report focus loss.
@@ -76,14 +72,15 @@ impl CadInput {
             *m = neutral;
             saved
         });
-        let previous_blocked = CAD_INPUT_BLOCKED.with(|blocked| blocked.replace(true));
+        let previous_blocked = crate::ui_kit::input_blocked();
+        crate::ui_kit::set_input_blocked(true);
         Some(Self { ctx: ctx.clone(), input: Some(input), memory: Some(memory), previous_blocked })
     }
 }
 
 impl Drop for CadInput {
     fn drop(&mut self) {
-        CAD_INPUT_BLOCKED.with(|blocked| blocked.set(self.previous_blocked));
+        crate::ui_kit::set_input_blocked(self.previous_blocked);
         if let Some(input) = self.input.take() {
             self.ctx.input_mut(|i| *i = input);
         }
@@ -130,7 +127,7 @@ pub struct Draft {
     title_prefix: String,
     /// Collected technical context, separately reviewable and editable.
     pub body: String,
-    description: String,
+    pub(crate) description: String,
     steps: String,
     expected: String,
     image: Option<Arc<ColorImage>>,
@@ -148,6 +145,20 @@ pub struct Draft {
     focus_requested: bool,
     missing_description: bool,
     opened_github: bool,
+    /// The in-app report's own state (`ticket`), made when it first shows.
+    ticket: Option<Box<ticket::TicketDraft>>,
+    /// The screenshot's 3D view part, for the in-app report.
+    view: Option<Arc<ColorImage>>,
+    /// The crash report a crash draft was made from: its id and JSON.
+    crash: Option<(String, String)>,
+    /// The command that failed, as the command API takes it, for a report made from a failed
+    /// operation (`draft_for` with an error and its dialog).
+    failed_command: Option<(String, serde_json::Value)>,
+    /// The person chose the public GitHub draft over the ticket server.
+    github: bool,
+    /// An agent's `diagnostics.report_issue` opened this report for the person to agree to
+    /// attachments only they can agree to.
+    pub(crate) agent: Option<crate::tickets::agent::Ask>,
 }
 
 impl Draft {
@@ -169,6 +180,12 @@ impl Draft {
             focus_requested: false,
             missing_description: false,
             opened_github: false,
+            ticket: None,
+            view: None,
+            crash: None,
+            failed_command: None,
+            github: false,
+            agent: None,
         }
     }
 
@@ -182,7 +199,7 @@ impl Draft {
     }
 
     fn report_body(&self) -> String {
-        let answer = |text: &str| if text.trim().is_empty() { "Not provided".to_string() } else { limited(text, MAX_ANSWER) };
+        let answer = |text: &str| if text.trim().is_empty() { "Not provided".to_string() } else { limited_chars(text, MAX_ANSWER) };
         let mut report = format!(
             "## Actual behavior\n{}\n\n## Reproduction\n{}\n\n## Expected behavior\n{}\n\n",
             answer(&self.description),
@@ -297,6 +314,18 @@ fn limited(value: &str, limit: usize) -> String {
         end = end.saturating_sub(1);
     }
     value.get(..end).unwrap_or_default().to_string()
+}
+
+/// [`truncate`] by characters: an answer's limit counts them, not bytes (#7191).
+fn truncate_chars(value: &mut String, limit: usize) {
+    if let Some((end, _)) = value.char_indices().nth(limit) {
+        value.truncate(end);
+    }
+}
+
+/// [`limited`] by characters.
+fn limited_chars(value: &str, limit: usize) -> String {
+    value.chars().take(limit).collect()
 }
 
 fn block(value: &str) -> String {
@@ -498,6 +527,13 @@ pub fn draft_for(app: &SolveApp, dialog: Option<&dialogs::Dialog>, error: Option
     draft.title_prefix = format!("{label}: ");
     // More than the details show of it, so a rebuild shows the same.
     draft.origin = Origin::View { error: error.map(|e| limited(e, 8000)) };
+    // The failed operation exactly as the command API takes it: the attached design plus this
+    // command replays the failure (`solidcraft-cli run replay.json --in design.sc`).
+    if error.is_some()
+        && let Some(d) = dialog
+    {
+        draft.failed_command = dialogs::apply_commands(app, d).ok().and_then(|c| c.last().cloned());
+    }
     draft.built_body.clone_from(&draft.body);
     draft
 }
@@ -582,15 +618,22 @@ pub fn begin_crash(app: &mut SolveApp, ctx: &egui::Context, report: &serde_json:
     }
     cancel_capture(app);
     let mut draft = crash_draft(report);
+    let id = report.get("id").and_then(serde_json::Value::as_str).unwrap_or("report");
+    draft.crash = serde_json::to_string_pretty(report).ok().map(|json| (limited(id, 80), limited(&json, 1 << 20)));
     // A screenshot can still be added of the view as it is now.
     draft.source_signature = source_signature(app, None);
     app.issue_report.draft = Some(draft);
 }
 
+/// A query value as GitHub reads it: a space is `+`, so a `+` is encoded, as are `&`, `#`, `%`,
+/// `=`, quotes, line breaks and every byte outside ASCII. The rest of what RFC 3986 allows in a
+/// query stays as it is: a report's link is about a fifth longer than its text, not two-thirds.
 fn encode(value: &str) -> String {
-    let mut out = String::new();
+    let mut out = String::with_capacity(value.len());
     for b in value.bytes() {
-        if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~') {
+        if b == b' ' {
+            out.push('+');
+        } else if b.is_ascii_alphanumeric() || b"-_.~!$()*,;:@/?".contains(&b) {
             out.push(char::from(b));
         } else {
             let _ = write!(&mut out, "%{b:02X}");
@@ -599,13 +642,22 @@ fn encode(value: &str) -> String {
     out
 }
 
-/// Long drafts stay local and can be copied into the browser editor; never discard them.
+/// The length of `url` as GitHub's sign-in page carries it back: encoded once more.
+fn sign_in_length(url: &str) -> usize {
+    url.bytes().map(|b| if b.is_ascii_alphanumeric() || b"-_.*~".contains(&b) { 1 } else { 3 }).sum()
+}
+
+/// The link to a new issue with `title` and `body` filled in, and whether `body` was too long
+/// for it (the link then carries the title alone): a report went in it whole only up to 2,000
+/// characters, with every space and line break taking three, so most went through the
+/// clipboard and a quarter of them arrived empty (#7103). Long drafts stay local and can be
+/// copied into the browser editor; never discard them.
 pub fn draft_url(title: &str, body: &str) -> (String, bool) {
     let title = limited(title, 160);
     let base = format!("{ISSUE_URL}?title={}", encode(&title));
-    if body.len() <= MAX_BODY {
+    if body.len() <= MAX_URL {
         let url = format!("{base}&body={}", encode(body));
-        if url.len() <= 2000 {
+        if url.len() <= MAX_URL && sign_in_length(&url) <= MAX_SIGN_IN_URL {
             return (url, false);
         }
     }
@@ -669,7 +721,7 @@ fn retake(app: &mut SolveApp, ctx: &egui::Context, dialog: Option<&dialogs::Dial
 fn cancel_capture(app: &mut SolveApp) {
     app.issue_report.waiting = None;
     if let Some(pending) = app.issue_report.pending.take() {
-        app.queued_shots.retain(|(token, ..)| *token != pending.token);
+        app.shots.queued.retain(|(token, ..)| *token != pending.token);
     }
 }
 
@@ -683,7 +735,7 @@ fn capture_unless_busy(app: &mut SolveApp, ctx: &egui::Context, dialog: Option<&
     cancel_capture(app);
     let current_source = source_signature(app, dialog);
     let context = context_signature(app, dialog);
-    let full = app.queued_shots.len() >= 16;
+    let full = app.shots.queued.len() >= 16;
     let busy = app.preview.busy;
     // The screenshot the draft has stays until a new one is taken (#7350).
     let Some(draft) = app.issue_report.draft.as_mut() else { return };
@@ -722,11 +774,11 @@ fn capture_unless_busy(app: &mut SolveApp, ctx: &egui::Context, dialog: Option<&
     if draft.focus_requested {
         app.issue_report.refocus = ctx.memory(|m| m.focused());
     }
-    let Some(token) = app.shot_token.checked_add(1) else {
+    let Some(token) = app.shots.token.checked_add(1) else {
         draft.note = "Screenshot request limit reached; restart the app to capture another frame.".into();
         return;
     };
-    app.shot_token = token;
+    app.shots.token = token;
     if !busy {
         draft.note = "Capturing the current app view locally…".into();
     }
@@ -739,7 +791,7 @@ fn capture_unless_busy(app: &mut SolveApp, ctx: &egui::Context, dialog: Option<&
         pixels_per_point: ctx.pixels_per_point(),
         max_side: ctx.input(|i| i.max_texture_side),
     });
-    app.queued_shots.push((token, now + 150.0, 0));
+    app.shots.queued.push((token, now + 150.0, 0));
     ctx.request_repaint();
 }
 
@@ -774,7 +826,7 @@ pub(crate) fn hold_input(app: &mut SolveApp, raw: &mut egui::RawInput) {
 }
 
 /// What [`hold_input`] keeps for the form.
-fn typing(event: &egui::Event) -> bool {
+pub(crate) fn typing(event: &egui::Event) -> bool {
     matches!(
         event,
         egui::Event::Text(_) | egui::Event::Key { .. } | egui::Event::Paste(_) | egui::Event::Copy | egui::Event::Cut | egui::Event::Ime(_)
@@ -783,7 +835,7 @@ fn typing(event: &egui::Event) -> bool {
 
 pub(crate) fn tick(app: &mut SolveApp, ctx: &egui::Context) {
     if let Some(waiting) = &app.issue_report.waiting {
-        let settled = !app.preview.busy && app.queued_shots.len() < 16;
+        let settled = !app.preview.busy && app.shots.queued.len() < 16;
         let (late, context) = (crate::now_ms() >= waiting.deadline, waiting.context);
         if settled || late {
             app.issue_report.waiting = None;
@@ -837,6 +889,9 @@ pub(crate) fn receive(app: &mut SolveApp, token: u64, image: Arc<ColorImage>) {
         return;
     };
     let stale = app.issue_report.pending.as_ref().is_some_and(|p| p.signature != signature(app, app.dialog.as_ref()));
+    let in_app = ticket::enabled(app);
+    let ctx_width = app.issue_report.pending.as_ref().map_or(1.0, |p| p.window.width());
+    let view_rect = app.viewport.rect.map(|r| r.translate(-app.issue_report.pending.as_ref().map_or(egui::Vec2::ZERO, |p| p.window.min.to_vec2())));
     app.issue_report.pending = None;
     if let Some(draft) = app.issue_report.draft.as_mut() {
         if stale {
@@ -845,6 +900,10 @@ pub(crate) fn receive(app: &mut SolveApp, token: u64, image: Arc<ColorImage>) {
         }
         match fitted(image, MAX_IMAGE_PIXELS, max_side) {
             Some(image) => {
+                draft.view = in_app.then(|| {
+                    let scale = image.size[0] as f32 / ctx_width.max(1.0);
+                    ticket::crop(&image, view_rect, scale)
+                });
                 draft.image = Some(image);
                 draft.texture = None;
                 draft.note = draft.rebuilt.take().unwrap_or("Screenshot captured locally. Review it before attaching it on GitHub.").into();
@@ -904,7 +963,7 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
         ctx.memory_mut(|m| m.request_focus(id));
     }
     let Some(mut draft) = app.issue_report.draft.take() else { return };
-    let (retake, close) = form::show(app, &mut draft, ctx);
+    let (retake, close) = if ticket::enabled(app) && !draft.github { ticket::show(app, &mut draft, ctx) } else { form::show(app, &mut draft, ctx) };
     if !close {
         app.issue_report.draft = Some(draft);
         if retake {
@@ -926,8 +985,8 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
         crate::dim_view::drag_end();
         crate::sketch3d::drag_end();
         crate::drag_snap::clear();
-        crate::gizmo::cancel(ctx, egui::Id::new("sc_move_triad"));
-        crate::gizmo::cancel(ctx, egui::Id::new("sc_occ_triad"));
+        crate::gizmo::cancel(ctx, egui::Id::unique("sc_move_triad"));
+        crate::gizmo::cancel(ctx, egui::Id::unique("sc_occ_triad"));
         if let Some(focus) = app.issue_report.cad_focus.take() {
             ctx.memory_mut(|m| m.request_focus(focus));
         }
@@ -1102,6 +1161,58 @@ mod tests {
         assert!(bounded.len() <= MAX_REPORT && bounded.ends_with("[technical details truncated]\n"));
     }
 
+    /// An answer keeps 2,000 characters in any script (#7191): the limit counted bytes, so one in
+    /// Chinese kept 666. Wherever it is cut, no character is split.
+    #[test]
+    fn issue_report_answers_keep_2000_characters_in_any_script() {
+        let mut draft = draft_for(&app(), None, None);
+        draft.body = format!("{}END_CONTEXT", "d".repeat(MAX_BODY - 11));
+        let mixed = |n: usize| "a現🚀é".chars().cycle().take(n).collect::<String>();
+        for n in [MAX_ANSWER - 1, MAX_ANSWER, MAX_ANSWER + 1, MAX_ANSWER + 2, MAX_ANSWER + 3, 3000] {
+            (draft.description, draft.steps, draft.expected) = (mixed(n), "現".repeat(n), "🚀".repeat(n));
+            let kept = n.min(MAX_ANSWER);
+            let answers = format!(
+                "## Actual behavior\n{}\n\n## Reproduction\n{}\n\n## Expected behavior\n{}\n\n",
+                mixed(kept),
+                "現".repeat(kept),
+                "🚀".repeat(kept)
+            );
+            let report = draft.report_body();
+            assert!(report.starts_with(&answers), "{n} characters");
+            assert!(report.len() <= MAX_REPORT && report.ends_with(&draft.body), "{n} characters: the technical details still fit");
+        }
+    }
+
+    /// Near the limit, an answer says how many characters are left: a paste past it is visibly
+    /// cut (#7191).
+    #[test]
+    fn issue_report_answer_near_its_limit_says_how_many_characters_are_left() {
+        let mut h = crate::scenario::Harness::new();
+        h.app.home.open = false;
+        h.app.issue_report.draft = Some(draft_for(&h.app, None, None));
+        h.frames(16);
+        h.ctx.memory_mut(|m| m.request_focus(egui::Id::unique("issue_report_body")));
+        h.frames(1);
+        h.frame_with(vec![egui::Event::Paste("故障".repeat(1500))]);
+        h.frames(4);
+        let draft = h.app.issue_report.draft.as_mut().unwrap();
+        assert_eq!(draft.description, "故障".repeat(MAX_ANSWER / 2), "3,000 Chinese characters pasted, 2,000 kept");
+        // An answer that gets past the limit some other way is cut there too, between characters.
+        let mixed = |n: usize| "a現🚀é".chars().cycle().take(n).collect::<String>();
+        (draft.steps, draft.expected) = ("步".repeat(MAX_ANSWER - 150), mixed(MAX_ANSWER + 3));
+        h.frames(4);
+        assert_eq!(h.app.issue_report.draft.as_ref().unwrap().expected, mixed(MAX_ANSWER));
+        for note in ["0 characters left", "150 characters left"] {
+            assert!(h.widget(note).is_some(), "{note}");
+        }
+        h.app.issue_report.draft.as_mut().unwrap().steps = "步".repeat(MAX_ANSWER - 1);
+        h.frames(4);
+        assert!(h.widget("1 character left").is_some());
+        h.app.issue_report.draft.as_mut().unwrap().steps = "步".repeat(MAX_ANSWER - 200);
+        h.frames(4);
+        assert!(h.widget("1 character left").is_none() && h.widget("200 characters left").is_none(), "no note far from the limit");
+    }
+
     #[test]
     fn issue_report_requires_an_answer_before_browser_handoff_without_changing_the_design() {
         for (size, scale) in [([1600, 1000], 1.0), ([640, 480], 2.0)] {
@@ -1115,7 +1226,7 @@ mod tests {
             let commands = open_commands(&mut h);
             assert!(!commands.iter().any(|c| matches!(c, egui::OutputCommand::OpenUrl(_))));
             assert!(h.app.issue_report.draft.as_ref().unwrap().missing_description);
-            assert_eq!(h.ctx.memory(|m| m.focused()), Some(egui::Id::new("issue_report_body")));
+            assert_eq!(h.ctx.memory(|m| m.focused()), Some(egui::Id::unique("issue_report_body")));
             h.step(&json!({"text":"The preview disappeared"})).unwrap();
             let commands = open_commands(&mut h);
             assert!(commands.iter().any(|c| matches!(c, egui::OutputCommand::OpenUrl(url) if url.url.starts_with(ISSUE_URL))));
@@ -1132,11 +1243,11 @@ mod tests {
         h.app.home.open = false;
         h.app.issue_report.draft = Some(draft_for(&h.app, None, None));
         h.frames(16);
-        let description = Some(egui::Id::new("issue_report_body"));
+        let description = Some(egui::Id::unique("issue_report_body"));
         open_commands(&mut h);
         assert_eq!(h.ctx.memory(|m| m.focused()), description);
         // Click the Summary field (found by its id: it has no label of its own) and type.
-        let title = egui::Id::new("issue_report_title").accesskit_id();
+        let title = egui::Id::unique("issue_report_title").accesskit_id();
         let tree = h.output.accesskit_update.as_ref().unwrap();
         let b = tree.nodes.iter().find(|(id, _)| *id == title).and_then(|(_, n)| n.bounds()).unwrap();
         h.step(&json!({"click":[(b.x0 + b.x1) / 2.0, (b.y0 + b.y1) / 2.0]})).unwrap();
@@ -1170,28 +1281,20 @@ mod tests {
                     h.step(&json!({"widget":"Technical details"})).unwrap();
                     h.call("ui.scroll", json!({"x":800,"y":600,"delta":-1000}));
                 }
-                h.ctx.memory_mut(|m| m.request_focus(egui::Id::new(field)));
+                h.ctx.memory_mut(|m| m.request_focus(egui::Id::unique(field)));
                 h.frames(1);
                 let [x, y] = h.widget("Open GitHub issue form").unwrap();
                 let pos = egui::pos2(x as f32, y as f32);
                 let modifiers = egui::Modifiers { ctrl: true, command: true, ..Default::default() };
-                let raw = egui::RawInput {
-                    screen_rect: Some(h.ctx.content_rect()),
-                    focused: true,
-                    events: vec![
-                        egui::Event::Key { key: egui::Key::A, physical_key: None, pressed: true, repeat: false, modifiers },
-                        egui::Event::Paste("Latest reviewed content".into()),
-                        egui::Event::PointerMoved(pos),
-                        egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed: true, modifiers: Default::default() },
-                        egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() },
-                    ],
-                    ..Default::default()
-                };
-                let app = &mut h.app;
-                let mut output = h.ctx.run_ui(raw, |ui| {
-                    app.logic(ui.ctx());
-                    app.ui(ui);
-                });
+                h.frame_with(vec![
+                    egui::Event::Key { key: egui::Key::A, physical_key: None, pressed: true, repeat: false, modifiers },
+                    egui::Event::Paste("Latest reviewed content".into()),
+                    egui::Event::PointerMoved(pos),
+                    egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed: true, modifiers: Default::default() },
+                    egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() },
+                ]);
+                // The click waits one frame for the typing before it.
+                h.frame();
                 let draft = h.app.issue_report.draft.as_ref().unwrap();
                 let edited = match field {
                     "issue_report_body" => &draft.description,
@@ -1204,13 +1307,12 @@ mod tests {
                 let body = draft.report_body();
                 let (url, copy_needed) = draft_url(&draft.report_title(), &body);
                 assert!(
-                    output.platform_output.commands.iter().any(|c| matches!(c, egui::OutputCommand::OpenUrl(u) if u.url == url)),
-                    "handoff must use this frame's edits: {field}, clipboard={clipboard}"
+                    h.output.commands.iter().any(|c| matches!(c, egui::OutputCommand::OpenUrl(u) if u.url == url)),
+                    "handoff must use the click frame's edits: {field}, clipboard={clipboard}"
                 );
                 if copy_needed {
-                    assert!(output.platform_output.commands.iter().any(|c| matches!(c, egui::OutputCommand::CopyText(text) if text == &body)));
+                    assert!(h.output.commands.iter().any(|c| matches!(c, egui::OutputCommand::CopyText(text) if text == &body)));
                 }
-                output.textures_delta.clear();
                 assert!(draft.opened_github && !draft.missing_description);
             }
         }
@@ -1377,6 +1479,63 @@ mod tests {
         assert!(section.contains("0 s ago error: \"錯誤"), "a broken time still reads: {section}");
     }
 
+    /// The query of `url` as GitHub reads it: names and values, `+` a space.
+    fn query(url: &str) -> Vec<(String, String)> {
+        let decode = |v: &str| {
+            let (mut bytes, mut it) = (Vec::new(), v.bytes());
+            while let Some(b) = it.next() {
+                bytes.push(match b {
+                    b'+' => b' ',
+                    b'%' => u8::from_str_radix(&String::from_utf8(vec![it.next().unwrap(), it.next().unwrap()]).unwrap(), 16).unwrap(),
+                    b => b,
+                });
+            }
+            String::from_utf8(bytes).unwrap()
+        };
+        let (_, query) = url.split_once('?').unwrap();
+        query.split('&').map(|pair| pair.split_once('=').map(|(k, v)| (decode(k), decode(v))).unwrap()).collect()
+    }
+
+    /// A typical report goes in the link whole (#7103, #10556). The link took at most 2,000
+    /// characters, with every space and line break taking three: most reports didn't fit, and
+    /// GitHub opened with the title alone.
+    #[test]
+    fn issue_report_link_carries_a_typical_report_whole_and_exactly() {
+        let mut app = app();
+        app.run("solid.box", json!({"length":10,"width":10,"height":10})).unwrap();
+        let mut draft = draft_for(&app, None, None);
+        draft.description = "The fillet fails: \"radius 6 > 5\" & the preview shows #3 + 50% of the edge 🚀\n".repeat(8);
+        draft.steps = "1. Sketch a circle on XY\n2. Extrude it 10 mm\n3. Fillet the top edge with 6 mm".into();
+        let body = draft.report_body();
+        assert!(body.len() >= 1600, "as long as a typical report: {}", body.len());
+        let (url, too_long) = draft_url(&draft.report_title(), &body);
+        assert!(!too_long, "the report fits the link: {}", url.len());
+        assert_eq!(query(&url), [("title".to_string(), draft.report_title()), ("body".to_string(), body)]);
+    }
+
+    /// GitHub refuses a link longer than about 8,200 characters, and drops one its sign-in page
+    /// encodes to more than about 7,600 (the form then comes back empty after signing in). A
+    /// report too long for that goes through the clipboard, never cut.
+    #[test]
+    fn issue_report_link_stays_within_what_github_keeps() {
+        for chunk in ["word ", "x", "ünïcødé ", "a&b=c#d+e%f\"g'\n"] {
+            let (mut fitted, mut refused) = (false, false);
+            for n in (0..8000).step_by(97) {
+                let body = chunk.repeat(n / chunk.len() + 1);
+                let (url, too_long) = draft_url("Fillet fails", &body);
+                if too_long {
+                    assert!(!url.contains("&body="), "{chunk:?}");
+                    refused = true;
+                } else {
+                    assert!(url.len() <= MAX_URL && sign_in_length(&url) <= MAX_SIGN_IN_URL, "{chunk:?} × {n}");
+                    assert_eq!(query(&url), [("title".to_string(), "Fillet fails".to_string()), ("body".to_string(), body)]);
+                    fitted = true;
+                }
+            }
+            assert!(fitted && refused, "{chunk:?}");
+        }
+    }
+
     #[test]
     fn issue_report_hostile_context_and_url_are_bounded_without_new_query_parameters() {
         let mut app = app();
@@ -1391,7 +1550,7 @@ mod tests {
         assert_eq!(url.matches('&').count(), 1);
         assert!(url.contains("%26labels%3Dsecret") && url.contains("%F0%9F%9A%80"));
         let (short, copy) = draft_url(&hostile, &draft.body);
-        assert!(copy && short.len() <= 2000 && !short.contains("&body="));
+        assert!(copy && short.len() <= MAX_URL && !short.contains("&body="));
         assert!(draft.body.contains("Stock"), "fallback must retain the editable full report");
     }
 
@@ -1491,7 +1650,13 @@ mod tests {
         let mut draft = draft_for(&h.app, None, None);
         draft.title.clear();
         draft.description = "d".repeat(160);
-        draft.body = "x".repeat(1500);
+        // Just long enough that the title drawn from the description takes the link over.
+        for n in (0..MAX_URL).step_by(16) {
+            draft.body = "x".repeat(n);
+            if draft_url(&draft.report_title(), &draft.report_body()).1 {
+                break;
+            }
+        }
         let reviewed = draft.report_body();
         assert!(!draft_url("", &reviewed).1, "the fallback title must be what crosses the URL limit");
         assert!(draft_url(&draft.report_title(), &reviewed).1);
@@ -1516,7 +1681,8 @@ mod tests {
                 draft.image = Some(Arc::new(ColorImage::new([1600, 1000], vec![egui::Color32::GREEN; 1_600_000])));
                 h.app.issue_report.draft = Some(draft);
                 h.frames(20);
-                let rect = |h: &crate::scenario::Harness| egui::containers::AreaState::load(&h.ctx, egui::Id::new("sc_issue_report")).unwrap().rect();
+                let rect =
+                    |h: &crate::scenario::Harness| egui::containers::AreaState::load(&h.ctx, egui::Id::unique("sc_issue_report")).unwrap().rect();
                 let settled = rect(&h);
                 h.frames(120);
                 let idle = rect(&h);
@@ -1545,7 +1711,7 @@ mod tests {
             }
             h.app.issue_report.draft = Some(draft_for(&h.app, None, None));
             h.frames(10);
-            let rect = |h: &crate::scenario::Harness| egui::containers::AreaState::load(&h.ctx, egui::Id::new("sc_issue_report")).unwrap().rect();
+            let rect = |h: &crate::scenario::Harness| egui::containers::AreaState::load(&h.ctx, egui::Id::unique("sc_issue_report")).unwrap().rect();
             let at = rect(&h);
             assert!((at.center().x - h.ctx.content_rect().center().x).abs() < 1.0, "sketch={sketch}: it opens at the top middle: {at:?}");
             // On the title, clear of the close button.
@@ -1598,7 +1764,7 @@ mod tests {
         h.frames(4);
         let before = (h.app.session.doc.to_json(), h.app.session.undo.len(), h.app.session.redo.len(), h.app.session.revision);
         for field in ["issue_report_title", "issue_report_body"] {
-            let id = egui::Id::new(field);
+            let id = egui::Id::unique(field);
             h.ctx.memory_mut(|m| m.request_focus(id));
             h.frames(1);
             h.step(&json!({"text":"edited-report-marker"})).unwrap();
@@ -1637,7 +1803,7 @@ mod tests {
         receive(&mut h.app, token, Arc::new(ColorImage::new([2, 2], vec![egui::Color32::GREEN; 4])));
         h.frames(3);
         for field in ["issue_report_title", "issue_report_body"] {
-            let id = egui::Id::new(field);
+            let id = egui::Id::unique(field);
             h.ctx.memory_mut(|m| m.request_focus(id));
             h.frames(2);
             assert_eq!(h.ctx.memory(|m| m.focused()), Some(id), "placed Text must not steal report focus");
@@ -1666,8 +1832,8 @@ mod tests {
     fn issue_report_boundary_preserves_opacity_widget_state_and_real_focus() {
         let mut app = app();
         let ctx = crate::fonts::test_context();
-        let focus = egui::Id::new("report-review-focus");
-        let state = egui::Id::new("cad-layout-state");
+        let focus = egui::Id::unique("report-review-focus");
+        let state = egui::Id::unique("cad-layout-state");
         begin(&mut app, &ctx, None, None);
         let raw = egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1400.0, 900.0))),
@@ -1681,20 +1847,20 @@ mod tests {
             ui.disable();
             assert_eq!(ui.opacity(), 1.0, "capture must retain normal drawing opacity");
             assert!(!ui.is_enabled());
-            Container::new(&ctx, Surface::Popup).area(egui::Id::new("cad-boundary-proof")).fade_in(false).show(&ctx, |ui| {
+            Container::new(&ctx, Surface::Popup).area(egui::Id::unique("cad-boundary-proof")).fade_in(false).show(&ctx, |ui| {
                 assert!(!ui.is_enabled());
                 assert_eq!(ui.opacity(), 1.0);
                 ui.ctx().data_mut(|d| d.insert_temp(state, 42_u32));
-                ui.ctx().memory_mut(|m| m.request_focus(egui::Id::new("underlying-editor")));
+                ui.ctx().memory_mut(|m| m.request_focus(egui::Id::unique("underlying-editor")));
             });
             drop(barrier);
             assert_eq!(ctx.memory(|m| m.focused()), Some(focus));
             assert_eq!(ctx.data(|d| d.get_temp::<u32>(state)), Some(42));
-            assert!(Container::new(&ctx, Surface::Popup).area(egui::Id::new("report-boundary-proof")).is_enabled());
+            assert!(Container::new(&ctx, Surface::Popup).area(egui::Id::unique("report-boundary-proof")).is_enabled());
         });
         output.textures_delta.clear();
         app.issue_report.draft = None;
-        assert!(!cad_input_blocked());
+        assert!(!crate::ui_kit::input_blocked());
     }
 
     #[test]
@@ -1749,7 +1915,7 @@ mod tests {
         h.app.run("sketch.line", json!({"points":[[0,0],[20,0]]})).unwrap();
         h.call("ui.view", json!({"view":"top"}));
         h.app.cam.distance = 80.0;
-        h.app.cam.target = solidcraft_engine::geom::Vec3::new(10.0, 0.0, 0.0);
+        h.app.cam.target = solidcore_record::Vec3::new(10.0, 0.0, 0.0);
         h.settle();
         h.step(&json!({"start":"sketch.dimension"})).unwrap();
         for point in [[0, 0, 0], [20, 0, 0], [10, 5, 0]] {
@@ -1763,7 +1929,7 @@ mod tests {
         let token = h.app.issue_report.pending.as_ref().unwrap().token;
         receive(&mut h.app, token, Arc::new(ColorImage::new([2, 2], vec![egui::Color32::GREEN; 4])));
         h.frames(3);
-        h.ctx.memory_mut(|m| m.request_focus(egui::Id::new("issue_report_body")));
+        h.ctx.memory_mut(|m| m.request_focus(egui::Id::unique("issue_report_body")));
         h.step(&json!({"text":"Typing here describes the bug, not a CAD dimension."})).unwrap();
         h.step(&json!({"key":"Enter"})).unwrap();
         h.step(&json!({"key":"Escape"})).unwrap();
@@ -1772,7 +1938,7 @@ mod tests {
         assert!(h.app.issue_report.draft.as_ref().unwrap().description.contains("Typing here describes"));
         h.step(&json!({"widget":"Close draft"})).unwrap();
         h.frames(2);
-        assert_eq!(h.ctx.memory(|m| m.focused()), Some(egui::Id::new("sc_dim_edit")));
+        assert_eq!(h.ctx.memory(|m| m.focused()), Some(egui::Id::unique("sc_dim_edit")));
         h.step(&json!({"key":"Enter"})).unwrap();
         assert!(!crate::dim_view::editing());
         assert_eq!(h.app.session.undo.len(), before.1 + 1);
@@ -1800,7 +1966,7 @@ mod tests {
         let token = h.app.issue_report.pending.as_ref().unwrap().token;
         receive(&mut h.app, token, Arc::new(ColorImage::new([2, 2], vec![egui::Color32::GREEN; 4])));
         h.frames(3);
-        h.ctx.memory_mut(|m| m.request_focus(egui::Id::new("issue_report_body")));
+        h.ctx.memory_mut(|m| m.request_focus(egui::Id::unique("issue_report_body")));
         h.step(&json!({"text":"report only"})).unwrap();
         h.step(&json!({"key":"Enter"})).unwrap();
         h.step(&json!({"key":"Escape"})).unwrap();
@@ -2090,15 +2256,15 @@ mod tests {
         begin(&mut app, &ctx, None, None);
         let token = app.issue_report.pending.as_ref().unwrap().token;
         let (reply, _receiver) = std::sync::mpsc::channel();
-        app.pending_shots.push((token + 1, None, reply, crate::now_ms() + 8000.0));
-        app.shot_token = token + 1;
+        app.shots.pending.push((token + 1, None, reply, crate::now_ms() + 8000.0));
+        app.shots.token = token + 1;
         let image = Arc::new(ColorImage::new([4, 3], vec![egui::Color32::GREEN; 12]));
         receive(&mut app, token + 1, image.clone());
         assert!(pending(&app) && app.issue_report.draft.as_ref().unwrap().image.is_none());
         receive(&mut app, token, image.clone());
         assert!(!pending(&app));
         assert_eq!(app.issue_report.draft.as_ref().unwrap().image.as_ref().unwrap().size, [4, 3]);
-        assert_eq!(app.pending_shots.len(), 1, "report cannot consume the control request");
+        assert_eq!(app.shots.pending.len(), 1, "report cannot consume the control request");
         begin(&mut app, &ctx, None, None);
         let token = app.issue_report.pending.as_ref().unwrap().token;
         app.cam.distance *= 2.0;
@@ -2140,7 +2306,7 @@ mod tests {
         h.app.home.open = false;
         let ctx = h.ctx.clone();
         begin(&mut h.app, &ctx, None, None);
-        let token = h.app.shot_token;
+        let token = h.app.shots.token;
         receive(&mut h.app, token, Arc::new(ColorImage::new([10_320, 1440], vec![egui::Color32::GREEN; 10_320 * 1440])));
         h.frames(4);
         let max_side = h.ctx.input(|i| i.max_texture_side);
@@ -2197,5 +2363,548 @@ mod tests {
         receive(&mut app, token, Arc::new(ColorImage::new([0, 0], vec![])));
         assert!(app.issue_report.draft.as_ref().unwrap().image.is_none());
         assert!(app.issue_report.draft.as_ref().unwrap().note.contains("dimensions"));
+    }
+
+    // ---- the in-app report (tickets.solidcraft.io) ---------------------------------------------
+
+    use crate::tickets::{self, payload};
+    use std::sync::Mutex;
+
+    /// A keyring in memory that remembers every secret it was given.
+    #[derive(Default)]
+    struct FakeKeyring(Mutex<std::collections::HashMap<String, String>>);
+
+    impl crate::agent_chat::backend::Secrets for FakeKeyring {
+        fn get(&self, id: &str) -> Result<Option<String>, String> {
+            Ok(self.0.lock().unwrap().get(id).cloned())
+        }
+        fn set(&self, id: &str, secret: &str) -> Result<(), String> {
+            self.0.lock().unwrap().insert(id.into(), secret.into());
+            Ok(())
+        }
+        fn delete(&self, id: &str) -> Result<(), String> {
+            self.0.lock().unwrap().remove(id);
+            Ok(())
+        }
+    }
+
+    type Requests = Arc<Mutex<Vec<crate::agent_chat::backend::HttpRequest>>>;
+
+    /// A ticket server that answers at once: `online` false makes every request fail as if
+    /// offline. Records the requests it gets.
+    fn fake_server(online: Arc<std::sync::atomic::AtomicBool>, requests: Requests) -> tickets::Http {
+        Arc::new(move |r: crate::agent_chat::backend::HttpRequest, done: std::sync::mpsc::Sender<tickets::Reply>| {
+            requests.lock().unwrap().push(r.clone());
+            if !online.load(std::sync::atomic::Ordering::SeqCst) {
+                let _ = done.send(Err("network unreachable".into()));
+                return;
+            }
+            let path = r.url.trim_start_matches(&tickets::api::server()).to_string();
+            let reply = match (r.method, path.as_str()) {
+                ("POST", "/api/device/code") => {
+                    json!({"device_code":"dev-1","user_code":"WDJB-MJHT","verification_uri":format!("{}/device", tickets::api::server()),"interval":1,"expires_in":600})
+                }
+                ("POST", "/api/device/token") => json!({"access_token":"tkt_secret_token_123","token_type":"Bearer"}),
+                ("GET", "/api/apps") => json!({"apps":[{"slug":"solidcraft","name":"SolidCraft"},{"slug":"pcbcraft","name":"PCBCraft"}]}),
+                ("POST", "/api/tickets") => json!({"id": 42}),
+                ("POST", "/api/drafts") => {
+                    json!({"draft_id":"d1","draft_secret":"sec","upload_token":"tdu_draft_token","url":format!("{}/draft/d1#sec", tickets::api::server()),"expires_at":"x","max_bytes":524288000,"max_files":20})
+                }
+                ("GET", "/api/drafts/d1/status") => {
+                    json!({"status":"claimed","ticket_id":77,"ticket_url":"x","access_token":"tkt_remembered_456","token_type":"Bearer","scope":"tickets:report"})
+                }
+                ("POST", "/api/uploads") => {
+                    // Small parts (8 bytes for small files), so a file goes in several.
+                    let b: serde_json::Value = serde_json::from_slice(r.body.as_deref().unwrap()).unwrap();
+                    let size = b["size"].as_u64().unwrap();
+                    assert_eq!(b["sha256"].as_str().map(str::len), Some(64), "the server checks the hash");
+                    let part = if size < 1024 { 8 } else { 4096 };
+                    json!({"id": format!("up{}", requests.lock().unwrap().len()), "part_size": part, "part_count": size.div_ceil(part), "received": []})
+                }
+                ("PUT", p) if p.contains("/parts/") => json!({"part": p.rsplit('/').next(), "size": r.body.as_ref().map_or(0, Vec::len)}),
+                ("POST", p) if p.ends_with("/complete") => json!({"attachment":{"id":"a"}}),
+                _ => json!({}),
+            };
+            let refuse = r.body.as_ref().is_some_and(|b| String::from_utf8_lossy(b).contains("REFUSE-ME"));
+            let status = if refuse {
+                400
+            } else if path == "/api/tickets" {
+                201
+            } else {
+                200
+            };
+            let _ = done.send(Ok((status, reply.to_string().into_bytes())));
+        })
+    }
+
+    fn ticket_app(online: bool, token: Option<&str>) -> (SolveApp, Arc<std::sync::atomic::AtomicBool>, Requests, Arc<FakeKeyring>) {
+        let online = Arc::new(std::sync::atomic::AtomicBool::new(online));
+        let requests: Requests = Arc::default();
+        let keyring = Arc::new(FakeKeyring::default());
+        if let Some(token) = token {
+            crate::agent_chat::backend::Secrets::set(&*keyring, tickets::SECRET_ID, token).unwrap();
+        }
+        let services = crate::Services {
+            tickets_http: Some(fake_server(online.clone(), requests.clone())),
+            ticket_secrets: Some(keyring.clone()),
+            ..Default::default()
+        };
+        (SolveApp::new(Session::default(), services), online, requests, keyring)
+    }
+
+    fn evidence_with_design() -> payload::Evidence {
+        let mut session = serde_json::Map::new();
+        session.insert("session_start".into(), json!("opened"));
+        payload::Evidence {
+            system: "SolidCraft 1.0\nTarget: x86_64-linux\n".into(),
+            system_fields: serde_json::Map::new(),
+            app_version: "1.0".into(),
+            os: "linux x86_64".into(),
+            session,
+            failing: Some(payload::Failing {
+                command: Some("solid.fillet".into()),
+                params: Some(json!({"radius": 2.0})),
+                error: "radius too large".into(),
+                origin: None,
+                code: None,
+            }),
+            log: vec!["[error] radius too large".into()],
+            screenshot: Some(vec![1, 2, 3]),
+            design: Some(("SecretBracket.sc".into(), b"SECRET-DESIGN-BYTES".to_vec())),
+            crash: None,
+        }
+    }
+
+    fn form() -> payload::Form {
+        payload::Form { app: "solidcraft".into(), title: "Fillet fails".into(), description: "It refused".into(), ..Default::default() }
+    }
+
+    fn temp_dir(tag: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(format!("sc-report-{tag}-{}-{}", std::process::id(), crate::now_ms() as u64))
+    }
+
+    #[test]
+    fn ticket_report_payload_carries_only_the_ticked_boxes() {
+        let evidence = evidence_with_design();
+        let ticks = payload::Ticks { system: false, repro: false, log: true, screenshot: false, design: false, crash: false };
+        let out = payload::build(&form(), ticks, &evidence, "solidcraft test");
+        let t = &out.ticket;
+        assert!(t.get("system").is_none() && t.get("appVersion").is_none() && t.get("os").is_none(), "system info unticked: {t}");
+        assert!(t.get("repro").is_none(), "the failed operation unticked: {t}");
+        assert_eq!(out.files.iter().map(|f| f.kind.as_str()).collect::<Vec<_>>(), ["log"]);
+        assert_eq!(t["consent"]["kinds"], json!(["log"]));
+        assert_eq!((t["consent"]["via"].as_str(), t["consent"]["client"].as_str()), (Some("dialog"), Some("solidcraft test")));
+        assert_eq!((t["app"].as_str(), t["type"].as_str(), t["title"].as_str()), (Some("solidcraft"), Some("bug"), Some("Fillet fails")));
+
+        let all = payload::Ticks { system: true, repro: true, log: true, screenshot: true, design: true, crash: true };
+        let out = payload::build(&form(), all, &evidence, "solidcraft test");
+        assert_eq!(out.ticket["system"]["text"], json!(evidence.system), "the exact text the dialog shows");
+        let failing = &out.ticket["repro"]["failing"];
+        assert_eq!(
+            (failing["command"].as_str(), failing["params"]["radius"].as_f64()),
+            (Some("solid.fillet"), Some(2.0)),
+            "replayable as the command API takes it"
+        );
+        assert_eq!(out.ticket["repro"]["session_start"], "opened");
+        assert_eq!(out.files.iter().map(|f| f.kind.as_str()).collect::<Vec<_>>(), ["log", "screenshot", "design"]);
+        assert!(!out.ticket["consent"]["kinds"].as_array().unwrap().contains(&json!("crash")), "a box with nothing behind it is not consented to");
+    }
+
+    #[test]
+    fn ticket_report_never_includes_the_design_unless_its_box_is_ticked() {
+        assert!(!payload::Ticks::default().design, "the design box is off by default");
+        let evidence = evidence_with_design();
+        let out = payload::build(&form(), payload::Ticks::default(), &evidence, "solidcraft test");
+        let ticket = out.ticket.to_string();
+        assert!(!ticket.contains("SecretBracket") && !out.ticket["consent"]["kinds"].as_array().unwrap().contains(&json!("design")));
+        for f in &out.files {
+            assert!(f.kind != "design" && !f.name.contains("SecretBracket"));
+            assert!(!f.bytes.windows(6).any(|w| w == b"SECRET"), "{} carries the design", f.name);
+        }
+        let ticked = payload::Ticks { design: true, ..Default::default() };
+        let out = payload::build(&form(), ticked, &evidence, "solidcraft test");
+        let design = out.files.iter().find(|f| f.kind == "design").unwrap();
+        assert_eq!((design.name.as_str(), design.bytes.as_slice()), ("SecretBracket.sc", &b"SECRET-DESIGN-BYTES"[..]));
+
+        // The dialog's own evidence: System info and the failed operation's details say nothing
+        // of the design but its hash.
+        let mut app = app();
+        app.run("solid.box", json!({"length":10,"width":10,"height":10,"body_name":"PrivateWidget"})).unwrap();
+        Arc::make_mut(&mut app.session.doc).name = "PrivateWidget".into();
+        let evidence = ticket::evidence(&app, None, None, None);
+        assert!(!evidence.system.contains("PrivateWidget"), "{}", evidence.system);
+        assert!(evidence.design.as_ref().is_some_and(|(name, bytes)| name == "PrivateWidget.sc" && !bytes.is_empty()));
+        assert_eq!(evidence.session["session_start"], "new");
+        assert_eq!(evidence.session["design_sha256"].as_str().map(str::len), Some(64));
+        let out = payload::build(&form(), payload::Ticks::default(), &evidence, "t");
+        assert!(!out.ticket.to_string().contains("PrivateWidget"));
+        assert!(out.files.iter().all(|f| f.kind != "design"));
+    }
+
+    /// Frames until `done` says stop, collecting the addresses opened in the browser.
+    fn frames_until(app: &mut SolveApp, ctx: &egui::Context, mut done: impl FnMut(&SolveApp) -> bool) -> Vec<String> {
+        let mut opened = Vec::new();
+        for _ in 0..400 {
+            let mut out = ctx.run_ui(Default::default(), |ui| tickets::tick(app, ui.ctx()));
+            // No painter takes the font atlas: drop it on purpose (egui asserts otherwise).
+            out.textures_delta.clear();
+            opened.extend(out.platform_output.commands.into_iter().filter_map(|c| match c {
+                egui::OutputCommand::OpenUrl(u) => Some(u.url),
+                _ => None,
+            }));
+            if done(app) {
+                break;
+            }
+        }
+        opened
+    }
+
+    fn agent_status(app: &mut SolveApp, id: &str) -> serde_json::Value {
+        app.run("diagnostics.report_issue_status", json!({"report": id})).unwrap()
+    }
+
+    fn draft_page() -> String {
+        format!("{}/draft/d1#sec", tickets::api::server())
+    }
+
+    fn no_token_anywhere(requests: &Requests) {
+        for r in requests.lock().unwrap().iter() {
+            assert!(!r.url.contains("/api/device/") && !r.url.ends_with("/api/tickets"), "no sign-in, no direct filing: {}", r.url);
+            assert!(
+                r.headers.iter().filter(|(k, _)| k == "Authorization").all(|(_, v)| v == "Bearer tdu_draft_token"),
+                "only the draft's upload token"
+            );
+        }
+    }
+
+    #[test]
+    fn ticket_report_send_makes_a_draft_uploads_its_files_and_opens_it_in_the_browser() {
+        // A keyring entry from a test build is removed, and none is ever written.
+        let (mut app, _, requests, keyring) = ticket_app(true, Some("tkt_from_a_test_build"));
+        let ctx = crate::fonts::test_context();
+        let report = payload::build(&form(), payload::Ticks { design: true, ..Default::default() }, &evidence_with_design(), "t");
+        tickets::send(&mut app, report);
+        let opened = frames_until(&mut app, &ctx, |a| a.tickets.sending.is_none());
+        assert!(keyring.0.lock().unwrap().is_empty(), "the app keeps no account details");
+        assert_eq!(app.tickets.outcome, Some(tickets::Outcome::Opened(draft_page())));
+        assert_eq!(opened, [draft_page()], "the draft's page opens in the browser");
+        no_token_anywhere(&requests);
+        let requests = requests.lock().unwrap().clone();
+        let draft = requests.iter().find(|r| r.url.ends_with("/api/drafts")).unwrap();
+        assert!(!draft.headers.iter().any(|(k, _)| k == "Authorization"), "no account needed");
+        let opens = requests.iter().filter(|r| r.method == "POST" && r.url.ends_with("/api/uploads"));
+        assert!(opens.clone().count() >= 2 && opens.clone().all(|r| !String::from_utf8_lossy(r.body.as_deref().unwrap()).contains("ticket_id")));
+        let bytes: Vec<u8> = requests.iter().filter(|r| r.method == "PUT").flat_map(|r| r.body.clone().unwrap_or_default()).collect();
+        assert!(bytes.windows(19).any(|w| w == b"SECRET-DESIGN-BYTES"), "the ticked design goes with the draft");
+        assert!(app.session.log.iter().any(|l| l.contains("Problem report: opened in the browser")), "each step is in the log");
+    }
+
+    #[test]
+    fn ticket_report_made_offline_is_kept_and_sent_on_retry() {
+        let dir = temp_dir("queue");
+        let (mut app, online, requests, _) = ticket_app(false, None);
+        app.tickets.queue_dir = Some(dir.clone());
+        let ctx = crate::fonts::test_context();
+        let report = payload::build(&form(), payload::Ticks { design: true, ..Default::default() }, &evidence_with_design(), "t");
+        tickets::send(&mut app, report);
+        frames_until(&mut app, &ctx, |a| a.tickets.sending.is_none());
+        // The step that went unanswered is named (#17932), after one more try.
+        assert!(
+            matches!(&app.tickets.outcome, Some(tickets::Outcome::Queued(why)) if why.contains("network unreachable") && why.contains("at POST /api/drafts")),
+            "{:?}",
+            app.tickets.outcome
+        );
+        assert_eq!(requests.lock().unwrap().len(), 2, "the draft is asked for twice, then the report waits");
+        assert_eq!(tickets::queue::list(&dir).len(), 1, "one report kept");
+        let sent = requests.lock().unwrap().len();
+        frames_until(&mut app, &ctx, |_| false);
+        assert_eq!(requests.lock().unwrap().len(), sent, "nothing goes by itself");
+
+        online.store(true, std::sync::atomic::Ordering::SeqCst);
+        tickets::retry(&mut app, 0);
+        frames_until(&mut app, &ctx, |a| a.tickets.sending.is_none());
+        assert_eq!(app.tickets.outcome, Some(tickets::Outcome::Opened(draft_page())));
+        assert!(tickets::queue::list(&dir).is_empty(), "sent and removed from the queue");
+        let uploaded: Vec<u8> =
+            requests.lock().unwrap().iter().filter(|r| r.method == "PUT").flat_map(|r| r.body.clone().unwrap_or_default()).collect();
+        assert!(uploaded.windows(19).any(|w| w == b"SECRET-DESIGN-BYTES"));
+        no_token_anywhere(&requests);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn ticket_report_sends_a_step_again_once_when_it_went_unanswered() {
+        // The first part of an upload gets no answer (a connection that hung, #17932): it goes
+        // again and the report opens, instead of waiting in the queue.
+        let dir = temp_dir("queue-again");
+        let (mut app, _, requests, _) = ticket_app(true, None);
+        app.tickets.queue_dir = Some(dir.clone());
+        let inner = app.services.tickets_http.take().unwrap();
+        let dropped = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let drop_once = dropped.clone();
+        let seen = requests.clone();
+        app.services.tickets_http =
+            Some(Arc::new(move |r: crate::agent_chat::backend::HttpRequest, done: std::sync::mpsc::Sender<tickets::Reply>| {
+                if r.method == "PUT" && !drop_once.swap(true, std::sync::atomic::Ordering::SeqCst) {
+                    seen.lock().unwrap().push(r);
+                    let _ = done.send(Err("timeout: global".into()));
+                    return;
+                }
+                inner(r, done);
+            }));
+        let ctx = crate::fonts::test_context();
+        let report = payload::build(&form(), payload::Ticks::default(), &evidence_with_design(), "t");
+        tickets::send(&mut app, report);
+        frames_until(&mut app, &ctx, |a| a.tickets.sending.is_none());
+        assert!(dropped.load(std::sync::atomic::Ordering::SeqCst));
+        assert_eq!(app.tickets.outcome, Some(tickets::Outcome::Opened(draft_page())));
+        assert!(tickets::queue::list(&dir).is_empty(), "nothing kept");
+        assert!(
+            app.session.log.iter().any(|l| l.contains("no answer to PUT /api/uploads/") && l.contains("timeout: global")),
+            "{:?}",
+            app.session.log
+        );
+        let puts: Vec<String> = requests.lock().unwrap().iter().filter(|r| r.method == "PUT").map(|r| r.url.clone()).collect();
+        assert_eq!(puts.first(), puts.get(1), "the same part again, not the next one: {puts:?}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn report_harness() -> (crate::scenario::Harness, Requests) {
+        let mut h = crate::scenario::Harness::new();
+        h.app.home.open = false;
+        let (mut server, _, requests, _) = ticket_app(true, None);
+        h.app.services.tickets_http = server.services.tickets_http.take();
+        h.app.services.ticket_secrets = server.services.ticket_secrets.take();
+        help::run(&mut h.app, &h.ctx, "report");
+        cancel_capture(&mut h.app);
+        h.frames(4);
+        (h, requests)
+    }
+
+    #[test]
+    fn ticket_report_send_without_a_title_still_sends_and_ends_on_thanks() {
+        // The bug button opens the report with no title. Send must not refuse it out of sight
+        // (the reason Send seemed to do nothing): the title comes from the description.
+        let (mut h, requests) = report_harness();
+        {
+            let t = h.app.issue_report.draft.as_mut().unwrap().ticket.as_mut().unwrap();
+            assert!(t.form.title.is_empty());
+            t.form.description = "The sketch dimension box covers the value\nmore".into();
+        }
+        h.frames(2);
+        let ok = crate::scenario::handle_at("dialog:ok").expect("Send is drawn");
+        let at = [f64::from(ok.x), f64::from(ok.y)];
+        click_commands_at(&mut h, at);
+        click_commands_at(&mut h, at);
+        for _ in 0..200 {
+            if h.app.tickets.sending.is_none() {
+                break;
+            }
+            h.frame();
+        }
+        h.frames(2);
+        let requests = requests.lock().unwrap().clone();
+        let drafts: Vec<_> = requests.iter().filter(|r| r.url.ends_with("/api/drafts")).collect();
+        assert_eq!(drafts.len(), 1, "one draft for a double click");
+        let body: serde_json::Value = serde_json::from_slice(drafts[0].body.as_deref().unwrap()).unwrap();
+        assert_eq!(body["title"], "The sketch dimension box covers the value");
+        // The dialog is now the Thanks box, with the link.
+        assert!(h.widget(solidcraft_ui_text::tr("report.thanks")).is_some(), "Thanks is shown");
+        assert!(h.widget(solidcraft_ui_text::tr("report.copy_link")).is_some() && h.widget(solidcraft_ui_text::tr("report.open_again")).is_some());
+        assert!(crate::scenario::handle_at("dialog:ok").is_none(), "no Send any more");
+        assert_eq!(ticket::title_or_default("", ""), solidcraft_ui_text::tr("report.default_title"));
+    }
+
+    #[test]
+    fn ticket_report_failure_shows_the_reason_with_retry() {
+        let (mut h, requests) = report_harness();
+        h.app.issue_report.draft.as_mut().unwrap().ticket.as_mut().unwrap().form.title = "REFUSE-ME".into();
+        h.frames(2);
+        let ok = crate::scenario::handle_at("dialog:ok").expect("Send is drawn");
+        click_commands_at(&mut h, [f64::from(ok.x), f64::from(ok.y)]);
+        h.frames(10);
+        assert!(matches!(h.app.tickets.outcome, Some(tickets::Outcome::Failed(_))));
+        assert!(h.widget(solidcraft_ui_text::tr("report.error_title")).is_some(), "the error is shown");
+        assert!(h.widget(solidcraft_ui_text::tr("report.retry")).is_some() && h.widget(solidcraft_ui_text::tr("report.copy_details")).is_some());
+        assert_eq!(requests.lock().unwrap().iter().filter(|r| r.url.ends_with("/api/drafts")).count(), 1);
+    }
+
+    #[test]
+    fn ticket_report_opens_from_the_bug_button_and_a_failure_prefills_it() {
+        // Without a way to reach the server, the bug button opens the GitHub draft: visible.
+        let mut app = app();
+        app.home.open = false;
+        assert!(!ticket::enabled(&app));
+        let ctx = crate::fonts::test_context();
+        help::run(&mut app, &ctx, "report");
+        cancel_capture(&mut app);
+        let _ = ctx.run_ui(Default::default(), |ui| show(&mut app, ui.ctx()));
+        assert!(app.issue_report.draft.as_ref().unwrap().ticket.is_none(), "the GitHub draft, shown");
+
+        let (mut app, _, _, _) = ticket_app(true, None);
+        app.home.open = false;
+        assert!(ticket::enabled(&app));
+        help::run(&mut app, &ctx, "report");
+        cancel_capture(&mut app);
+        let _ = ctx.run_ui(Default::default(), |ui| show(&mut app, ui.ctx()));
+        let t = app.issue_report.draft.as_ref().unwrap().ticket.as_ref().unwrap();
+        assert!(t.ticks == payload::Ticks::default() && t.form.app == "solidcraft" && !t.from_failure && t.form.title.is_empty());
+        app.issue_report.draft = None;
+
+        // From a failed operation: the title, the description template and the failed command.
+        let mut app = failing_sample();
+        app.services.tickets_http = ticket_app(true, None).0.services.tickets_http.take();
+        let dialog = app.dialog.clone();
+        let error = dialog.as_ref().and_then(|d| d.error.clone()).or_else(|| app.preview.error.clone()).unwrap_or_else(|| "operation failed".into());
+        let draft = draft_for(&app, dialog.as_ref(), Some(&error));
+        let t = ticket::new_ticket(&mut app, &draft, None);
+        assert!(t.from_failure && t.form.kind == payload::Kind::Bug);
+        assert!(t.form.title.contains(error.lines().next().unwrap()), "{}", t.form.title);
+        assert!(t.form.description.contains("**Error:**") && t.form.description.contains(solidcraft_ui_text::tr("report.trying_to_do")));
+
+        // The preference brings back the GitHub draft for every report; the link for one.
+        app.preferences.report_on_github = true;
+        assert!(!ticket::enabled(&app));
+        app.preferences.report_on_github = false;
+        let mut draft = draft;
+        draft.github = true;
+        app.issue_report.draft = Some(draft);
+        cancel_capture(&mut app);
+        let _ = ctx.run_ui(Default::default(), |ui| show(&mut app, ui.ctx()));
+        assert!(app.issue_report.draft.as_ref().unwrap().ticket.is_none(), "the GitHub draft, as before");
+    }
+
+    #[test]
+    fn report_issue_from_an_agent_opens_a_draft_and_never_sends_the_design_on_its_word() {
+        let ctx = crate::fonts::test_context();
+        let (mut app, _, requests, _) = ticket_app(true, None);
+        app.home.open = false;
+        frames_until(&mut app, &ctx, |_| true);
+        let reply =
+            app.run("diagnostics.report_issue", json!({"title": "Fillet refuses 2 mm", "description": "Seen while modelling a bracket"})).unwrap();
+        assert_eq!(reply["status"], "pending");
+        let id = reply["report"].as_str().unwrap().to_string();
+        let opened = frames_until(&mut app, &ctx, |a| a.tickets.sending.is_none() && a.tickets.outcome.is_some());
+        frames_until(&mut app, &ctx, |_| true);
+        let status = agent_status(&mut app, &id);
+        assert_eq!(status["status"], "opened", "{status}");
+        assert!(status["url"].as_str().is_some_and(|u| opened.contains(&u.to_string())), "{status} {opened:?}");
+        {
+            let requests = requests.lock().unwrap();
+            let draft = requests.iter().find(|r| r.url.ends_with("/api/drafts")).unwrap();
+            let body: serde_json::Value = serde_json::from_slice(draft.body.as_deref().unwrap()).unwrap();
+            assert_eq!((body["title"].as_str(), body["consent"]["via"].as_str()), (Some("Fillet refuses 2 mm"), Some("agent")));
+            assert!(!body["consent"]["kinds"].as_array().unwrap().contains(&json!("design")));
+            assert!(!requests.iter().any(|r| r.body.as_ref().is_some_and(|b| String::from_utf8_lossy(b).contains("\"kind\":\"design\""))));
+        }
+        no_token_anywhere(&requests);
+
+        // The design asked for: nothing is sent; the dialog opens for the person, the box unticked.
+        let (mut app, _, requests, _) = ticket_app(true, None);
+        app.home.open = false;
+        frames_until(&mut app, &ctx, |_| true);
+        let reply = app.run("diagnostics.report_issue", json!({"title": "Needs the model", "design": true})).unwrap();
+        let id = reply["report"].as_str().unwrap().to_string();
+        frames_until(&mut app, &ctx, |a| a.issue_report.draft.is_some());
+        cancel_capture(&mut app);
+        let _ = ctx.run_ui(Default::default(), |ui| show(&mut app, ui.ctx()));
+        assert_eq!(agent_status(&mut app, &id)["status"], "awaiting_user");
+        assert!(requests.lock().unwrap().iter().all(|r| !r.url.contains("/api/drafts") && !r.url.contains("/api/uploads")), "nothing sent");
+        let ticket = app.issue_report.draft.as_ref().unwrap().ticket.as_ref().unwrap();
+        assert!(!ticket.ticks.design && ticket.form.title == "Needs the model");
+
+        // The person ticks the model and sends: it goes, recorded as confirmed by them.
+        let draft = app.issue_report.draft.as_mut().unwrap();
+        let mut ticket = draft.ticket.take().unwrap();
+        ticket.ticks.design = true;
+        let report = ticket::outgoing(draft, &ticket);
+        assert_eq!(report.ticket["consent"]["confirmed_by"], "user");
+        app.issue_report.draft = None;
+        tickets::send(&mut app, report);
+        frames_until(&mut app, &ctx, |a| a.tickets.sending.is_none());
+        frames_until(&mut app, &ctx, |_| true);
+        assert_eq!(agent_status(&mut app, &id)["status"], "opened");
+        assert!(requests.lock().unwrap().iter().any(|r| r.body.as_ref().is_some_and(|b| String::from_utf8_lossy(b).contains("\"kind\":\"design\""))));
+
+        // Offline: the agent hears so; the report is kept for the person to send.
+        let (mut app, _, _, _) = ticket_app(false, None);
+        let dir = temp_dir("agent");
+        app.tickets.queue_dir = Some(dir.clone());
+        frames_until(&mut app, &ctx, |_| true);
+        let id = app.run("diagnostics.report_issue", json!({"title": "Offline"})).unwrap()["report"].as_str().unwrap().to_string();
+        frames_until(&mut app, &ctx, |a| a.tickets.outcome.is_some());
+        frames_until(&mut app, &ctx, |_| true);
+        assert_eq!(agent_status(&mut app, &id)["status"], "queued");
+        assert_eq!(tickets::queue::list(&dir).len(), 1);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn ticket_report_review_fixes_hold() {
+        use tickets::api::{allowed_url, answer, on_server};
+        // A crash report is offered, never ticked to start with.
+        let (mut app, _, _, _) = ticket_app(true, None);
+        let ctx = crate::fonts::test_context();
+        begin_crash(
+            &mut app,
+            &ctx,
+            &json!({"id": "c1", "kind": "command_panic", "message": "boom", "command": {"command": "solid.fillet", "params": {"radius": 2}}}),
+        );
+        let draft = app.issue_report.draft.take().unwrap();
+        let t = ticket::new_ticket(&mut app, &draft, None);
+        assert!(t.evidence.crash.is_some() && !t.ticks.crash && !t.ticks.design);
+        assert_eq!(t.evidence.failing.as_ref().and_then(|f| f.origin.as_deref()), Some("app"), "from the crash's kind");
+
+        // Only a refusal of the report itself is final; a busy or broken server is tried again.
+        for status in [408, 429, 500, 502, 503] {
+            assert!(matches!(answer(Ok((status, b"{}".to_vec()))), Err(tickets::api::Failure::Offline(_))), "{status}");
+        }
+        assert!(matches!(answer(Ok((400, b"{}".to_vec()))), Err(tickets::api::Failure::Refused(_))));
+
+        // Hosts are compared exactly, not by prefix.
+        let server = tickets::api::server();
+        assert!(on_server(&format!("{server}/draft/abc#s"), "/draft/"));
+        // The server's own page, whatever its path (it moved to /d/).
+        let moved = json!({"draft_id": "d2", "upload_token": "tdu_x", "url": format!("{server}/d/d2#s")});
+        assert_eq!(tickets::api::parse_draft(&moved).map(|d| d.url), Ok(format!("{server}/d/d2#s")));
+        let elsewhere = json!({"draft_id": "d2", "upload_token": "tdu_x", "url": "https://tickets.solidcraft.io.evil.example/d/d2#s"});
+        assert!(tickets::api::parse_draft(&elsewhere).is_err());
+        for fake in [
+            "https://tickets.solidcraft.io.evil.example/draft/x",
+            "https://tickets.solidcraft.io@evil.example/draft/x",
+            "https://evil.example/https://tickets.solidcraft.io/draft/x",
+            "http://tickets.solidcraft.io/draft/x",
+        ] {
+            assert!(!on_server(fake, "/draft/"), "{fake}");
+        }
+        assert!(allowed_url("http://127.0.0.1:8787/api/x") && allowed_url("http://localhost/api") && allowed_url("https://x.example/"));
+        for fake in ["http://127.0.0.1.evil.example/", "http://localhost.evil.example/", "http://localhost@evil.example/", "ftp://localhost/"] {
+            assert!(!allowed_url(fake), "{fake}");
+        }
+
+        // How a report closed while it was sent went is not the next report's.
+        let (mut app, _, _, _) = ticket_app(true, None);
+        let first = tickets::new_owner(&mut app);
+        tickets::send_for(&mut app, payload::build(&form(), payload::Ticks::default(), &evidence_with_design(), "t"), first);
+        frames_until(&mut app, &ctx, |a| a.tickets.sending.is_none());
+        assert_eq!((app.tickets.owner, app.tickets.outcome.clone()), (first, Some(tickets::Outcome::Opened(draft_page()))));
+        let draft = draft_for(&app, None, None);
+        let next = ticket::new_ticket(&mut app, &draft, None);
+        assert_ne!(next.id, first, "a new report starts with nothing sent");
+
+        // The server refusing a kept report removes it and its files.
+        let dir = temp_dir("refused");
+        let (mut app, online, _, _) = ticket_app(false, None);
+        app.tickets.queue_dir = Some(dir.clone());
+        let refused = payload::Form { title: "REFUSE-ME".into(), ..form() };
+        tickets::send(&mut app, payload::build(&refused, payload::Ticks::default(), &evidence_with_design(), "t"));
+        frames_until(&mut app, &ctx, |a| a.tickets.sending.is_none());
+        assert_eq!(tickets::queue::list(&dir).len(), 1);
+        online.store(true, std::sync::atomic::Ordering::SeqCst);
+        tickets::retry(&mut app, 0);
+        frames_until(&mut app, &ctx, |a| a.tickets.sending.is_none());
+        assert!(matches!(app.tickets.outcome, Some(tickets::Outcome::Failed(_))));
+        assert!(std::fs::read_dir(&dir).map(|d| d.count()).unwrap_or(0) == 0, "no report or file left behind");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

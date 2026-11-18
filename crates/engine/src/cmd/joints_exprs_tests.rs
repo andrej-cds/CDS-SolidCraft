@@ -1,7 +1,8 @@
 //! Joints whose offset, angle or values are typed as expressions follow the parameters they name.
 
 use serde_json::json;
-use solidcraft_geom::Vec3;
+use solidcore_record::Vec3;
+use solidcraft_geom::prelude::*;
 
 use super::tests::{occ, place, run};
 use crate::Session;
@@ -66,6 +67,25 @@ fn an_offset_and_an_angle_typed_as_expressions_follow_their_parameters() {
     run(&mut s, "parameters.change", json!({"name": "gap", "expression": "30 mm"}));
     assert!((z(&s) - 14.0).abs() < 1e-6, "{}", z(&s));
     assert!(s.doc.assembly.joints.first().is_some_and(|j| j.exprs.offset.is_none() && j.exprs.angle.is_some()));
+}
+
+/// X/Y keep the dialog's evaluation-once behavior while Z keeps following its expression.
+#[test]
+fn lateral_joint_offset_expressions_are_evaluated_once() {
+    let mut s = cubes();
+    run(
+        &mut s,
+        "joint.create",
+        json!({"type":"rigid", "name":"Seat", "a":{"face":[5,5,10]}, "b":{"face":[25,5,0]},
+            "offset_x":"gap * 2", "offset_y":"-gap", "offset":"gap"}),
+    );
+    assert_eq!(s.doc.assembly.joints[0].offset_xy, [10.0, -5.0]);
+    run(&mut s, "parameters.change", json!({"name":"gap","expression":"12 mm"}));
+    assert_eq!(s.doc.assembly.joints[0].offset_xy, [10.0, -5.0]);
+    assert_eq!(s.doc.assembly.joints[0].offset, 12.0);
+    run(&mut s, "joint.edit", json!({"joint":"Seat","offset_x":"gap / 2"}));
+    assert_eq!(s.doc.assembly.joints[0].offset_xy, [6.0, -5.0]);
+    assert_eq!(s.doc.assembly.joints[0].exprs.offset.as_deref(), Some("gap"));
 }
 
 #[test]

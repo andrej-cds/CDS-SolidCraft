@@ -2,7 +2,8 @@
 //! Supershape (Gielis' superformula), NACA four-digit airfoils and airfoil `.dat` files, a gyroid
 //! sheet as a closed triangle mesh, and binary STL bytes for meshes that join the design.
 
-use solidcraft_geom::{Vec2, Vec3};
+use solidcore_record::{Vec2, Vec3};
+use solidcraft_geom::{Vec2Geom, Vec3Geom};
 
 /// The superformula's radius at angle `phi`, or `None` where it is not a finite positive number.
 pub fn superformula(phi: f64, m: f64, n1: f64, n2: f64, n3: f64, a: f64, b: f64) -> Option<f64> {
