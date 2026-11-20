@@ -137,6 +137,8 @@ pub struct AppBar<'a> {
     /// The app's mark, painted centred at the point given, and its name beside it.
     pub mark: &'a dyn Fn(&Painter, Pos2),
     pub name: &'a str,
+    /// The name's colour; none takes the bar's text colour (CDS fork: its gold).
+    pub name_ink: Option<egui::Color32>,
     /// Optional space for an app-owned control before Home.
     pub leading: Option<egui::Vec2>,
     pub home: BarButton<'a>,
@@ -413,7 +415,7 @@ pub fn show(ui: &mut egui::Ui, data: &AppBar, bar: Rect, content: Rect) -> BarOu
             Align2::LEFT_CENTER,
             data.name,
             crate::type_face::semibold(t.font_heading),
-            t.app_bar_text,
+            data.name_ink.unwrap_or(t.app_bar_text),
         );
     }
     let leading = geometry.leading.zip(data.leading).map(|(span, size)| rect(span, size.y));
