@@ -160,6 +160,7 @@ fn app_bar_old_show_golden() {
             let bar = AppBar {
                 mark: &|_, _| {},
                 name: if has(6) { "A Considerably Longer Application" } else { "App" },
+                name_ink: None,
                 leading: None,
                 home: button("home", true, false),
                 file: "File",
@@ -988,6 +989,7 @@ fn app_bar_projected_pills_return_clicks_and_hide_clicks() {
     let bar = AppBar {
         mark: &|_, _| {},
         name: "App",
+        name_ink: None,
         leading: Some(vec2(24.0, 24.0)),
         home: button("home", true, false),
         file: "File",
