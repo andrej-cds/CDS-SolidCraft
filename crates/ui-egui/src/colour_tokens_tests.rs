@@ -149,6 +149,7 @@ const ALLOWED_LITERALS: &[(&str, usize, &str)] = &[
     ("gpu.rs", 1, "the white tint that shows the background picture as it is"),
     ("ui_kit/preferences_figure_ops.rs", 1, "CDS fork: white lettering on the navigator axis discs when the gold theme's on-accent ink is dark"),
     ("navigation.rs", 1, "the navigator's face shading, made from a token"),
+    ("drawing_sheet_page.rs", 2, "the drawing sheet moves toward white, else black, to stand off the backdrop"),
     ("canvas.rs", 3, "white rings around manipulator handles"),
     (
         "body_gizmo.rs",

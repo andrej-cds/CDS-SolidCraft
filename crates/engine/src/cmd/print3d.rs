@@ -291,7 +291,7 @@ fn mesh_body(s: &mut Session, cmd: &str, tris: &[[Vec3; 3]], name: &str) -> Resu
     let mut out = json!({"feature": id, "component": name, "triangles": tris.len()});
     out["occurrence"] = json!(placed.occurrence);
     out["components"] = json!(placed.components);
-    out["joints"] = json!(placed.joints);
+    out["rigid_members"] = json!(placed.rigid_group.map_or(0, |(_, members)| members));
     Ok(out)
 }
 
