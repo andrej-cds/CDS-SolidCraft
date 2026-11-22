@@ -968,6 +968,7 @@ Original SolidCraft drawings, Open for owner review; no runtime assignments.
 | .agents/skills/solidcraft-full-stop/SKILL.md | Theo Browne (tstack full-stop), adapted for SolidCraft | https://github.com/t3dotgg/tstack | MIT (.agents/skills/LICENSE-tstack) |
 | .agents/skills/solidcraft-modernize/SKILL.md | Theo Browne (tstack modernize), adapted for SolidCraft | https://github.com/t3dotgg/tstack | MIT (.agents/skills/LICENSE-tstack) |
 | .agents/skills/solidcraft-takeover/SKILL.md | Theo Browne (tstack takeover), adapted for SolidCraft | https://github.com/t3dotgg/tstack | MIT (.agents/skills/LICENSE-tstack) |
+| tests/step-regressions/net_steps_back_within_tolerance.step | SolidCraft contributors | written entity by entity from formulas (a tetrahedron whose spline face's control net steps back 0.5 um); import regression fixture | MIT OR Apache-2.0 |
 
 ## Code adapted from sibling projects
 
