@@ -47,8 +47,10 @@ const FACES: [Face; 5] = [
 /// The mark's extent in SVG units: left, top, width, height.
 const BOUNDS: (f32, f32, f32, f32) = (116.406, 53.364, 791.188, 904.436);
 
-/// This block is the icon image data
-pub fn rgba(size: usize) -> Result<Vec<u8>, String> {
+/// The bare mark drawn from its outlines (the shapes above), without the plate. The icon itself is
+/// `rgba`; this is kept for the tests of the mark's shape.
+#[allow(dead_code)]
+fn mark_rgba(size: usize) -> Result<Vec<u8>, String> {
     if !(1..=2048).contains(&size) {
         return Err("icon size must be 1..=2048".into());
     }
@@ -115,18 +117,79 @@ pub fn rgba(size: usize) -> Result<Vec<u8>, String> {
     Ok(rgba)
 }
 
+/// CDS fork: the icon is the gold mark and the CDS lettering on a black plate with a gold border,
+/// as the other CDS programs' icons. `app_icon_512.rgba` is that picture at 512 px (straight
+/// alpha, made by `make_cds_icon.py` next to it); every size is averaged down from it.
+const PLATE: &[u8] = include_bytes!("app_icon_512.rgba");
+const PLATE_SIZE: usize = 512;
+
+/// The plate's pixels `i * step` to `(i + 1) * step`, at least one.
+fn span(i: usize, step: f32) -> (usize, usize) {
+    let a = ((i as f32 * step).floor() as usize).min(PLATE_SIZE - 1);
+    let b = (((i + 1) as f32 * step).ceil() as usize).clamp(a + 1, PLATE_SIZE);
+    (a, b)
+}
+
+/// This block is the icon image data
+pub fn rgba(size: usize) -> Result<Vec<u8>, String> {
+    if !(1..=2048).contains(&size) {
+        return Err("icon size must be 1..=2048".into());
+    }
+    let step = PLATE_SIZE as f32 / size as f32;
+    let mut rgba = Vec::with_capacity(size * size * 4);
+    for y in 0..size {
+        let (y0, y1) = span(y, step);
+        for x in 0..size {
+            let (x0, x1) = span(x, step);
+            let (mut sum, mut alpha, mut count) = ([0u32; 3], 0u32, 0u32);
+            for j in y0..y1 {
+                for i in x0..x1 {
+                    let p = &PLATE[(j * PLATE_SIZE + i) * 4..][..4];
+                    let a = u32::from(p[3]);
+                    for k in 0..3 {
+                        sum[k] += u32::from(p[k]) * a;
+                    }
+                    alpha += a;
+                    count += 1;
+                }
+            }
+            // A fully transparent block has no colour: the checked divisions give 0 for it.
+            let px = [sum[0].checked_div(alpha), sum[1].checked_div(alpha), sum[2].checked_div(alpha), alpha.checked_div(count)];
+            rgba.extend(px.map(|v| v.unwrap_or(0) as u8));
+        }
+    }
+    Ok(rgba)
+}
+
 #[cfg(test)]
 mod tests {
+    /// The icon is a black plate with a gold border and gold mark: see-through corners, a dark
+    /// middle area, gold in the border ring and in the mark.
+    #[test]
+    fn icon_is_a_black_plate_with_a_gold_border() {
+        let size = 256;
+        let pixels = super::rgba(size).expect("valid size");
+        let px = |x: usize, y: usize| pixels.as_chunks::<4>().0[y * size + x];
+        assert_eq!(px(0, 0)[3], 0, "corner is see-through");
+        let dark = px(size / 2, size * 9 / 10);
+        assert!(dark[3] == 255 && dark[0] < 40 && dark[1] < 40 && dark[2] < 40, "black plate: {dark:?}");
+        let border = px(size / 2, (size as f32 * 0.064) as usize);
+        assert!(border[3] == 255 && border[0] > 150 && border[0] > border[2], "gold border: {border:?}");
+        for size in [16, 48, 64, 512, 1024] {
+            assert_eq!(super::rgba(size).expect("valid size").len(), size * size * 4);
+        }
+    }
+
     #[test]
     fn shared_mark_has_transparency_and_original_colors_at_window_and_package_sizes() {
         for size in [16, 24, 32, 48, 64, 128, 256] {
-            let pixels = super::rgba(size).expect("valid size");
+            let pixels = super::mark_rgba(size).expect("valid size");
             assert_eq!(pixels.len(), size * size * 4);
             assert!(pixels.as_chunks::<4>().0.iter().any(|p| p[3] == 0));
             assert!(pixels.as_chunks::<4>().0.iter().any(|p| p[3] == 255 && p[0] > p[2]));
         }
-        assert!(super::rgba(0).is_err());
-        assert!(super::rgba(2049).is_err());
+        assert!(super::mark_rgba(0).is_err());
+        assert!(super::mark_rgba(2049).is_err());
     }
 
     /// Borderless: no white edge lines, and the gaps between faces are see-through. At 256 px
@@ -135,7 +198,7 @@ mod tests {
     #[test]
     fn shared_mark_is_borderless() {
         let size = 256;
-        let pixels = super::rgba(size).expect("valid size");
+        let pixels = super::mark_rgba(size).expect("valid size");
         let px = |x: usize, y: usize| pixels.as_chunks::<4>().0[y * size + x];
         let s = size as f32 / 904.436;
         let gap_x = ((size as f32 - 791.188 * s) / 2.0 + (512.0 - 116.406) * s) as usize;

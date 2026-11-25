@@ -1,6 +1,7 @@
 # The documentation site on GitHub Pages: the book (docs/book) at https://docs.solidcraft.io/
-# and the bundled web app at /app/. Needs Settings → Pages → Source = GitHub Actions; skipped while the
-# repository is private.
+# the web app at /app/ (the latest release), /app-rc/ (the newest release candidate) and
+# /app-edge/ (this commit), and the UI kit's component gallery at /kit/ (this commit). Needs
+# Settings → Pages → Source = GitHub Actions; skipped while the repository is private.
 name: Pages
 
 # CDS fork: only by hand; the web app of each release goes to Pages through pages-cds.yml.
@@ -56,14 +57,23 @@ jobs:
       - name: Build the web app
         working-directory: apps/solidcraft-web
         run: trunk build --release --public-url ./
+      - name: Build the UI kit's component gallery
+        working-directory: apps/ui-kit-gallery
+        run: trunk build --release --public-url ./
+      - name: Test the browser command API (headless Chrome)
+        run: cargo xtask web-api-test --site dist/web
       - name: Test the web app offline and across an update (headless Chrome)
         run: cargo xtask web-offline-test --site dist/web
       - name: Assemble the site
         run: |
           mkdir -p site
           cp -r target/book/. site/
+          mkdir -p site/kit && cp -r dist/kit/. site/kit/
           bash docs/book/seo.sh site  # canonical links, robots.txt, sitemap.xml
-          cp -r dist/web site/app
+      - name: Add the web app channels (stable and release candidate from their releases, edge from this build)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash packaging/web-channels.sh site dist/web
       - uses: actions/configure-pages@v5
         id: pages
       - name: Install Flatpak repository tools

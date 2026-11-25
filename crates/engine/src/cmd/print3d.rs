@@ -287,7 +287,7 @@ fn mesh_body(s: &mut Session, cmd: &str, tris: &[[Vec3; 3]], name: &str) -> Resu
     let file = format!("{name}.stl");
     let bytes = shapes::stl_bytes(tris, name);
     let mf = solidcraft_io::mesh_import_feature(&bytes, &file).map_err(|e| EngineError::Other(format!("{cmd}: {e}")))?;
-    let (id, placed) = super::file::import::add_in_component(s, mf.kind, name, mf.body_names, &[], name, super::file::import::Tree::Flat)?;
+    let (id, placed) = super::file::import::add_in_component(s, mf.kind, name, mf.body_names, &[], name, super::file::import::Tree::Flat(None))?;
     let mut out = json!({"feature": id, "component": name, "triangles": tris.len()});
     out["occurrence"] = json!(placed.occurrence);
     out["components"] = json!(placed.components);
