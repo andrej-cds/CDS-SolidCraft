@@ -446,8 +446,9 @@ fn the_built_in_library_has_fixed_ids_and_todays_values() {
     let materials: Vec<(&str, f64, Option<([u8; 3], f64)>)> = usable
         .iter()
         .filter_map(|e| match &e.definition {
-            Definition::Material(m) => Some((m.name.as_str(), m.density_g_cm3, m.appearance.as_ref().map(|a| (a.color, a.opacity)))),
-            Definition::Appearance(_) => None,
+            // CDS fork: the five 3D-print filaments are extra; the 14 upstream names stay exactly as they were.
+            Definition::Material(m) if !m.name.contains("(3D print)") => Some((m.name.as_str(), m.density_g_cm3, m.appearance.as_ref().map(|a| (a.color, a.opacity)))),
+            _ => None,
         })
         .collect();
     assert_eq!(
