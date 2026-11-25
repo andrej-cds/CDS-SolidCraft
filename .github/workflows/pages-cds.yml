@@ -1,0 +1,49 @@
+# CDS fork: the web app of the latest release on GitHub Pages (https://andrej-cds.github.io/CDS-SolidCraft/).
+# Runs after every successful Release run, and by hand. Builds nothing: it unpacks the release's
+# solidcraft-web-<version>.zip. Needs Settings > Pages > Source = GitHub Actions (once).
+name: Pages (web app)
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-cds
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Unpack the latest release's web app
+        run: |
+          mkdir zip site
+          gh release download --pattern 'solidcraft-web-*.zip' --dir zip
+          unzip -q zip/*.zip -d unpacked
+          inner=$(find unpacked -mindepth 1 -maxdepth 1 -type d | head -1)
+          cp -r "$inner"/. site/
+          test -s site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

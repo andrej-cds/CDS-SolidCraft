@@ -1166,7 +1166,10 @@ fn a_newer_design_opens_with_a_notice_and_no_dialog() {
     app.open_path(&path.to_string_lossy());
 
     let (text, _, error) = app.status.clone().unwrap();
-    assert_eq!(text, format!("Saved by a newer SolidCraft (format {newer}, this version reads up to {reads}). If something's missing, update."));
+    assert_eq!(
+        text,
+        format!("Saved by a newer SolidCraft by CDS (format {newer}, this version reads up to {reads}). If something's missing, update.")
+    );
     assert!(!error);
     assert!(app.dialog.is_none());
     assert!(app.messages.iter().any(|m| m.text.contains("Lattice1") && m.text.contains("Saving keeps it")));

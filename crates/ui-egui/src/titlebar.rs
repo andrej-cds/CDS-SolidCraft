@@ -160,7 +160,7 @@ mod tests {
         w.app.home.open = false;
         w.frame(vec![]);
         let out = w.frame(vec![]);
-        let name = texts(&out).into_iter().find(|(text, _)| text == "SolidCraft").map(|(_, rect)| rect).expect("the name is drawn");
+        let name = texts(&out).into_iter().find(|(text, _)| text == "SolidCraft by CDS").map(|(_, rect)| rect).expect("the name is drawn");
         let home = crate::scenario::rect_of("titlebar:home").expect("Home is drawn");
         let previous = crate::scenario::rect_of("library:toggle").unwrap_or(name);
         assert!((home.left() - previous.right() - solidcraft_ui_kit::app_bar_layout::application::GAP).abs() <= 0.5);
@@ -239,6 +239,8 @@ mod tests {
         for width in [1280.0, 1600.0] {
             let mut w = Win::new(width);
             w.app.home.open = false;
+            w.app.preferences.show_donate_button = true;
+            w.app.preferences.show_discord_button = true;
             w.frame(vec![]);
             let out = w.frame(vec![]);
             let [min, ..] = CAPTIONS.map(|c| w.caption(c));

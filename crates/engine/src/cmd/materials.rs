@@ -4,7 +4,7 @@
 //! configuration material cells. The design keeps them, so they are saved and undone like
 //! features.
 
-use serde_json::Value;
+use serde_json::{Value, json};
 use solidcraft_doc::appearance::{Look, library};
 use solidcraft_doc::config::Column;
 use solidcraft_doc::{DEFAULT_MATERIAL, MATERIALS, MAX_USER_MATERIALS, UserMaterial, valid_density};
@@ -202,18 +202,40 @@ fn inspect(s: &mut Session, p: &Value) -> Result<Value> {
             .find(|(n, _)| *n == canonical.as_str())
             .map(|(_, density)| *density)
             .ok_or_else(|| bad(cmd, "material is unavailable"))?;
+        let physical_card = print_card(&canonical, density);
         MaterialInspected {
             name: canonical,
             density_g_cm3: density,
             appearance,
             user: false,
-            physical_card: None,
+            physical_card,
             physical_validation: None,
             density_comparison: None,
             param_warnings: Vec::new(),
         }
     };
     reply(cmd, out)
+}
+
+/// Typical properties of a part printed in a filament (CDS fork): stiffness and tensile strength
+/// along the layers (XY) at room temperature, from the usual published filament data sheets; a
+/// part across its layers is weaker.
+fn print_card(name: &str, density: f64) -> Option<Value> {
+    let (young_gpa, tensile_mpa, poisson) = match name {
+        "PLA (3D print)" => (3.5, 50.0, 0.36),
+        "PETG (3D print)" => (2.1, 45.0, 0.38),
+        "ABS (3D print)" => (2.0, 38.0, 0.35),
+        "ASA (3D print)" => (2.0, 40.0, 0.35),
+        "CF-Nylon (3D print)" => (6.0, 80.0, 0.35),
+        _ => return None,
+    };
+    let at = json!({"temperature_k": 293.15, "state": "printed, along the layers"});
+    Some(json!({"schema_version": 1, "designation": format!("{name}: a printed part, typical data sheet values"), "family": "polymer",
+        "sources": [{"id": "filament", "title": "Typical filament data sheet values for printed parts", "kind": "public_reference", "license": null, "reference": null}],
+        "properties": [
+            {"source_id": "filament", "conditions": at, "data": {"kind": "density", "kg_m3": density * 1000.0}},
+            {"source_id": "filament", "conditions": at, "data": {"kind": "elasticity", "model": {"symmetry": "isotropic", "young_modulus_pa": young_gpa * 1e9, "poisson_ratio": poisson}}},
+            {"source_id": "filament", "conditions": at, "data": {"kind": "tensile_strength", "pa": tensile_mpa * 1e6}}]}))
 }
 
 /// The index of the design material `material` names.

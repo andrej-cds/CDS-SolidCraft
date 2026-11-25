@@ -25,27 +25,7 @@
 name: Kernel rig
 
 on:
-  push:
-    branches: [main, develop]
-    # Whole folders that hold every area's PATHS (the self-test checks they do).
-    paths:
-      - "crates/kernel/**"
-      - "crates/geom/**"
-      - "crates/smlib/**"
-      - "crates/io/src/**"
-      - "crates/doc/src/**"
-      - "crates/develop/**"
-      - "crates/engine/src/**"
-      - "tests/kernel-cases/**"
-      # The vendored kernel: a change here runs every area (tests/kernel-cases/PATHS-ALL).
-      - "solidcore/**"
-      # The rig itself: the grading, the runner, the selection and this workflow.
-      - "apps/solidcraft-cli/src/kernel_cases.rs"
-      - "xtask/src/kernel_cases.rs"
-      - "xtask/src/kernel_ladder.rs"
-      - "scripts/ci/kernel_rig_plan.py"
-      - "scripts/ci/test_kernel_rig_plan.py"
-      - ".github/workflows/kernel-rig.yml"
+  # CDS fork: no push trigger (the rig would run on every push to main); CI calls it and it can be run by hand.
   # CI (ci.yml) calls this on pull requests and merge groups, so the rig is part of the required
   # `ci` check; the release gate (release-gate.yml) calls it too.
   workflow_call:
@@ -68,7 +48,7 @@ jobs:
     name: Select the rig areas
     # Draft pull requests run no CI, as in ci.yml.
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     # The checkout fetches history without file contents (below), so this takes well under a minute.
     timeout-minutes: 10
     outputs:
@@ -116,7 +96,7 @@ jobs:
     name: Build the CLI
     needs: plan
     if: needs.plan.outputs.build == 'true'
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       CARGO_INCREMENTAL: "0"
@@ -180,7 +160,7 @@ jobs:
     name: Kernel rig (${{ matrix.shard }})
     needs: [plan, build]
     if: needs.plan.outputs.shards != '[]'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -222,7 +202,7 @@ jobs:
     name: kernel-rig
     needs: [plan, build, shard]
     if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       # A skipped build or shard counts as passed only when the plan selected none.
       - name: Every selected job passed

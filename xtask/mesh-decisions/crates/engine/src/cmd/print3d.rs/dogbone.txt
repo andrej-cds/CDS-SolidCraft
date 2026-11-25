@@ -1,0 +1,1 @@
+decides with a mesh (.mesh()) which side of a corner is open, in the 3D-printing tools (CDS fork)

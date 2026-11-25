@@ -22,6 +22,9 @@ macro_rules! general_preferences {
             /// Off (the default) keeps SolidCraft's own STEP and IGES writers, as before.
             cadmpeg_export: bool = false, PAGE_GENERAL => check_id("settings.cadmpeg_export");
             cadmpeg_import: bool = false, PAGE_GENERAL => check_id("settings.cadmpeg_import");
+            /// When a start finds a newer release, open the Update window by itself (CDS fork). Off: only
+            /// the quiet button in the application bar shows it.
+            update_popup: bool = true, 0;
             /// Check for updates at start and once a day (docs/updates.md).
             check_updates: bool = true, 0;
             /// With a dialog open, typing the first letter of a button's label presses it: O for OK,
@@ -74,10 +77,10 @@ macro_rules! general_preferences {
             /// Ask separately when closing several unsaved designs, as before grouped saving.
             save_prompt_one_at_a_time: bool = false, PAGE_GENERAL => check_id("prefs.save_prompt_one_at_a_time");
             /// The Discord button at the status bar's right end; the × on it turns it off.
-            show_discord_button: bool = true, PAGE_GENERAL => check_id("prefs.show_discord_button");
+            show_discord_button: bool = false, PAGE_GENERAL => check_id("prefs.show_discord_button");
             /// The Donate button (Ko-fi) at the status bar's right end. The button's × turns it off; the Help
             /// menu, About and the start page keep their link.
-            show_donate_button: bool = true, PAGE_GENERAL => check_id("prefs.show_donate_button");
+            show_donate_button: bool = false, PAGE_GENERAL => check_id("prefs.show_donate_button");
             /// Show Home on an ordinary empty launch and after closing the last design.
             show_home_on_startup: bool = true, PAGE_GENERAL;
             /// Slicers that can load a file into the window that is already open do so (default on).

@@ -37,6 +37,7 @@ static PORTUGUESE_BR: Catalog = Catalog::packed("pt-BR", "Português (Brasil)", 
 static PORTUGUESE_PT: Catalog = Catalog::packed("pt-PT", "Português (Portugal)", include_bytes!(concat!(env!("OUT_DIR"), "/locales/pt-PT.json.z")));
 static ROMANIAN: Catalog = Catalog::packed("ro", "Română", include_bytes!(concat!(env!("OUT_DIR"), "/locales/ro.json.z")));
 static RUSSIAN: Catalog = Catalog::packed("ru", "Русский", include_bytes!(concat!(env!("OUT_DIR"), "/locales/ru.json.z")));
+static SLOVENIAN: Catalog = Catalog::packed("sl", "Slovenščina", include_bytes!(concat!(env!("OUT_DIR"), "/locales/sl.json.z")));
 static SERBIAN: Catalog = Catalog::packed("sr", "Српски", include_bytes!(concat!(env!("OUT_DIR"), "/locales/sr.json.z")));
 static SWEDISH: Catalog = Catalog::packed("sv", "Svenska", include_bytes!(concat!(env!("OUT_DIR"), "/locales/sv.json.z")));
 static TURKISH: Catalog = Catalog::packed("tr", "Türkçe", include_bytes!(concat!(env!("OUT_DIR"), "/locales/tr.json.z")));
@@ -80,6 +81,7 @@ pub const LOCALES: &[&Catalog] = &[
     &PORTUGUESE_PT,
     &ROMANIAN,
     &RUSSIAN,
+    &SLOVENIAN,
     &SERBIAN,
     &SWEDISH,
     &TURKISH,

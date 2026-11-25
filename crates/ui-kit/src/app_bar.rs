@@ -805,6 +805,8 @@ pub struct AppBar<'a> {
     /// The app's mark, painted centred at the point given, and its name beside it.
     pub mark: &'a dyn Fn(&Painter, Pos2),
     pub name: &'a str,
+    /// The name's colour; none takes the bar's text colour (CDS fork: its gold).
+    pub name_ink: Option<egui::Color32>,
     /// Optional space for an app-owned control before Home.
     pub leading: Option<egui::Vec2>,
     pub home: BarButton<'a>,
@@ -997,12 +999,12 @@ pub fn paint_brand(painter: &Painter, content: Rect, mark: &dyn Fn(&Painter, Pos
     let left = content.left();
     let y = content.center().y;
     mark(painter, pos2(left + 20.0, y));
-    name.map_or(left + 32.0, |name| paint_brand_name(painter, pos2(left + 36.0, y), name))
+    name.map_or(left + 32.0, |name| paint_brand_name(painter, pos2(left + 36.0, y), name, None))
 }
 
-fn paint_brand_name(painter: &Painter, at: Pos2, name: &str) -> f32 {
+fn paint_brand_name(painter: &Painter, at: Pos2, name: &str, ink: Option<egui::Color32>) -> f32 {
     let t = Tokens::get();
-    painter.text(at, Align2::LEFT_CENTER, name, crate::type_face::semibold(t.font_heading), t.app_bar_text).right()
+    painter.text(at, Align2::LEFT_CENTER, name, crate::type_face::semibold(t.font_heading), ink.unwrap_or(t.app_bar_text)).right()
 }
 
 /// Draws the bar in `bar`, its controls within `content` (the title bar's room between the
@@ -1077,7 +1079,7 @@ pub fn show_with_offers(ui: &mut egui::Ui, data: &AppBar, bar: Rect, content: Re
         // Paint at the measured logo/name positions, rather than legacy brand offsets.
         (data.mark)(&painter, pos2(r.left() + geometry.mark, r.center().y));
         if geometry.name_visible {
-            paint_brand_name(&painter, pos2(r.left() + geometry.name, r.center().y), data.name);
+            paint_brand_name(&painter, pos2(r.left() + geometry.name, r.center().y), data.name, data.name_ink);
         }
     }
     let leading = geometry.leading.map(|span| rect(span, ITEM_HEIGHT));

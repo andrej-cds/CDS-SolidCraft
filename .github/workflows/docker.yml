@@ -55,7 +55,7 @@ jobs:
     if: ${{ !github.event.repository.private }}
     # The web app's release build takes about 55 minutes from cold on 2 vCPUs, past a 60-minute limit:
     # build it on the runner and with the time the Pages build has.
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
       contents: read

@@ -29,6 +29,8 @@ pub struct SlotView<'a> {
     pub hidden: bool,
     /// The button shows its text.
     pub show_text: bool,
+    /// The button shows its text only, without the icon (CDS fork).
+    pub text_only: bool,
     /// Where it is drawn (unused for a slot in the More menu).
     pub rect: Rect,
     /// A second registry name its handle is published under, wherever it is drawn.
@@ -184,6 +186,7 @@ pub fn paint_slots(
                             label: &slot.text,
                             selected: slot.selected,
                             labels: slot.show_text,
+                            text_only: slot.text_only,
                             menu: slot.kind == NavigationKind::Menu,
                         };
                         if editing.is_some() {
@@ -264,6 +267,7 @@ pub fn show(ui: &mut egui::Ui, bar: &Bar<'_>, menu: impl FnOnce(&str) -> Menu) -
                     label: &bar.labels.more,
                     selected: open == "more" || bar.overflow.iter().any(|slot| slot.id == open),
                     labels: false,
+                    text_only: false,
                     menu: false,
                 },
             );

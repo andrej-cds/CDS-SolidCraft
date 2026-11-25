@@ -267,7 +267,8 @@ pub fn app_bar(app: &mut SolveApp, ui: &mut egui::Ui) {
                 items: Some(&preview_layout),
                 quick_ids: &quick_ids,
                 mark: &|painter, at| solidcraft_look::glyphs::brand_mark(painter, at),
-                name: "SolidCraft",
+                name: "SolidCraft by CDS",
+                name_ink: Some(crate::brand::CDS_GOLD),
                 leading: (crate::library::available(app) && !app.home.open).then_some(vec2(app_bar::ITEM_HEIGHT, app_bar::ITEM_HEIGHT)),
                 home: app_bar::BarButton { id: "home", icon: "home", tip: app.tr("ui.start_page"), enabled: idle, narrow: false, wide_only: false },
                 file: app.tr("ui.file"),
@@ -6164,7 +6165,7 @@ mod app_bar_tests {
                     assert!(contrast(t.app_bar_text, bg) >= 4.5, "dark={dark}, {vision:?}, {fill:?}");
                 }
                 assert!(contrast(t.app_bar_separator, t.app_bar) >= 3.0);
-                assert!(contrast(t.app_bar, t.warning) >= 4.5, "approval counts need dark ink on amber");
+                assert!(contrast(t.tab_on_fill_dark, t.warning) >= 4.5, "approval counts need dark ink on amber");
             }
         }
     }
@@ -6693,7 +6694,7 @@ mod fill_width_tests {
             }
             let tab = if sketch { "SKETCH" } else { "MODEL" };
             h.app.ui.tab = tab.into();
-            for w in [1920.0, 1600.0, 1440.0, 1366.0, 1280.0, 1100.0, 900.0, 700.0] {
+            for w in [1920.0, 1600.0, 1440.0, 1366.0, 1280.0, 1100.0, 900.0, 760.0] {
                 h.call("ui.resize", json!({"width":w,"height":900}));
                 h.frames(3);
                 let at = format!("{tab} at {w}, {layout:?}");

@@ -12964,7 +12964,12 @@ mod tests {
     fn pictures_are_drawn_in_the_windows_theme() {
         use solidcraft_engine::view::Palette;
         use solidcraft_theme::ColorVision;
-        assert_eq!(scene_palette(false, ColorVision::Off), Palette::DEFAULT, "the light theme is the engine's colours");
+        // CDS fork: the light theme's isocurves are gold; every other colour is the engine's own.
+        assert_eq!(
+            scene_palette(false, ColorVision::Off),
+            Palette { isocurve: Rgb(150, 105, 10), ..Palette::DEFAULT },
+            "the light theme is the engine's colours"
+        );
         let rgb = |c: Color32| Rgb(c.r(), c.g(), c.b());
         let (p, t) = (scene_palette(true, ColorVision::Off), Tokens::dark());
         assert_eq!(p.background, (rgb(t.viewport_top), rgb(t.viewport_bottom)));

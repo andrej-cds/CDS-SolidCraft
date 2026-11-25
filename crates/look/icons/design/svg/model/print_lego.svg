@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Lego Brick</title>
+  <path d="M6.49 25.86L32 40.59L32 59L6.49 44.27Z" fill="#328bd3"/>
+  <path d="M57.51 25.86L32 40.59L32 59L57.51 44.27Z" fill="#236ead"/>
+  <path d="M32 11.14L57.51 25.86L32 40.59L6.49 25.86Z" fill="#b9ddf8"/>
+  <path d="M32 11.14L57.51 25.86L57.51 44.27L32 59L6.49 44.27L6.49 25.86Z" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M6.49 25.86L32 40.59L57.51 25.86" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M32 40.59L32 59" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M26.89 13.59L26.89 18.5A5.11 2.95 0 0 0 37.11 18.5L37.11 13.59Z" fill="#328bd3"/>
+  <path d="M33.79 13.59L33.79 21.26A5.11 2.95 0 0 0 37.11 18.5L37.11 13.59Z" fill="#236ead"/>
+  <path d="M26.89 13.59L26.89 18.5A5.11 2.95 0 0 0 37.11 18.5L37.11 13.59Z" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M26.89 13.59A5.11 2.95 0 1 0 37.11 13.59A5.11 2.95 0 1 0 26.89 13.59Z" fill="#b9ddf8" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M14.14 20.95L14.14 25.86A5.11 2.95 0 0 0 24.36 25.86L24.36 20.95Z" fill="#328bd3"/>
+  <path d="M21.03 20.95L21.03 28.63A5.11 2.95 0 0 0 24.36 25.86L24.36 20.95Z" fill="#236ead"/>
+  <path d="M14.14 20.95L14.14 25.86A5.11 2.95 0 0 0 24.36 25.86L24.36 20.95Z" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M14.14 20.95A5.11 2.95 0 1 0 24.36 20.95A5.11 2.95 0 1 0 14.14 20.95Z" fill="#b9ddf8" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M39.64 20.95L39.64 25.86A5.11 2.95 0 0 0 49.86 25.86L49.86 20.95Z" fill="#328bd3"/>
+  <path d="M46.54 20.95L46.54 28.63A5.11 2.95 0 0 0 49.86 25.86L49.86 20.95Z" fill="#236ead"/>
+  <path d="M39.64 20.95L39.64 25.86A5.11 2.95 0 0 0 49.86 25.86L49.86 20.95Z" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M39.64 20.95A5.11 2.95 0 1 0 49.86 20.95A5.11 2.95 0 1 0 39.64 20.95Z" fill="#b9ddf8" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M26.89 28.32L26.89 33.23A5.11 2.95 0 0 0 37.11 33.23L37.11 28.32Z" fill="#328bd3"/>
+  <path d="M33.79 28.32L33.79 35.99A5.11 2.95 0 0 0 37.11 33.23L37.11 28.32Z" fill="#236ead"/>
+  <path d="M26.89 28.32L26.89 33.23A5.11 2.95 0 0 0 37.11 33.23L37.11 28.32Z" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M26.89 28.32A5.11 2.95 0 1 0 37.11 28.32A5.11 2.95 0 1 0 26.89 28.32Z" fill="#b9ddf8" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

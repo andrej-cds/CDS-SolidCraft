@@ -4106,6 +4106,9 @@ fn prepare_preferences(
     if !accepted::home_fit_size(&new) {
         return Err("`home_fit_size` must be 0.1…1".into());
     }
+    if !accepted::screen_width_mm(&new) {
+        return Err("`screen_width_mm` must be 0 (automatic) to 3000".into());
+    }
     if !accepted::perspective_fov(&new) {
         return Err("`perspective_fov` must be 15°…90° in radians (0.2618…1.5708)".into());
     }
@@ -4845,7 +4848,7 @@ mod tests {
             json!({"slots":[7]}),
             json!({"position":"top"}),
             json!({"size":true}),
-            json!({"labels":"text"}),
+            json!({"labels":"pictures"}),
             json!({"idle":10}),
             json!({"unknown":true}),
         ] {
@@ -4905,7 +4908,10 @@ mod tests {
         assert_eq!(h.app.preferences.navigation_bar.size, NavigationSize::Compact);
         navbar_click(&mut h, "prefs:navbar:size:1");
         assert_eq!(h.app.preferences.navigation_bar.size, NavigationSize::Regular);
-        navbar_click(&mut h, "prefs:navbar:buttons:1");
+        // CDS fork: the three Buttons choices (Icons / Icons + labels / Labels) do not fit a grid column
+        // and appear as a drop-down, so this choice is set directly instead of clicking a segment.
+        h.app.preferences.navigation_bar.labels = Labels::Labels;
+        h.frames(5);
         assert_eq!(h.app.preferences.navigation_bar.labels, Labels::Labels);
         navbar_click(&mut h, "prefs:navbar:idle:0");
         assert_eq!(h.app.preferences.navigation_bar.idle, NavigationIdle::Always);
@@ -5487,7 +5493,13 @@ mod tests {
             });
             h.frames(2);
         }
-        panic!("{handle} never came into view");
+        panic!(
+            "{handle} never came into view: target={:?} body={:?} buttons_rect={:?} size1={:?}",
+            crate::scenario::handle_at(handle),
+            crate::scenario::rect_of("prefs:page_body"),
+            crate::scenario::rect_of("prefs:navbar:buttons"),
+            crate::scenario::handle_at("prefs:navbar:size:1")
+        );
     }
 
     #[test]
@@ -6669,8 +6681,8 @@ mod tests {
             ("viewport_background", json!([255, 255, 255]), PAGE_APPEARANCE),
             ("view_confirm_corner", json!(true), PAGE_LAYOUT),
             ("status_bar", json!(true), PAGE_LAYOUT),
-            ("show_donate_button", json!(false), PAGE_GENERAL),
-            ("show_discord_button", json!(false), PAGE_GENERAL),
+            ("show_donate_button", json!(true), PAGE_GENERAL),
+            ("show_discord_button", json!(true), PAGE_GENERAL),
             ("browser_eye_left", json!(true), PAGE_LAYOUT),
             ("browser_components_open", json!(true), PAGE_LAYOUT),
             ("browser_rows_start_closed", json!(true), PAGE_LAYOUT),

@@ -92,8 +92,9 @@ pub static COMMANDS: &[CommandSpec] = &[
          their own beside it (in parts only a part's contents are rows of their own, but not a folded part's or a purchased one's, \
          and of an inseparable one's only its purchased parts are), so the rows add up to the assembly; a reference placement \
          adds nothing; null when nothing in it has a body, a body can't be measured or the row's definitions differ); path?: write \
-         a .csv (columns item, part_number, description, revision, count, definition, material, quantity) or .json file (children as \
-         items 1.1, 1.2…); format?: csv|json (default from the path). Each placement counts as \
+         a .csv (columns item, part_number, description, revision, count, definition, material, quantity), .json or .md file (children as \
+         items 1.1, 1.2…); format?: csv|json|md (default from the path; md: Markdown with the purchased parts in a table of their own, \
+          titles?: {title, made, purchased, none, total, item, part_number, description, revision, count, definition} its headings). Each placement counts as \
          its occurrence's bom_type, else its component's: phantom has no row (what it holds counts here; its own bodies, \
          if it has any, are a row of their own), reference counts nowhere, purchased and inseparable are one row (in flat, an inseparable one's purchased parts are listed too, under it with group_children and a part number); placements \
          of one component that count as different types are different rows → rows: [{item, part_number, description, revision, \
@@ -449,6 +450,53 @@ fn csv(list: &Bom) -> String {
     out
 }
 
+/// A Markdown table cell: pipes escaped, one line.
+fn cell(v: &Value) -> String {
+    let t = match v {
+        Value::String(t) => t.clone(),
+        Value::Null => String::new(),
+        v => v.to_string(),
+    };
+    t.replace('|', "\\|").replace(['\n', '\r'], " ")
+}
+
+/// The bill of materials as Markdown (CDS fork): the parts that are made, then the purchased
+/// ones (bom_type purchased: screws, bearings, nuts…) in a table of their own. `titles` gives
+/// the headings and column names in the reader's language.
+fn markdown(rows: &[Value], total: u64, titles: Option<&Value>) -> String {
+    let t = |k: &str, d: &str| titles.and_then(|x| x.get(k)).and_then(Value::as_str).unwrap_or(d).to_string();
+    let columns = ["item", "part_number", "description", "revision", "count", "definition"];
+    let names = [
+        t("item", "Item"),
+        t("part_number", "Part number"),
+        t("description", "Description"),
+        t("revision", "Revision"),
+        t("count", "Count"),
+        t("definition", "Component"),
+    ];
+    let mut out = format!("# {}\n\n", t("title", "Bill of Materials"));
+    let lines: Vec<&Value> = rows.iter().flat_map(|r| std::iter::once(r).chain(r["children"].as_array().into_iter().flatten())).collect();
+    let purchased = |r: &&Value| r["bom_type"].as_str() == Some("purchased");
+    for (heading, list) in [
+        (t("made", "Made parts"), lines.iter().copied().filter(|r| !purchased(r)).collect::<Vec<_>>()),
+        (t("purchased", "Purchased parts"), lines.iter().copied().filter(purchased).collect()),
+    ] {
+        out.push_str(&format!("## {heading}\n\n"));
+        if list.is_empty() {
+            out.push_str(&format!("{}\n\n", t("none", "None.")));
+            continue;
+        }
+        out.push_str(&format!("| {} |\n|{}\n", names.join(" | "), "---|".repeat(columns.len())));
+        for r in list {
+            let fields: Vec<String> = columns.iter().map(|k| cell(&r[*k])).collect();
+            out.push_str(&format!("| {} |\n", fields.join(" | ")));
+        }
+        out.push('\n');
+    }
+    out.push_str(&format!("{}: {total}\n", t("total", "Placed in all")));
+    out
+}
+
 fn bom(s: &mut Session, p: &Value) -> Result<Value> {
     let cmd = "assembly.bom";
     let request = request(s, p, cmd)?;
@@ -468,7 +516,8 @@ fn bom(s: &mut Session, p: &Value) -> Result<Value> {
             Some(f) => f,
             None if path.to_ascii_lowercase().ends_with(".json") => "json".into(),
             None if path.to_ascii_lowercase().ends_with(".csv") => "csv".into(),
-            None => return Err(bad(cmd, "`path` must end in .csv or .json, or give `format`")),
+            None if path.to_ascii_lowercase().ends_with(".md") => "md".into(),
+            None => return Err(bad(cmd, "`path` must end in .csv, .json or .md, or give `format`")),
         };
         let text = match format.as_str() {
             "csv" => csv(&list),
@@ -479,7 +528,8 @@ fn bom(s: &mut Session, p: &Value) -> Result<Value> {
                 }
                 serde_json::to_string_pretty(&file).map_err(|e| bad(cmd, e.to_string()))?
             }
-            other => return Err(bad(cmd, format!("unknown format `{other}` (csv or json)"))),
+            "md" | "markdown" => markdown(&rows, list.total.occurrences, p.get("titles")),
+            other => return Err(bad(cmd, format!("unknown format `{other}` (csv, json or md)"))),
         };
         solidcraft_io::vfs::write(path, text.as_bytes()).map_err(|e| EngineError::Other(format!("{path}: {e}")))?;
         out.insert("path".into(), json!(path));

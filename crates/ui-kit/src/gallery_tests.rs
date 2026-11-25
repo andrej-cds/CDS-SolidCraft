@@ -81,7 +81,11 @@ fn navigation_sample(ui: &mut Ui, size: NavigationSize) {
         ("visual_style", "style_shaded_edges", NavigationKind::Menu, false, menu_width),
     ] {
         let bounds = egui::Rect::from_min_size(egui::pos2(x, rect.top() + inset), vec2(width, metrics.button));
-        navigation_button(ui, bounds, NavigationButton { id, icon, label: id, kind, selected, labels: false, menu: kind == NavigationKind::Menu });
+        navigation_button(
+            ui,
+            bounds,
+            NavigationButton { id, icon, label: id, kind, selected, labels: false, text_only: false, menu: kind == NavigationKind::Menu },
+        );
         if id == "fit" {
             navigation_edit_outline(ui, bounds, true, false);
         }

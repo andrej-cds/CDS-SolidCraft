@@ -307,39 +307,7 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
             false,
             true,
             |ui| {
-                ui_kit::text(ui, hint(live), ui_kit::Text::Hint("manage"));
-                apply_live_checkbox(app, ui, &mut d, &all);
-                ui_kit::row(ui, "Filter", |ui| {
-                    let id = ui.make_persistent_id("parameter_filter");
-                    ui_kit::search_field(ui, id, &mut d.filter, "Filter");
-                });
-                ui.horizontal_wrapped(|ui| {
-                    if ui_kit::icon_label_button(ui, "Import…", "import_tray", true, false)
-                        .backing_on_hover_text(solidcraft_ui_text::tr_label("CSV or JSON: updates existing parameters, adds new ones"))
-                        .clicked()
-                    {
-                        app.pick_open_command("parameters.import", json!({}), IMPORT_TYPES);
-                    }
-                    for (label, ext) in [("Export CSV…", "csv"), ("Export JSON…", "json")] {
-                        if ui_kit::icon_label_button(ui, label, "export_tray", true, false).clicked() {
-                            app.pick_save_command(&format!("parameters.{ext}"), &[ext], "parameters.export", json!({"format": ext}));
-                        }
-                    }
-                });
-                if let Some(error) = d.banner() {
-                    ui_kit::text(ui, error, ui_kit::Text::Error("parameters_error"));
-                }
-                let filter = d.filter.to_ascii_lowercase();
-                let visible: Vec<_> = all.iter().filter(|r| r.matches(&filter)).collect();
-                // One Name-column floor for every table in this dialog so Favorites, User and
-                // Model sections stay lined up when only some lists hold a long name (#8551 review).
-                let name_floor = visible
-                    .iter()
-                    .map(|r| ui_kit::ContentWidth::name(ui, &r.name))
-                    .fold(solidcraft_theme::Tokens::get().form_label_width, f32::max)
-                    .min(solidcraft_theme::Tokens::get().form_card_width);
-                let sections = sections(&visible, d.sort);
-                table(app, ui, &mut d, &sections, name_floor);
+                body(app, ui, &mut d, &all, live);
                 ui_kit::ComputeStatus { text: held_status, busy: false, applying: false }
             },
         );
@@ -376,6 +344,76 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
     } else {
         app.params = Some(d);
     }
+}
+
+/// The panel's contents (CDS fork: also drawn docked in the tools window, two screens).
+fn body(app: &mut SolveApp, ui: &mut egui::Ui, d: &mut ParamsDialog, all: &Arc<Vec<Row>>, live: bool) {
+    ui_kit::text(ui, hint(live), ui_kit::Text::Hint("manage"));
+    apply_live_checkbox(app, ui, d, all);
+    ui_kit::row(ui, "Filter", |ui| {
+        let id = ui.make_persistent_id("parameter_filter");
+        ui_kit::search_field(ui, id, &mut d.filter, "Filter");
+    });
+    ui.horizontal_wrapped(|ui| {
+        if ui_kit::icon_label_button(ui, "Import…", "import_tray", true, false)
+            .backing_on_hover_text(solidcraft_ui_text::tr_label("CSV or JSON: updates existing parameters, adds new ones"))
+            .clicked()
+        {
+            app.pick_open_command("parameters.import", json!({}), IMPORT_TYPES);
+        }
+        for (label, ext) in [("Export CSV…", "csv"), ("Export JSON…", "json")] {
+            if ui_kit::icon_label_button(ui, label, "export_tray", true, false).clicked() {
+                app.pick_save_command(&format!("parameters.{ext}"), &[ext], "parameters.export", json!({"format": ext}));
+            }
+        }
+    });
+    if let Some(error) = d.banner() {
+        ui_kit::text(ui, error, ui_kit::Text::Error("parameters_error"));
+    }
+    let filter = d.filter.to_ascii_lowercase();
+    let visible: Vec<_> = all.iter().filter(|r| r.matches(&filter)).collect();
+    // One Name-column floor for every table in this dialog so Favorites, User and
+    // Model sections stay lined up when only some lists hold a long name (#8551 review).
+    let name_floor = visible
+        .iter()
+        .map(|r| ui_kit::ContentWidth::name(ui, &r.name))
+        .fold(solidcraft_theme::Tokens::get().form_label_width, f32::max)
+        .min(solidcraft_theme::Tokens::get().form_card_width);
+    let sections = sections(&visible, d.sort);
+    table(app, ui, d, &sections, name_floor);
+}
+
+/// Parameters kept open in the tools window (two screens, CDS fork): the same contents as the
+/// panel, with their own draft state, which stay until the mode is turned off. Held edits get an
+/// Apply button of their own here.
+pub(crate) fn docked(app: &mut SolveApp, ui: &mut egui::Ui, slot: &mut Option<ParamsDialog>) {
+    publish(app, ui.ctx());
+    let mut d = slot.take().unwrap_or_default();
+    d.sort = ui.ctx().data_mut(|m| m.get_persisted(sort_id())).unwrap_or_default();
+    let sort = d.sort;
+    let all = if let Some((_, rows)) = d.listed.as_ref().filter(|(rev, _)| *rev == app.session.revision) {
+        rows.clone()
+    } else {
+        let rows = Arc::new(rows(app));
+        d.listed = Some((app.session.revision, rows.clone()));
+        d.lists += 1;
+        rows
+    };
+    let live = app.preferences.parameters_apply_live;
+    body(app, ui, &mut d, &all, live);
+    if !live {
+        if let Some(text) = held_status(held(&d, &all).len()) {
+            ui_kit::text(ui, &text, ui_kit::Text::Hint("held"));
+        }
+        if ui_kit::button(ui, "Apply", ui_kit::Button::Normal).clicked() {
+            apply_held(app, &mut d, &all);
+        }
+    }
+    if d.sort != sort {
+        let chosen = d.sort;
+        ui.ctx().data_mut(|m| m.insert_persisted(sort_id(), chosen));
+    }
+    *slot = Some(d);
 }
 
 /// Where the chosen order is kept across dialog openings.

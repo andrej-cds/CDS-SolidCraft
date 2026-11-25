@@ -741,7 +741,7 @@ fn requested_menu_icons_have_artwork_and_match_manifest() {
         solidcraft_ui_egui::documents::open_tab(&mut documents.app, solidcraft_engine::Session::default()).unwrap();
     }
     documents.app.home.open = false;
-    documents.call("ui.resize", json!({"width":640,"height":1000}));
+    documents.call("ui.resize", json!({"width":800,"height":1000})); // CDS: the longer name needs more room
     click(&mut documents, "tab:overflow");
     documents.frames(3);
     assert!(solidcraft_ui_egui::documents::tab_list_open(&documents.ctx), "the document list must actually be open");

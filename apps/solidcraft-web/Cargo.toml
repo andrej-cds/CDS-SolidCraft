@@ -14,7 +14,8 @@ name = "solidcraft-web"
 path = "src/main.rs"
 
 [features]
-default = ["profile", "usage-stats"]
+# CDS fork: no anonymous usage statistics (they would be sent to upstream's server); data stays on the computer.
+default = ["profile"]
 # Anonymous usage statistics (docs/privacy.md). A build without it has no counting, no notice,
 # no network code for them and no endpoint.
 usage-stats = ["solidcraft-ui-egui/usage-stats"]
