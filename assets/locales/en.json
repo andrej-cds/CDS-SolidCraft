@@ -2498,7 +2498,7 @@
   "help.print.offset_sketch": "Offsets every loop and chain of the open sketch at once, outward or inward. Use it for clearances between printed parts.",
   "help.print.send": "Sends the selected bodies, or all visible ones, to the slicer you chose last, in one click. The first time it asks which slicer.",
   "help.print.supershape": "Draws an organic shape from the superformula and extrudes it, or builds it as a 3D mesh body. Change m for the number of lobes and n1, n2, n3 for their form.",
-  "help.print.vent": "Cuts a row or grid of slots, rectangles or round holes into a flat face, centred where you pick it. Use it for vents in enclosures.",
+  "help.print.vent": "Cuts a row or grid of slots, rectangles or round holes into a flat face, centered where you pick it. Use it for vents in enclosures.",
   "help.sheet.convert": "Turns surfaces into the rule's sheet metal: the faces of a solid or a surface body, with bends at the edges you pick. Use it to make a sheet metal part from a modeled shape.",
   "help.sheet.export_bend_table": "Saves the bend table of a sheet metal body as CSV or JSON: angles, radii and bend positions in the flat. Use it for the press brake or the workshop.",
   "help.sheet.export_dxf": "Saves the flat pattern as a DXF, with outlines, bend lines and optional bend notes. Use it for laser, plasma or waterjet cutting.",

@@ -22,9 +22,6 @@ macro_rules! general_preferences {
             /// Off (the default) keeps SolidCraft's own STEP and IGES writers, as before.
             cadmpeg_export: bool = false, PAGE_GENERAL => check_id("settings.cadmpeg_export");
             cadmpeg_import: bool = false, PAGE_GENERAL => check_id("settings.cadmpeg_import");
-            /// When a start finds a newer release, open the Update window by itself (CDS fork). Off: only
-            /// the quiet button in the application bar shows it.
-            update_popup: bool = true, 0;
             /// Check for updates at start and once a day (docs/updates.md).
             check_updates: bool = true, 0;
             /// With a dialog open, typing the first letter of a button's label presses it: O for OK,
@@ -85,6 +82,9 @@ macro_rules! general_preferences {
             show_home_on_startup: bool = true, PAGE_GENERAL;
             /// Slicers that can load a file into the window that is already open do so (default on).
             slicer_single_instance: bool = true, 0;
+            /// When a start finds a newer release, open the Update window by itself (CDS fork). Off: only
+            /// the quiet button in the application bar shows it.
+            update_popup: bool = true, 0;
         }
     };
 }
