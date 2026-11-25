@@ -153,11 +153,9 @@ pub fn rgba(size: usize) -> Result<Vec<u8>, String> {
                     count += 1;
                 }
             }
-            if alpha == 0 {
-                rgba.extend_from_slice(&[0, 0, 0, 0]);
-            } else {
-                rgba.extend_from_slice(&[(sum[0] / alpha) as u8, (sum[1] / alpha) as u8, (sum[2] / alpha) as u8, (alpha / count) as u8]);
-            }
+            // A fully transparent block has no colour: the checked divisions give 0 for it.
+            let px = [sum[0].checked_div(alpha), sum[1].checked_div(alpha), sum[2].checked_div(alpha), alpha.checked_div(count)];
+            rgba.extend(px.map(|v| v.unwrap_or(0) as u8));
         }
     }
     Ok(rgba)
