@@ -357,6 +357,9 @@ jobs:
           jobs=$(( vm_mem / 3072 ))
           if [ "$jobs" -gt "$vm_cpus" ]; then jobs=$vm_cpus; fi
           if [ "$jobs" -lt 1 ]; then jobs=1; fi
+          # CDS fork: the free runner (4 CPUs, 16 GB) ran the VM out of memory with 2 jobs
+          # (4 attempts, exit 137 on solidcraft-engine), so build one crate at a time.
+          jobs=1
           echo "runner: $cpus CPUs, $mem_mb MB; VM: $vm_cpus CPUs, $vm_mem MB, $jobs build jobs"
           { echo "cpu=$vm_cpus"; echo "mem=$vm_mem"; echo "jobs=$jobs"; } >>"$GITHUB_OUTPUT"
       - name: Start a FreeBSD VM
