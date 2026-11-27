@@ -10,6 +10,8 @@ const ALLOWED_LITERALS: &[(&str, usize, &str)] = &[
     ("dialogs.rs", 2, "preview spinners: graphic diameter, not typography"),
     ("ui_kit/file_preview.rs", 1, "the 4:3 units a preview picture is laid out in, scaled to its slot: not a form metric"),
     ("ui_kit/settings_search.rs", 2, "hidden off-screen areas that measure search matches: never drawn"),
+    ("viewport.rs", 1, "viewport status spinner: graphic diameter, not typography"),
+    ("ui_kit/panel.rs", 1, "CDS fork: the gold mark in a window title, a graphic, not typography"),
 ];
 
 pub(crate) fn test_only(attrs: &[syn::Attribute]) -> bool {

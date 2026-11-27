@@ -2041,7 +2041,7 @@ mod tests {
             assert!(recovered.attempt.is_none());
             assert_eq!(
                 recovered.note,
-                Some(format!("The previous start with Vulkan did not open the window. SolidCraft restored {label}.")),
+                Some(format!("The previous start with Vulkan did not open the window. SolidCraft by CDS restored {label}.")),
                 "recovery describes both APIs using their displayed names"
             );
             expected["backend"] = serde_json::json!(previous);

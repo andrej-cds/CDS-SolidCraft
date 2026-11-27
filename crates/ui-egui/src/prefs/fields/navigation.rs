@@ -107,6 +107,8 @@ macro_rules! navigation_preferences {
             /// key as `free_orbit_key`, that one wins and this does nothing. A key the mouse mapping
             /// already needs for that orbit does nothing.
             roll_key: String = "none".into(), PAGE_NAVIGATION;
+            /// The screen's visible width in millimetres for the 1:1 view (CDS); 0 reads it from the monitor.
+            screen_width_mm: f32 = 0.0, PAGE_NAVIGATION, accept(0.0..=3000.0) => slider("ui.screen_width_mm", 0.0..=1500.0, 1.0, |v| if v <= 0.0 { solidcraft_ui_text::tr("ui.screen_width_auto").to_string() } else { format!("{v:.0} mm") }, "prefs:screen_width_mm");
             /// Spread discrete wheel input across frames (off: apply each event immediately).
             smooth_wheel_zoom: bool = true, PAGE_NAVIGATION => check("Smooth wheel zoom", "Turn off to apply each wheel event immediately, without a smoothing tail");
             /// Touchscreen drags orbit/pan; off preserves the mouse mapping's selection behavior.

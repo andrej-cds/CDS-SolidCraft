@@ -271,7 +271,7 @@ impl Ctx<'_> {
                 }
                 // Lettering has its own foreground role. Preserve the actual axis colour on
                 // discs and strokes, choosing a legible token only for the tiny glyph.
-                return [intended, t.navigator_text, t.on_accent, t.tab_on_fill_dark]
+                return [intended, t.navigator_text, t.on_accent, t.tab_on_fill_dark, Color32::WHITE]
                     .into_iter()
                     .max_by(|a, b| solidcraft_theme::contrast_ratio(*a, ground).total_cmp(&solidcraft_theme::contrast_ratio(*b, ground)))
                     .unwrap_or(intended);

@@ -287,6 +287,7 @@ fn drop_on_preview(app: &mut SolveApp, ui: &mut egui::Ui, state: &mut State, tar
                     selected: false,
                     kind: slot.kind,
                     labels: false,
+                    text_only: false,
                     menu: slot.kind == NavigationKind::Menu,
                 },
                 app.preferences.navigation_bar.size,
@@ -522,9 +523,19 @@ fn option_grid(bar: &mut NavigationBar, ui: &mut egui::Ui, first: usize) {
                         option(
                             ui,
                             "buttons",
-                            &mut usize::from(bar.labels == Labels::Labels),
-                            &["navbar.custom.icons", "navbar.custom.labels"],
-                            |i| bar.labels = if i == 1 { Labels::Labels } else { Labels::Icons },
+                            &mut match bar.labels {
+                                Labels::Icons => 0,
+                                Labels::Labels => 1,
+                                Labels::Text => 2,
+                            },
+                            &["navbar.custom.icons", "navbar.custom.labels", "navbar.custom.text_only"],
+                            |i| {
+                                bar.labels = match i {
+                                    1 => Labels::Labels,
+                                    2 => Labels::Text,
+                                    _ => Labels::Icons,
+                                }
+                            },
                         );
                     }
                     _ => {}

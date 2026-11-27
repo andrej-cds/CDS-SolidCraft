@@ -225,6 +225,13 @@ fn apply(app: &mut SolveApp, d: &mut BomPanel, row: &Value) {
 fn export(app: &mut SolveApp, d: &BomPanel, ext: &str) {
     let mut params = d.params();
     params["format"] = json!(ext);
+    if ext == "md" {
+        // The Markdown file's headings, in the reader's language (CDS fork).
+        let tr = |k: &str| solidcraft_ui_text::tr(k).to_string();
+        params["titles"] = json!({"title": solidcraft_ui_text::tr_label("Bill of Materials"), "made": tr("bom.md_made"), "purchased": tr("bom.md_purchased"),
+            "none": tr("bom.md_none"), "total": tr("bom.md_total"), "item": tr("bom.md_item"), "part_number": tr("bom.md_part_number"),
+            "description": tr("bom.md_description"), "revision": tr("bom.md_revision"), "count": tr("bom.md_count"), "definition": tr("bom.md_definition")});
+    }
     let document = d.document.clone();
     app.pick_save(&format!("bill-of-materials.{ext}"), &[ext], move |app, path| {
         if let Some(path) = path
@@ -307,7 +314,7 @@ fn actions(ui: &mut egui::Ui, selected: bool) -> Option<Action> {
                 action = Some(Action::Apply);
             }
         }
-        for (label, ext) in [("Export CSV…", "csv"), ("Export JSON…", "json")] {
+        for (label, ext) in [("Export CSV…", "csv"), ("Export JSON…", "json"), ("Export Markdown…", "md")] {
             let response = crate::ui_kit::button(ui, solidcraft_ui_text::tr_label(label), crate::ui_kit::Button::Normal);
             crate::panel_runtime::register_content_focus(ui.ctx(), &response);
             if response.clicked() {

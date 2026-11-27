@@ -37,7 +37,7 @@ jobs:
   wheels:
     name: Fetch the release's wheels
     if: vars.PYTHON_PUBLISH == 'true'
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     outputs:
       found: ${{ steps.fetch.outputs.found }}
       index: ${{ steps.fetch.outputs.index }}
@@ -81,7 +81,7 @@ jobs:
     name: Upload to ${{ needs.wheels.outputs.index == 'pypi' && 'PyPI' || 'TestPyPI' }}
     needs: wheels
     if: needs.wheels.outputs.found == 'true'
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     # Deploys from `v*` tags only (the environment's rule, docs/releasing.md "Python packages").
     environment: ${{ needs.wheels.outputs.index }}
     permissions:

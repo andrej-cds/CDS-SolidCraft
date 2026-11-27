@@ -97,6 +97,7 @@ pub(crate) const CATALOGUE: &[Slot] = &[
     // Isolates the selection; on while an Isolate is in effect, when a click brings the rest back
     // (#8120). Never on a new bar; the bar view runs it.
     slot!("isolate", Toggle, "isolate", None, orbit: true, pick: true),
+    slot!("true_scale", Toggle, "true_scale", None),
     slot!("separator", Separator, "", None),
 ];
 
@@ -106,7 +107,20 @@ pub(crate) const CATALOGUE: &[Slot] = &[
 /// the rest of the model is hidden.
 static HOST: Catalogue = Catalogue {
     slots: CATALOGUE,
-    default_bar: &["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "selection_mode", "visual_style", "display"],
+    default_bar: &[
+        "orbit",
+        "pan",
+        "zoom",
+        "separator",
+        "fit",
+        "look_at",
+        "home",
+        "separator",
+        "selection_mode",
+        "visual_style",
+        "display",
+        "true_scale",
+    ],
     value_menus: &["selection_mode", "render_mode", "sheet_zoom"],
     icon_menus: &["display"],
     strong: &["isolate"],

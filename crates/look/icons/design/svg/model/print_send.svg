@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Quick Send to Slicer</title>
+  <path d="M7.19 12.9L22 21.45L22 38.55L7.19 30Z" fill="#328bd3"/>
+  <path d="M36.81 12.9L22 21.45L22 38.55L36.81 30Z" fill="#236ead"/>
+  <path d="M22 4.35L36.81 12.9L22 21.45L7.19 12.9Z" fill="#b9ddf8"/>
+  <path d="M22 4.35L36.81 12.9L36.81 30L22 38.55L7.19 30L7.19 12.9Z" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M7.19 12.9L22 21.45L36.81 12.9" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M22 21.45L22 38.55" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M10 43L20 43" fill="none" stroke="#236ead" stroke-width="4.25" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M15 50L25 50" fill="none" stroke="#236ead" stroke-width="4.25" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M36 46L53.64 28.36" fill="none" stroke="#ffffff" stroke-width="6.65" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M60 22L56.46 32.61L49.39 25.54Z" fill="#ffffff" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M36 46L53.64 28.36" fill="none" stroke="#236ead" stroke-width="4.25" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M60 22L56.46 32.61L49.39 25.54Z" fill="#236ead"/>
+</svg>

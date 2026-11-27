@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   lint:
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     env:
       ACTIONLINT_VERSION: 1.7.12
     steps:
@@ -88,7 +88,7 @@ jobs:
   # the scope tables, installs, upgrades and uninstalls both ways (also as a standard user and over
   # the latest release), and drives the wizard for screenshots of its pages.
   windows-msi-scopes:
-    runs-on: blacksmith-8vcpu-windows-2025
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install WiX

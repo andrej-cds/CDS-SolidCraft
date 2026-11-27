@@ -366,6 +366,11 @@ pub(super) fn layout(app: &mut SolveApp, ui: &mut egui::Ui) {
                             "status_bar",
                             locked,
                         );
+                        // Two screens: the tools in a window of their own (the model keeps the main window).
+                        ui_kit::row(ui, "", |ui| {
+                            let check = setting::tools_window(app, ui).on_hover_text(app.tr("prefs.tools_window_note"));
+                            crate::scenario::publish_target("prefs:tools_window", check.rect);
+                        });
                         // The operations under way, with their Cancel, in the view's corner.
                         layout_check(
                             ui,

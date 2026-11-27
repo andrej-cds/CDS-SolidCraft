@@ -29,7 +29,8 @@ fn moved_colours_keep_the_values_they_were_drawn_with() {
         assert_eq!(t.analysis.access, [[0.20, 0.75, 0.30], [0.85, 0.22, 0.20]]);
         assert_eq!(t.analysis.curvature, [[0.08, 0.12, 0.45], [0.53, 0.51, 0.425], [0.98, 0.90, 0.40]]);
         assert!(!t.analysis.hatch);
-        assert_eq!(t.logo, [Color32::from_rgb(96, 158, 236), Color32::from_rgb(58, 136, 238), Color32::from_rgb(55, 108, 197)]);
+        // CDS fork: the mark is gold.
+        assert_eq!(t.logo, [Color32::from_rgb(255, 216, 98), Color32::from_rgb(214, 160, 48), Color32::from_rgb(150, 104, 22)]);
         assert_eq!(t.icons.marker_halo, Color32::from_black_alpha(150));
         assert_eq!(t.icons.agent, Color32::from_rgb(168, 85, 247));
         assert_eq!(t.figure_white, Color32::WHITE);
@@ -148,6 +149,7 @@ fn analysis_colours_reach_the_shader_in_its_order() {
 const ALLOWED_LITERALS: &[(&str, usize, &str)] = &[
     ("gpu.rs", 1, "the white tint that shows the background picture as it is"),
     ("plugin_shaders.rs", 1, "the white tint that shows a plugin's background as its shader drew it"),
+    ("ui_kit/preferences_figure_ops.rs", 1, "CDS fork: white lettering on the navigator axis discs when the gold theme's on-accent ink is dark"),
     ("plugin_tint.rs", 1, "the white tint that shows a plugin's panel tint as its shader answered it"),
     ("navigation.rs", 1, "the navigator's face shading, made from a token"),
     ("drawing_sheet_page.rs", 2, "the drawing sheet moves toward white, else black, to stand off the backdrop"),
@@ -196,6 +198,10 @@ const ALLOWED_LITERALS: &[(&str, usize, &str)] = &[
          outline of the orbit mark, and the yellow of a sketch path's first point, which should become a token; the guard now also counts \
          the literals below viewport.rs's mid-file test items (#13497)",
     ),
+    ("toolbar.rs", 1, "the version text"),
+    ("brand.rs", 1, "CDS fork: the gold of the name SolidCraft by CDS"),
+    ("look/glyphs.rs", 3, "CDS fork: the gold SolidCraft mark"),
+    ("ui_kit/panel.rs", 1, "CDS fork: the gold SolidCraft mark in the panel header"),
 ];
 
 const COLOUR_LITERALS: &[&str] = &[

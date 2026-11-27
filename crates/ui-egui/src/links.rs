@@ -156,6 +156,9 @@ mod tests {
     #[test]
     fn both_buttons_are_on_by_default_and_the_switches_hide_only_their_own() {
         let mut app = SolveApp::new(Default::default(), Default::default());
+        // CDS fork: both start hidden; the switches turn them on.
+        app.preferences.show_donate_button = true;
+        app.preferences.show_discord_button = true;
         assert_eq!(title_bar(&app).map(|l| l.id).collect::<Vec<_>>(), ["kofi", "discord"]);
         (LINKS[0].hide)(&mut app.preferences);
         assert_eq!(title_bar(&app).map(|l| l.id).collect::<Vec<_>>(), ["discord"]);

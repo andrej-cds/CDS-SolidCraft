@@ -17,6 +17,8 @@ pub struct BarLayout {
     pub overflow: Vec<&'static Slot>,
     pub more: Rect,
     pub labels: bool,
+    /// Labels without icons (the Labels-only button style, CDS fork).
+    pub text_only: bool,
     pub values: bool,
 }
 
@@ -31,7 +33,15 @@ fn measure_row(content: Rect, prefs: &NavigationBar, shown: impl Fn(&Slot) -> bo
     let metrics = NavigationMetrics::for_size(prefs.size);
     let button = prefs.size.points();
     let inset = NAV_BORDER + NAV_PADDING;
-    let mut result = BarLayout { rect: Rect::NOTHING, slots: Vec::new(), overflow: Vec::new(), more: Rect::NOTHING, labels: false, values: true };
+    let mut result = BarLayout {
+        rect: Rect::NOTHING,
+        slots: Vec::new(),
+        overflow: Vec::new(),
+        more: Rect::NOTHING,
+        labels: false,
+        text_only: false,
+        values: true,
+    };
     let height = metrics.height();
     let available = content.width() - 2.0 * NAV_EDGE;
     if !content.is_finite() || available < button + 2.0 * inset || content.height() < height + NAV_BOTTOM {
@@ -42,7 +52,7 @@ fn measure_row(content: Rect, prefs: &NavigationBar, shown: impl Fn(&Slot) -> bo
     if slots.is_empty() {
         return result;
     }
-    let width = |slot: &Slot, labels, values| {
+    let width = |slot: &Slot, labels, values, text_only| {
         if slot.kind == NavigationKind::Separator {
             NAV_SEPARATOR
         } else if slot.kind == NavigationKind::Menu {
@@ -53,35 +63,39 @@ fn measure_row(content: Rect, prefs: &NavigationBar, shown: impl Fn(&Slot) -> bo
                 + NAV_CHEVRON
                 + NAV_MENU_GAP
                 + if values && prefs.menu_display(slot.id) == MenuDisplay::IconAndValue { label_width(slot).max(0.0) + NAV_MENU_GAP } else { 0.0 }
+        } else if text_only {
+            (label_width(slot).max(0.0) + 2.0 * NAV_LABEL_PADDING).max(metrics.button)
         } else if labels && !navigation_bar::strong(slot.id) {
             (metrics.icon + NAV_LABEL_GAP + label_width(slot).max(0.0) + 2.0 * NAV_LABEL_PADDING).max(metrics.button)
         } else {
             metrics.button
         }
     };
-    let total = |labels, values| {
-        slots.iter().map(|slot| width(slot, labels, values)).sum::<f32>() + NAV_GAP * slots.len().saturating_sub(1) as f32 + 2.0 * inset
+    let total = |labels, values, text_only| {
+        slots.iter().map(|slot| width(slot, labels, values, text_only)).sum::<f32>() + NAV_GAP * slots.len().saturating_sub(1) as f32 + 2.0 * inset
     };
     result.labels = prefs.labels == Labels::Labels;
-    if total(result.labels, true) > available {
+    result.text_only = prefs.labels == Labels::Text;
+    if total(result.labels, true, result.text_only) > available {
         result.values = false;
     }
-    if total(result.labels, result.values) > available {
+    if total(result.labels, result.values, result.text_only) > available {
         result.labels = false;
+        result.text_only = false;
     }
     let mut row = slots.clone();
-    let mut row_width = total(result.labels, result.values);
+    let mut row_width = total(result.labels, result.values, result.text_only);
     if row_width > available {
         // A strong slot (`Catalogue::strong`) never folds into More: room is kept for it first,
         // and the others fold from the end. With no room even for that, it folds like the rest.
         let base = metrics.button + 2.0 * inset;
-        let reserved = slots.iter().filter(|slot| navigation_bar::strong(slot.id)).map(|slot| width(slot, false, false) + NAV_GAP).sum::<f32>();
+        let reserved = slots.iter().filter(|slot| navigation_bar::strong(slot.id)).map(|slot| width(slot, false, false, false) + NAV_GAP).sum::<f32>();
         let keep = base + reserved <= available;
         let strong = |slot: &Slot| keep && navigation_bar::strong(slot.id);
         row_width = if keep { base + reserved } else { base };
         let mut fits = 0;
         for slot in slots.iter().filter(|slot| !strong(slot)) {
-            let next = row_width + width(slot, false, false) + NAV_GAP;
+            let next = row_width + width(slot, false, false, false) + NAV_GAP;
             if next > available {
                 break;
             }
@@ -115,7 +129,7 @@ fn measure_row(content: Rect, prefs: &NavigationBar, shown: impl Fn(&Slot) -> bo
     result.rect = Rect::from_min_size(pos2(left, top), vec2(row_width, height));
     let mut x = left + inset;
     for slot in &row {
-        let w = width(slot, result.labels, result.values);
+        let w = width(slot, result.labels, result.values, result.text_only);
         result.slots.push((*slot, Rect::from_min_size(pos2(x, result.rect.top() + inset), vec2(w, metrics.button))));
         x += w + NAV_GAP;
     }

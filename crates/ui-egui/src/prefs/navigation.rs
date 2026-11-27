@@ -430,6 +430,7 @@ fn view(app: &mut SolveApp, ui: &mut egui::Ui, t: &Tokens) {
             ["ui.animation_speed", "prefs.home_fit_size"].into_iter().map(|id| ui_kit::ContentWidth::label(ui, app.tr(id))).fold(0.0, f32::max);
         ui_kit::settings_form(ui, width, |ui| {
             setting::look_at_speed(app, ui);
+            setting::screen_width_mm(app, ui);
             let (label, note) = (app.tr("prefs.home_fit_size").to_owned(), app.tr("prefs.home_fit_size_note").to_owned());
             ui_kit::row(ui, &label, |ui| {
                 let response = ui_kit::slider(

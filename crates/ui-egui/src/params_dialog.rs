@@ -483,23 +483,7 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
             false,
             !all.iter().any(|r| r.error.is_some()),
             |ui| {
-                redesign::toolbar(app, ui, &mut d, &all);
-                if let Some(error) = d.banner() {
-                    ui_kit::text(ui, error, ui_kit::Text::Error("parameters_error"));
-                }
-                let filter = d.filter.to_ascii_lowercase();
-                let visible: Vec<_> = all.iter().filter(|r| r.matches(&filter)).collect();
-                // One Name-column floor for every table in this dialog so Favorites, User and
-                // Model sections stay lined up when only some lists hold a long name (#8551 review).
-                let name_floor = visible
-                    .iter()
-                    .map(|r| ui_kit::ContentWidth::name(ui, &r.name))
-                    .fold(solidcraft_theme::Tokens::get().form_label_width, f32::max)
-                    .min(solidcraft_theme::Tokens::get().form_card_width);
-                let mut sections = sections(&visible, d.sort);
-                redesign::follow_selection(app, &mut d, &mut sections);
-                table(app, ui, &mut d, &sections, name_floor, &all);
-                redesign::states(app, ui, &mut d, &all, &visible);
+                body(app, ui, &mut d, &all);
                 ui_kit::ComputeStatus { text: None, busy: false, applying: false }
             },
             |ui| apply_live_checkbox(ui, &mut live_choice, held_status.as_deref()),
@@ -543,6 +527,57 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
     } else {
         app.params = Some(d);
     }
+}
+
+/// The panel's contents (CDS fork: also drawn docked in the tools window, two screens).
+fn body(app: &mut SolveApp, ui: &mut egui::Ui, d: &mut ParamsDialog, all: &Arc<Vec<Row>>) {
+    redesign::toolbar(app, ui, d, &all);
+    if let Some(error) = d.banner() {
+        ui_kit::text(ui, error, ui_kit::Text::Error("parameters_error"));
+    }
+    let filter = d.filter.to_ascii_lowercase();
+    let visible: Vec<_> = all.iter().filter(|r| r.matches(&filter)).collect();
+    // One Name-column floor for every table in this dialog so Favorites, User and
+    // Model sections stay lined up when only some lists hold a long name (#8551 review).
+    let name_floor = visible
+        .iter()
+        .map(|r| ui_kit::ContentWidth::name(ui, &r.name))
+        .fold(solidcraft_theme::Tokens::get().form_label_width, f32::max)
+        .min(solidcraft_theme::Tokens::get().form_card_width);
+    let mut sections = sections(&visible, d.sort);
+    redesign::follow_selection(app, d, &mut sections);
+    table(app, ui, d, &sections, name_floor, &all);
+    redesign::states(app, ui, d, &all, &visible);
+}
+
+/// Parameters kept open in the tools window (two screens, CDS fork): the same contents as the
+/// panel, with their own draft state, which stay until the mode is turned off. Held edits get an
+/// Apply button of their own here.
+pub(crate) fn docked(app: &mut SolveApp, ui: &mut egui::Ui, slot: &mut Option<ParamsDialog>) {
+    publish(app, ui.ctx());
+    let mut d = slot.take().unwrap_or_default();
+    d.sort = ui.ctx().data_mut(|m| m.get_persisted(sort_id())).unwrap_or_default();
+    let sort = d.sort;
+    let all = redesign::listed(app, &mut d);
+    let live = app.preferences.parameters_apply_live;
+    let held_status = if live { None } else { held_status(held(&d, &all).len()) };
+    let mut live_choice = live;
+    body(app, ui, &mut d, &all);
+    apply_live_checkbox(ui, &mut live_choice, held_status.as_deref());
+    if !live && ui_kit::button(ui, "Apply", ui_kit::Button::Normal).clicked() {
+        apply_held(app, &mut d, &all);
+    }
+    if live_choice != live {
+        app.preferences.parameters_apply_live = live_choice;
+        if live_choice {
+            apply_held(app, &mut d, &all);
+        }
+    }
+    if d.sort != sort {
+        let chosen = d.sort;
+        ui.ctx().data_mut(|m| m.insert_persisted(sort_id(), chosen));
+    }
+    *slot = Some(d);
 }
 
 /// Where the chosen order is kept across dialog openings.

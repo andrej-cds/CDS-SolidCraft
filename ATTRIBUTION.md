@@ -1669,3 +1669,24 @@ The original adapters in `crates/engine/src/cmd/render/library.rs`, the generate
 
 | distribution/SolidCraft-Render-Showcase.zip | SolidCraft contributors and the explicitly credited original model/UI/resource authors | byte-verified selected collaborator package of reviewed native media, editable sample, recipes and public provenance; contained attribution and existing SELENE lettering notices retained; no fonts or executable binaries | MIT OR Apache-2.0 for new contributions; referenced original notices retained |
 | distribution/SolidCraft-Render-Showcase.json | SolidCraft contributors | original verified delivery archive manifest with exact SHA-256, member count and bounded scope | MIT OR Apache-2.0 |
+| assets/branding/cds/cds-logo.png | Andrej Češarek (CDS) | CDS company logo, supplied by its owner for this fork | All rights reserved, used with the owner's permission |
+| assets/branding/cds/cds-letters-mask.png | Andrej Češarek (CDS) | Mask of the CDS letters, made for the fork's app icon from the owner's CDS logo | All rights reserved, used with the owner's permission |
+| assets/icons/app/shared/source/mark-gold-512.png | Andrej Češarek (CDS) | The mark of the fork's app icon in the owner's gold (#C8A96E), 512 px, derived from the SolidCraft mark | All rights reserved, used with the owner's permission |
+| assets/icons/app/shared/source/make_cds_icon.py | Andrej Češarek (CDS) | Script that draws the fork's app icon (black plate, gold border, mark and CDS letters) and writes all platform icon files | All rights reserved, used with the owner's permission |
+| assets/icons/app/shared/source/app_icon_512.rgba | Andrej Češarek (CDS) | Raw 512 px RGBA render of the fork's app icon, written by make_cds_icon.py and compiled into the app | All rights reserved, used with the owner's permission |
+| assets/platforms/windows/banner.bmp | Andrej Češarek (CDS) | Installer banner: the gold SolidCraft mark, drawn for this fork | MIT OR Apache-2.0 |
+| assets/platforms/windows/dialog.bmp | Andrej Češarek (CDS) | Installer side panel with the CDS logo, drawn for this fork | All rights reserved, used with the owner's permission |
+| assets/icons/app/web/apple-touch-icon.png | Andrej Češarek (CDS) | The gold SolidCraft mark for the web app's home-screen icon | MIT OR Apache-2.0 |
+| assets/icons/app/web/solidcraft-icon.svg | Andrej Češarek (CDS) | The gold SolidCraft mark as the web app's page icon | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_airfoil.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_dogbone.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_export.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_infill.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_lego.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_offset_body.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_offset_sketch.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_send.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_supershape.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_vent.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| assets/locales/sl.json | Andrej Češarek (CDS) | Original Slovenian translation of SolidCraft's English catalog, written for this fork; no commercial CAD text used | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/true_scale.svg | Andrej Češarek (CDS) | Gold carrot icon for the 1:1 true-scale view, drawn for this fork | MIT OR Apache-2.0 |

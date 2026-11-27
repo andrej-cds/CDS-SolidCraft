@@ -175,6 +175,11 @@ macro_rules! layout_preferences {
             /// Where notices and offers stack: the view's bottom-right corner (the default) or the bottom
             /// centre, as before #7893.
             toast_place: crate::viewport::ToastPlace = Default::default(), PAGE_LAYOUT;
+            /// Two screens: the ribbon, History and Browser go to a window of their own and the main
+            /// window keeps only the model and its dialogs. Off by default (CDS fork).
+            tools_window: bool = false, PAGE_LAYOUT => check_id("prefs.tools_window");
+            /// The tools window's place and size (x, y, width, height), kept so it opens on the same screen.
+            tools_window_place: Option<[f32; 4]> = None, PAGE_LAYOUT;
             /// While a dialog or a sketch is open, OK and Cancel in the view's top right corner, with the
             /// axis view moved down below them (#6709). Off by default.
             view_confirm_corner: bool = false, PAGE_LAYOUT;

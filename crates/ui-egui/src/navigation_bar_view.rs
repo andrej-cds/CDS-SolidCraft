@@ -157,6 +157,7 @@ fn selected(app: &SolveApp, id: &str) -> bool {
         "ambient_occlusion" => app.preferences.ambient_occlusion,
         // On while an Isolate is in effect, in the strong fill (`Catalogue::strong`).
         ISOLATE => isolating(app),
+        "true_scale" => crate::true_scale::active(),
         _ => false,
     }
 }
@@ -208,6 +209,7 @@ fn activate(app: &mut SolveApp, slot: &Slot) {
                 app.set_status(error, true);
             }
         }
+        "true_scale" => crate::true_scale::toggle(app),
         _ => {
             if let Some(command) = slot.command {
                 let params = match slot.kind {
@@ -262,6 +264,7 @@ fn slot_view(app: &SolveApp, bar: &BarLayout, slot: &'static Slot, index: usize,
         hidden: hidden.is_some(),
         // A strong slot is its icon alone, labels or not (`Catalogue::strong`).
         show_text: if slot.kind == NavigationKind::Menu { bar.values && value } else { bar.labels && !navigation_bar::strong(slot.id) },
+        text_only: bar.text_only && slot.kind != NavigationKind::Menu,
         rect,
         // The View menu's slot, by the name older scenarios use.
         alias: (slot.id == "display").then_some("nav:view"),
@@ -290,6 +293,12 @@ fn slot_views(app: &SolveApp, bar: &BarLayout, editing: Option<(NavCaps, bool)>)
 }
 
 pub(crate) fn show(app: &mut SolveApp, ui: &mut egui::Ui, rect: Rect) {
+    crate::true_scale::note_screen(ui.ctx());
+    // CDS: a bar saved before the 1:1 button existed gets it once, at the end.
+    const BEFORE_TRUE_SCALE: [&str; 10] = ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "visual_style", "display"];
+    if app.preferences.navigation_bar.slots == BEFORE_TRUE_SCALE {
+        app.preferences.navigation_bar.slots.push("true_scale".into());
+    }
     if !app.ui.show_navigation_bar {
         return;
     }
@@ -681,7 +690,7 @@ mod tests {
         let bar = NavigationBar::default();
         assert_eq!(
             bar.slots,
-            ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "selection_mode", "visual_style", "display"]
+            ["orbit", "pan", "zoom", "separator", "fit", "look_at", "home", "separator", "selection_mode", "visual_style", "display", "true_scale"]
         );
         let flat = NavCaps { orbit: false, pick: false };
         for caps in [NavCaps::MODEL, NavCaps::RENDER, flat] {

@@ -2055,7 +2055,7 @@ mod card_tests {
         crate::i18n::install();
         assert_eq!(
             capability_warning("local:4b", Some(false)).as_deref(),
-            Some("local:4b can't use SolidCraft's tools, so it can only chat. Pick a model with tool support.")
+            Some("local:4b can't use SolidCraft by CDS's tools, so it can only chat. Pick a model with tool support.")
         );
         assert_eq!(capability_warning("local:4b", Some(true)), None);
         assert_eq!(capability_warning("local:4b", None), None);
