@@ -477,6 +477,8 @@ crate::dialog_descriptor::dialog_descriptors! {
             InsertAirfoil(crate::dialogs_insert_airfoil::Airfoil),
             /// Plastic features (`dialogs_plastic`).
             Plastic(crate::dialogs_plastic::Pl),
+            /// The 3D PRINT tab's tools (`dialogs_print`, CDS fork).
+            Print(crate::dialogs_print::Pr),
             /// Frame members (`dialogs_frame`).
             Frame(crate::dialogs_frame::Member),
             /// End caps on frame members (`dialogs_end_cap`).
@@ -1278,6 +1280,7 @@ impl Dialog {
                     .or_else(|| crate::dialogs_view_dxf::start(app, id))
                     .or_else(|| crate::view_gizmo::start(app, id))
                     .or_else(|| crate::dialogs_plastic::start(app, id))
+                    .or_else(|| crate::dialogs_print::start(app, id))
                     .or_else(|| crate::dialogs_frame::start(app, id))
                     .or_else(|| crate::dialogs_end_cap::start(app, id))
                     .or_else(|| crate::dialogs_rotate_member::start(app, id))
@@ -3149,6 +3152,7 @@ fn title(k: &Kind) -> &'static str {
         Kind::InsertDrawing(p) => crate::dialogs_insert_drawing::title(p),
         Kind::InsertAirfoil(_) => crate::dialogs_insert_airfoil::title(),
         Kind::Plastic(k) => k.title(),
+        Kind::Print(k) => k.title,
         Kind::Frame(_) => "FRAME MEMBER",
         Kind::EndCap(_) => "ui.end_cap_title",
         Kind::RotateMember(_) => "ui.rotate_member_title",
@@ -7546,6 +7550,7 @@ fn dialog_commands(app: &SolveApp, d: &Dialog) -> Result<Vec<(String, Value)>, S
         Kind::InsertDrawing(p) => return crate::dialogs_insert_drawing::commands(p),
         Kind::InsertAirfoil(a) => return crate::dialogs_insert_airfoil::commands(a),
         Kind::Plastic(k) => return crate::dialogs_plastic::commands(app, k, &d.inputs, &d.extra),
+        Kind::Print(k) => return crate::dialogs_print::commands(app, k, &d.inputs),
         Kind::Frame(k) => return crate::dialogs_frame::commands(app, k, &d.inputs, &d.extra),
         Kind::EndCap(k) => return crate::dialogs_end_cap::commands(app, k, &d.inputs, &d.extra),
         Kind::RotateMember(k) => return crate::dialogs_rotate_member::commands(app, k, &d.inputs, &d.extra, d.editing.is_some()),

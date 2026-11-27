@@ -39,6 +39,7 @@ for action in out.actions { /* BarAction::Home, File { rect }, Button { id }, â€
             quick_ids: &[],
             mark: &|painter, at| solidcraft_look::glyphs::brand_mark(painter, at),
             name: "SolidCraft",
+            name_ink: None,
             leading: None,
             home: app_bar::BarButton { narrow: false, ..button("home", "home", "Home") },
             file: "File",
@@ -345,8 +346,12 @@ ui_kit::navigation_button(ui, button_rect, ui_kit::NavigationButton {
                 for (i, (id, icon, label, kind)) in buttons.into_iter().enumerate() {
                     let bounds = Rect::from_min_size(pos2(x, rect.top() + inset), vec2(metrics.button, metrics.button));
                     let selected = kind == ui_kit::NavigationKind::Tool && d.segment == i;
-                    if ui_kit::navigation_button(ui, bounds, ui_kit::NavigationButton { id, icon, label, kind, selected, labels: false, menu: false })
-                        .clicked()
+                    if ui_kit::navigation_button(
+                        ui,
+                        bounds,
+                        ui_kit::NavigationButton { id, icon, label, kind, selected, labels: false, text_only: false, menu: false },
+                    )
+                    .clicked()
                     {
                         if kind == ui_kit::NavigationKind::Tool {
                             d.segment = i;

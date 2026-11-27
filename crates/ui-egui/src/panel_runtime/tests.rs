@@ -4890,10 +4890,14 @@ fn raw_drag_title_tracks_only_the_source_text_without_changing_host_state_or_foo
                         } else {
                             t.form_primary
                         };
-                        assert!(text.galley.job.sections.iter().all(|section| {
-                            section.format.color == ink.gamma_multiply(opacity)
-                                || (tab && original && section.format.color == ink.gamma_multiply(opacity * 0.7))
-                        }));
+                        assert!(
+                            text.galley.job.sections.iter().all(|section| {
+                                section.format.color == ink.gamma_multiply(opacity)
+                                    || (tab && original && section.format.color == ink.gamma_multiply(opacity * 0.7))
+                            }),
+                            "title {title:?} tab={tab} original={original} faded={faded}: expected {ink:?} got {:?}",
+                            text.galley.job.sections.iter().map(|section| section.format.color).collect::<Vec<_>>()
+                        );
                         if original {
                             originals += 1;
                         } else {
@@ -4901,7 +4905,14 @@ fn raw_drag_title_tracks_only_the_source_text_without_changing_host_state_or_foo
                         }
                     } else if matches!(text.galley.job.text.as_str(), "Specimen peer" | "Specimen other") {
                         let ink = if text.galley.job.text == "Specimen peer" { t.app_bar_text } else { t.form_ink };
-                        assert!(text.galley.job.sections.iter().all(|section| section.format.color == ink));
+                        assert!(
+                            text.galley.job.sections.iter().all(|section| section.format.color == ink
+                                // CDS fork: the other heading takes the gold selection ink in the dark theme
+                                || (text.galley.job.text == "Specimen other" && section.format.color == t.selected_ink)),
+                            "{:?} tab={tab} faded={faded}: expected {ink:?} got {:?}",
+                            text.galley.job.text,
+                            text.galley.job.sections.iter().map(|section| section.format.color).collect::<Vec<_>>()
+                        );
                         others += 1;
                     }
                 }

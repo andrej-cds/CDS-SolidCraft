@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Infill Block</title>
+  <path d="M5 29.92L32 45.51L32 49.67L5 34.08Z" fill="#b8c3cf"/>
+  <path d="M59 29.92L32 45.51L32 49.67L59 34.08Z" fill="#8e9faf"/>
+  <path d="M32 14.33L59 29.92L32 45.51L5 29.92Z" fill="#e2e8ef"/>
+  <path d="M32 14.33L59 29.92L59 34.08L32 49.67L5 34.08L5 29.92Z" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M5 29.92L32 45.51L59 29.92" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M32 45.51L32 49.67" fill="none" stroke="#34465b" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M28.74 25.35L23.78 24.59L22.45 21.72L26.08 19.63L31.04 20.4L32.37 23.26Z" fill="#328bd3"/>
+  <path d="M28.74 25.35L23.78 24.59L22.45 21.72L26.08 19.63L31.04 20.4L32.37 23.26Z" fill="none" stroke="#236ead" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M37.47 30.39L32.51 29.63L31.18 26.76L34.81 24.67L39.77 25.44L41.1 28.3Z" fill="#328bd3"/>
+  <path d="M37.47 30.39L32.51 29.63L31.18 26.76L34.81 24.67L39.77 25.44L41.1 28.3Z" fill="none" stroke="#236ead" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M46.2 35.43L41.24 34.67L39.91 31.8L43.54 29.71L48.5 30.48L49.83 33.34Z" fill="#328bd3"/>
+  <path d="M46.2 35.43L41.24 34.67L39.91 31.8L43.54 29.71L48.5 30.48L49.83 33.34Z" fill="none" stroke="#236ead" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M24.82 32.65L19.87 31.89L18.54 29.02L22.17 26.93L27.12 27.7L28.45 30.56Z" fill="#328bd3"/>
+  <path d="M24.82 32.65L19.87 31.89L18.54 29.02L22.17 26.93L27.12 27.7L28.45 30.56Z" fill="none" stroke="#236ead" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M33.55 37.69L28.6 36.93L27.27 34.06L30.9 31.97L35.85 32.74L37.18 35.6Z" fill="#328bd3"/>
+  <path d="M33.55 37.69L28.6 36.93L27.27 34.06L30.9 31.97L35.85 32.74L37.18 35.6Z" fill="none" stroke="#236ead" stroke-width="2.55" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

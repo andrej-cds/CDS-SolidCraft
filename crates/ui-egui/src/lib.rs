@@ -17,6 +17,7 @@ pub mod ai_connect;
 pub use solidcraft_ui_kit::app_bar;
 pub use solidcraft_ui_kit::blur;
 pub mod bom_panel;
+pub mod brand;
 pub mod broken_view_preview;
 pub mod browser;
 pub mod browser_canvas;
@@ -70,7 +71,9 @@ pub mod dialogs_move;
 pub mod dialogs_part_size;
 pub mod dialogs_parts;
 pub mod dialogs_plastic;
+pub mod dialogs_print;
 pub mod dialogs_rotate_member;
+
 pub mod dialogs_save_mesh;
 pub mod dialogs_sheet;
 pub mod dialogs_surface;
@@ -405,6 +408,8 @@ pub mod tool_modifiers;
 pub mod toolbar;
 pub mod toolbar_custom;
 pub mod tools;
+pub mod tools_window;
+pub mod true_scale;
 pub use solidcraft_ui_kit as ui_kit;
 #[cfg(test)]
 mod ui_kit_guard_tests;
@@ -1007,6 +1012,8 @@ pub struct SolveApp {
     pub agent: agent_cursor::AgentCursor,
     /// The agent chat panel (docs/design/in-app-agent-chat.md).
     pub agent_chat: agent_chat::AgentChat,
+    /// The ribbon, History and Browser in a window of their own (two screens).
+    pub tools_window: tools_window::State,
     /// Making SolidCraft available to the AI apps installed here ([`ai_connect`]).
     pub ai_connect: ai_connect::State,
     /// The window's screenshots in flight: control requests' and the issue report's.
@@ -1272,6 +1279,7 @@ impl SolveApp {
             control_rx: None,
             control_switch: Default::default(),
             agent_chat: Default::default(),
+            tools_window: Default::default(),
             ai_connect: Default::default(),
             control_held: Default::default(),
             control_job: None,
@@ -2776,6 +2784,31 @@ impl SolveApp {
         }
         if id == "view.ambient_occlusion" {
             let _ = self.run(id, json!({"enabled": !self.preferences.ambient_occlusion}));
+            return;
+        }
+        // Quick Send to Slicer (CDS fork): the slicer chosen last, at once; the first time, the
+        // Send to Slicer dialog to choose one.
+        if id == "print.send" {
+            if !dialogs_save_mesh::available(self) {
+                self.set_status(self.tr("ui.send_to_slicer_unavailable").to_string(), true);
+            } else if self.preferences.send_slicer.trim().is_empty() {
+                self.start("file.send_to_slicer");
+            } else {
+                dialogs_save_mesh::quick_send(self);
+            }
+            return;
+        }
+        // Export for Printing (CDS fork): every part into the print folder, by its settings file.
+        if id == "print.export" {
+            match self.run(id, json!({"folder_suffix": self.tr("print.folder_suffix")})) {
+                Ok(v) => {
+                    let n = v["files"].as_array().map_or(0, Vec::len).to_string();
+                    let folder = v["folder"].as_str().unwrap_or_default().to_string();
+                    let line = solidcraft_ui_text::format("print.exported", &[("count", &n), ("folder", &folder)]);
+                    self.set_status(line, false);
+                }
+                Err(e) => self.set_status(e.to_string(), true),
+            }
             return;
         }
         // Send to Slicer always asks which slicer (the dialog pre-selects the last one).
@@ -4674,6 +4707,12 @@ impl SolveApp {
         let mut report_input = None;
         issue_report::CadInput::block(self, ui, &mut report_input);
         semantic_content::begin(self, ui.ctx());
+        // Two screens: while the tools have a window of their own, the main window is laid out
+        // docked and keeps the system's title bar; both are put back below (the saved layout and
+        // the custom title bar are the user's, not this frame's).
+        let tools = tools_window::active(self, ui.ctx());
+        let saved = (self.ui.layout, self.custom_titlebar);
+        tools_window::enter(self, ui.ctx(), tools);
         self.cad_ui(ui, &mut report_input);
         semantic_content::finalize(self, ui.ctx());
         #[cfg(not(target_arch = "wasm32"))]
@@ -4685,6 +4724,11 @@ impl SolveApp {
         // `cad_ui`): the window's edges resize it (#1381).
         if self.custom_titlebar && !self.native_resize_border {
             titlebar::resize_zones(ui);
+        }
+        // Only this mode's own changes are put back: a layout chosen this frame (Preferences,
+        // view.layout, an embedded app) stays.
+        if tools {
+            (self.ui.layout, self.custom_titlebar) = saved;
         }
         if self.file_picker.is_none() {
             issue_report::show(self, ui.ctx());
@@ -4732,7 +4776,8 @@ impl SolveApp {
             view_windows::show_clean(self, ui);
             return;
         }
-        if !self.embedded && !self.embed_editor {
+        let tools = self.tools_window.open;
+        if !self.embedded && !self.embed_editor && !tools {
             toolbar::app_bar(self, ui);
         }
         app_bar_custom::shield(self, ui.ctx());

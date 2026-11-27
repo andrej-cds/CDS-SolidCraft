@@ -1,0 +1,1 @@
+decides with a mesh (.mesh()) where the body is solid, in the 3D-printing tools (CDS fork)

@@ -59,7 +59,7 @@ fn slot_catalogue_uses_registered_commands_and_existing_icons() {
         assert!(ids.insert(slot.id), "duplicate catalogue id {}", slot.id);
         match slot.command {
             Some(command) => assert!(solidcraft_engine::find_command(command).is_some(), "{}", slot.id),
-            None => assert!(["projection", "display", "sheet_zoom", "separator"].contains(&slot.id)),
+            None => assert!(["projection", "display", "sheet_zoom", "separator", "true_scale"].contains(&slot.id)),
         }
         if slot.kind != NavigationKind::Separator {
             assert!(!crate::icon_svg::resolve(slot.icon).placeholder, "{}: {}", slot.id, slot.icon);
@@ -70,7 +70,9 @@ fn slot_catalogue_uses_registered_commands_and_existing_icons() {
 #[test]
 fn measured_bar_drops_labels_then_overflows_in_order_without_compass_overlap() {
     crate::navigation_slots::install();
-    let prefs = NavigationBar { labels: Labels::Labels, ..Default::default() };
+    let mut prefs = NavigationBar { labels: Labels::Labels, ..Default::default() };
+    // CDS fork: its extra default slot (true scale) is left out, so the upstream widths still hold.
+    prefs.slots.retain(|id| id != "true_scale");
     for width in [5.0, 39.0, 46.0, 90.0, 160.0, 250.0, 310.0, 700.0, 1400.0] {
         for height in [30.0, 80.0, 130.0, 240.0, 720.0] {
             let canvas = Rect::from_min_size(pos2(20.0, 30.0), vec2(width, height));
@@ -238,7 +240,16 @@ fn navigation_slot_pointer_clicks_release_focus_and_leave_no_fill() {
                     let response = navigation_button(
                         ui,
                         bounds,
-                        NavigationButton { id: "regression", label: "Fit", icon: "fit", selected, kind, labels: false, menu: false },
+                        NavigationButton {
+                            id: "regression",
+                            label: "Fit",
+                            icon: "fit",
+                            selected,
+                            kind,
+                            labels: false,
+                            text_only: false,
+                            menu: false,
+                        },
                     );
                     focused = response.has_focus();
                     clicked = response.clicked();

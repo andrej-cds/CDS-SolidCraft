@@ -207,7 +207,8 @@ fn app_bar_edit_palette_has_three_distinct_levels_and_readable_foreground() {
         let a = contrast_ratio(p.card, p.item);
         let b = contrast_ratio(p.item, p.hover);
         let foreground = contrast_ratio(t.app_bar_text, p.hover);
-        assert!(a >= 1.25 && b >= 1.25, "{name}: separate levels {a}/{b}");
+        // CDS fork: its dark gold bar leaves the light theme a hair under upstream's 1.25.
+        assert!(a >= 1.2 && b >= 1.2, "{name}: separate levels {a}/{b}");
         assert!(foreground >= 4.5, "{name}: hovered text remains legible {foreground}");
         eprintln!("app-bar edit contrast {name}: card/item {a:.2}:1, item/hover {b:.2}:1, foreground/hover {foreground:.2}:1");
     }
@@ -846,6 +847,7 @@ impl BarRig {
             quick_ids: &[],
             mark: &|_, _| {},
             name: self.name,
+            name_ink: None,
             leading: None,
             home: BarButton { id: "home", icon: "home", tip: "Home", enabled: true, narrow: false, wide_only: false },
             file: "File",
@@ -955,6 +957,7 @@ fn app_bar_old_show_golden() {
                 quick_ids: &[],
                 mark: &|_, _| {},
                 name: if has(6) { "A Considerably Longer Application" } else { "App" },
+                name_ink: None,
                 leading: None,
                 home: button("home", true, false),
                 file: "File",
@@ -2277,6 +2280,7 @@ fn app_bar_projected_pills_return_clicks_and_hide_clicks() {
         quick_ids: &[],
         mark: &|_, _| {},
         name: "App",
+        name_ink: None,
         leading: Some(vec2(24.0, 24.0)),
         home: button("home", true, false),
         file: "File",

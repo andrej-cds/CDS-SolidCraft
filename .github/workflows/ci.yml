@@ -45,7 +45,8 @@
 # Cross-compilation is opt-in through Run workflow; release builds remain in release.yml.
 # The release gate (release-gate.yml) calls this workflow (workflow_call) as a Run workflow with
 # cross-compilation on.
-# Every Linux job runs on Blacksmith's Ubuntu 24.04 runners (blacksmith-<N>vcpu-ubuntu-2404), sized
+# CDS fork: every job runs on GitHub's free runners (ubuntu-24.04, windows-2025); upstream used
+# Blacksmith, which this repository does not have. Upstream: every Linux job runs on Blacksmith's Ubuntu 24.04 runners (blacksmith-<N>vcpu-ubuntu-2404), sized
 # per job: 32 vCPU for the tests, 16 for Clippy, the GPU path tests, the archive build (nightly) and the merge queue's, 8 for compiles, doc and reference tests, 4 for the light checks, 2 for Select checks and ci.
 # The Windows shader job runs on Blacksmith's Windows Server 2025 runners (blacksmith-8vcpu-windows-2025);
 # the Windows app is built there too, and only its startup smoke runs on windows-latest, which has a desktop session that presents frames.
@@ -73,9 +74,8 @@ on:
   merge_group:
   push:
     # develop: the SMLib kernel's trunk until it merges into main (its PRs land there).
-    branches: [main, develop]
-  schedule:
-    - cron: "17 6 * * *"
+    # CDS fork: also the update branches, so GitHub checks an update before it is built.
+    branches: [main, develop, "posodobitev-*"]
   workflow_dispatch:
     inputs:
       cross_compile:
@@ -116,8 +116,8 @@ jobs:
     name: Dependency advisories
     needs: changes
     if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || needs.changes.outputs.deps == 'true') }}
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 60 || 20 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/merge-main
@@ -137,7 +137,7 @@ jobs:
     # Not on a draft: every other check needs this one, so they skip too. Not on a label other than
     # approved-for-ci either (the same skip, for the same reason).
     if: (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci')
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-2vcpu-ubuntu-2404' }}
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       # To ask whether the merge queue already tested a commit pushed to main, and which labels the
@@ -453,8 +453,8 @@ jobs:
   checks:
     name: Format and repository checks
     if: (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci')
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 75 || 25 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         # Two commits: `cargo xtask app-geometry` (and its workspace test) judges what HEAD adds to
@@ -534,8 +534,8 @@ jobs:
     name: Quick compile
     needs: changes
     if: needs.changes.outputs.quick == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-8vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 90 || 30 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/merge-main
@@ -553,8 +553,8 @@ jobs:
     name: Native Linux Clippy
     needs: changes
     if: needs.changes.outputs.native == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-16vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 90 || 30 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/merge-main
@@ -584,8 +584,8 @@ jobs:
     # scratch workspace, so it compiles the kernel and the UI stack again: it is a build, not
     # a static check, and it belongs in the heavy lane.
     if: needs.changes.outputs.native == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-16vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 90 || 30 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/merge-main
@@ -604,9 +604,9 @@ jobs:
     # hand. Pull requests, the merge queue and main build and run their tests in the `tests` job.
     needs: changes
     if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.native == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-16vcpu-ubuntu-2404' }}
+    runs-on: ubuntu-24.04
     # Fork builds start from main's cache, read-only; give them room to finish and upload.
-    timeout-minutes: ${{ vars.CI_RUNNER && 180 || ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) && 60 || 45) }}
+    timeout-minutes: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) && 60 || 45 }}
     env:
       CARGO_INCREMENTAL: "0"
       RUSTC_WRAPPER: sccache
@@ -665,15 +665,23 @@ jobs:
         run: if command -v sccache >/dev/null; then sccache --show-stats; else echo "sccache was not set up; built without it"; fi
 
   tests:
-    name: Native Linux tests
+    name: Native Linux tests (${{ matrix.shard }}/3)
     needs: changes
     if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.native == 'true' }}
     # Builds the tests and runs them in one job on a big runner: there is no archive to upload
     # and download (3 GB on a full run), and the job starts beside the repository checks, not
     # after them. nextest hands tests to its threads as they free up, the slowest first (priority
     # in .config/nextest.toml), so they start at once and no core idles at the end.
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-32vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 180 || 60 }}
+    runs-on: ubuntu-24.04
+    # CDS fork: the free GitHub runner has 4 cores and no persistent compiler cache, so a full
+    # build and the slow engine tests need far longer than upstream's 60 minutes on 32 cores.
+    timeout-minutes: 340
+    # CDS fork: six shards (`--partition count:N/6`, two test threads each), each building the workspace and running a
+    # sixth of the tests, because one job running all of them lost its runner after 80 minutes.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
     env:
       # Pictures (snapshots, screenshots, ui.render, the viewport's offscreen tests) are drawn on
       # the GPU. The runner has none: Mesa's lavapipe (software Vulkan) draws them, and a test that
@@ -688,7 +696,8 @@ jobs:
       # the app harness need just under that (the app is hundreds of kilobytes, held in several
       # frames), so a few of them overflowed it on some runs.
       RUST_MIN_STACK: "8388608"
-      ACTION_MATRIX_JOBS: "12"
+      # The free runner has 4 cores: the action matrix sample uses 4 workers, not 12.
+      ACTION_MATRIX_JOBS: "4"
       CARGO_INCREMENTAL: "0"
       RUSTC_WRAPPER: sccache
       SCCACHE_DIR: /home/runner/.cache/sccache
@@ -704,8 +713,19 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends mesa-vulkan-drivers libvulkan1
+      # CDS fork: shards 1, 3, 4 and 6 lost their runner ("runner lost communication", no failed
+      # test) 12 to 90 minutes in; the same build on an 18 GB VM was killed for memory. Swap on the
+      # runner's large /mnt disk lets a memory peak slow the job down instead of freezing the runner.
+      - name: Add swap on the runner
+        run: |
+          sudo swapoff -a || true
+          sudo fallocate -l 16G /mnt/swapfile
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+          free -m
       - name: Size parallel compiles to the job's memory
-        run: scripts/ci/build-jobs.sh
+        run: scripts/ci/build-jobs.sh 6
       - uses: dtolnay/rust-toolchain@1.99.1
       # sccache lives on a Blacksmith sticky disk (an ext4 volume cloned from the last snapshot,
       # no 10 GB limit and no download). Only main commits it; pull requests, the merge queue and
@@ -715,7 +735,7 @@ jobs:
         if: vars.CI_RUNNER == ''
         continue-on-error: true
         with:
-          key: ${{ github.repository }}-sccache-tests
+          key: ${{ github.repository }}-sccache-tests-${{ matrix.shard }}
           path: /home/runner/.cache/sccache
           commit: ${{ github.ref == 'refs/heads/main' && 'on-change' || 'false' }}
       # Main saves the cache; every other run restores it, read-only.
@@ -742,6 +762,7 @@ jobs:
           FULL: ${{ needs.changes.outputs.full }}
           PACKAGES: ${{ needs.changes.outputs.packages }}
           GPU_SHARDS: ${{ needs.changes.outputs.gpu }}
+          SHARD: ${{ matrix.shard }}
         run: |
           # Pull requests skip the heavy tests (default-filter in .config/nextest.toml); `default()`
           # below is that filter, so a pull request still runs only what it ran before.
@@ -775,7 +796,7 @@ jobs:
           # (a build error, a bad filter) and fails the step at once.
           status=0
           cargo nextest run "${scope[@]}" --cargo-profile ci --locked --profile ci --no-tests=pass \
-            --ignore-default-filter -E "($base) & not ($excluded)" || status=$?
+            --ignore-default-filter -E "($base) & not ($excluded)" --test-threads 2 --partition "count:$SHARD/6" || status=$?
           if [ "$status" -ne 0 ] && [ "$status" -ne 100 ]; then exit "$status"; fi
           cargo xtask known-failing --junit "$junit"
       # Every command label needs an English catalog entry (#8542). The label table is the CLI's
@@ -788,6 +809,7 @@ jobs:
       # touches the command table. The binary is only missing when the CLI was not tested (a
       # change to solidcraft-ui-egui or xtask alone); then it is built as before.
       - name: Command labels in the translation catalogs
+        if: matrix.shard == 1
         env:
           FULL: ${{ needs.changes.outputs.full }}
           PACKAGES: ${{ needs.changes.outputs.packages }}
@@ -809,7 +831,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: junit
+          name: junit-tests-${{ matrix.shard }}
           path: ${{ env.CARGO_TARGET_DIR || 'target' }}/nextest/ci/junit.xml
           retention-days: 7
 
@@ -824,8 +846,8 @@ jobs:
     # budget (665 s, against 204 s for the same test in another run) and a shard took 35 minutes.
     needs: changes
     if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.gpu == 'true' }}
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-16vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 135 || 45 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -955,8 +977,8 @@ jobs:
     name: Action matrix (${{ matrix.shard }}/16)
     needs: build-tests
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 165 || 55 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
@@ -971,7 +993,7 @@ jobs:
           name: nextest-archive
       - name: Run one shard of the matrix
         # A step limit below the job's, so the outcomes so far are still uploaded.
-        timeout-minutes: ${{ vars.CI_RUNNER && 135 || 45 }}
+        timeout-minutes: 45
         env:
           SHARDS: 16
           SHARD: ${{ matrix.shard }}
@@ -997,8 +1019,8 @@ jobs:
     name: Action matrix determinism
     needs: build-tests
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 135 || 45 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2.87.28
@@ -1019,8 +1041,8 @@ jobs:
     name: Property tests (many cases)
     needs: build-tests
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 180 || 60 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2.87.28
@@ -1043,8 +1065,8 @@ jobs:
     name: Doc tests
     needs: changes
     if: needs.changes.outputs.doctests == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-8vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 135 || 45 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     env:
       CARGO_INCREMENTAL: "0"
       RUSTC_WRAPPER: sccache
@@ -1109,8 +1131,8 @@ jobs:
     name: Reference tests
     needs: changes
     if: needs.changes.outputs.oracle == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-8vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 180 || 60 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
     env:
       CARGO_INCREMENTAL: "0"
       RUSTC_WRAPPER: sccache
@@ -1168,8 +1190,8 @@ jobs:
     name: Windows D3D12 FXC shaders
     needs: changes
     if: needs.changes.outputs.windows == 'true'
-    runs-on: ${{ vars.CI_RUNNER_WINDOWS || 'blacksmith-8vcpu-windows-2025' }}
-    timeout-minutes: ${{ vars.CI_RUNNER_WINDOWS && 135 || 45 }}
+    runs-on: windows-2025
+    timeout-minutes: 45
     env:
       WGPU_BACKEND: dx12
       WGPU_DX12_COMPILER: fxc
@@ -1204,8 +1226,8 @@ jobs:
     name: Windows app build
     needs: changes
     if: needs.changes.outputs.windows == 'true'
-    runs-on: ${{ vars.CI_RUNNER_WINDOWS || 'blacksmith-8vcpu-windows-2025' }}
-    timeout-minutes: ${{ vars.CI_RUNNER_WINDOWS && 135 || 45 }}
+    runs-on: windows-2025
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/merge-main
@@ -1267,47 +1289,17 @@ jobs:
     permissions:
       contents: read
 
-  # A build without the `usage-stats` feature (distribution packagers, universities; see
-  # docs/privacy.md) compiles usage statistics out: the app and the web app build, and the app's
-  # binary holds no trace of the endpoint.
-  no-usage-stats:
-    name: Build without usage statistics
-    needs: changes
-    if: needs.changes.outputs.native == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-16vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 90 || 40 }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/merge-main
-      - uses: dtolnay/rust-toolchain@1.99.1
-        with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          key: no-usage-stats
-          save-if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
-      - name: Build the app and the web app without the feature
-        run: |
-          cargo build -p solidcraft --no-default-features --profile ci --locked
-          cargo check -p solidcraft-web --target wasm32-unknown-unknown --no-default-features --locked
-      - name: The binary has no usage statistics endpoint
-        run: |
-          endpoint=$(sed -n 's/^pub const ENDPOINT: &str = "\(.*\)";$/\1/p' crates/ui-egui/src/usage_stats.rs)
-          test -n "$endpoint" || { echo "::error::ENDPOINT not found in crates/ui-egui/src/usage_stats.rs"; exit 1; }
-          path=${endpoint#https://*/}
-          if grep -a -c -F -e "$endpoint" -e "/$path" target/ci/solidcraft; then
-            echo "::error::the build without usage-stats still holds the endpoint ($endpoint)"; exit 1
-          fi
-          echo "no trace of $endpoint"
+  # CDS fork: usage statistics are off in every build (no `usage-stats` in the default features), so
+  # upstream's extra job that builds without them is not run.
 
   ci:
     # On a run another label starts (every other job skipped), this job reports the result of the
     # commit's real run instead: the merge queue reads `ci` from the newest run of a commit, so a
     # run without a passing `ci` would block a pull request that passed (#1850, #3182, #3252).
     name: ci
-    needs: [changes, checks, quick-compile, clippy, shared-crates, build-tests, tests, gpu-path-tests, doc-tests, oracle, windows-fxc, windows-build, windows-startup, dependency-advisories, wasm, solidcore, solidcore-tests, solidcore-standalone, kernel-rig, no-usage-stats]
+    needs: [changes, checks, quick-compile, clippy, shared-crates, build-tests, tests, gpu-path-tests, doc-tests, oracle, windows-fxc, windows-build, windows-startup, dependency-advisories, wasm, solidcore, solidcore-tests, solidcore-standalone, kernel-rig]
     if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-2vcpu-ubuntu-2404' }}
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       # To read the commit's other runs of this workflow.
@@ -1400,7 +1392,6 @@ jobs:
             ${{ github.event_name == 'merge_group' || (github.event_name == 'pull_request' &&
             contains(github.event.pull_request.labels.*.name, 'approved-for-ci') && needs.changes.outputs.carried == '') }}
           RIG: ${{ needs.kernel-rig.result }}
-          NO_USAGE_STATS: ${{ needs.no-usage-stats.result }}
         run: |
           test "$CHANGES" = success
           test "$CHECKS" = success
@@ -1416,7 +1407,6 @@ jobs:
               test "$BUILD" = success
             fi
             test "$TESTS" = success
-            test "$NO_USAGE_STATS" = success
           fi
           # The same output decides whether the GPU path tests run (their job's `if`).
           if [ "$GPU_RUN" = true ]; then
@@ -1466,8 +1456,8 @@ jobs:
     name: Compile WebAssembly
     needs: changes
     if: ${{ !cancelled() && ((github.event_name == 'workflow_dispatch' && inputs.cross_compile) || needs.changes.outputs.wasm == 'true') }}
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-8vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 90 || 30 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/merge-main
@@ -1494,8 +1484,8 @@ jobs:
     name: SolidCore builds on its own
     needs: changes
     if: needs.changes.outputs.solidcore == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-8vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 90 || 30 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     env:
       CARGO_INCREMENTAL: 0
     steps:
@@ -1523,26 +1513,26 @@ jobs:
     needs: changes
     if: needs.changes.outputs.solidcore == 'true'
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 180 || 60 }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         include:
           - check: fmt and clippy
             key: lint
-            runner: ${{ vars.CI_RUNNER || 'blacksmith-8vcpu-ubuntu-2404' }}
+            runner: ubuntu-24.04
           - check: kernel rig and goldens
             key: rig
-            runner: ${{ vars.CI_RUNNER || 'blacksmith-16vcpu-ubuntu-2404' }}
+            runner: ubuntu-24.04
           - check: wasm
             key: wasm
-            runner: ${{ vars.CI_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
+            runner: ubuntu-24.04
           - check: deny
             key: deny
-            runner: ${{ vars.CI_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
+            runner: ubuntu-24.04
           - check: publish dry run
             key: publish
-            runner: ${{ vars.CI_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
+            runner: ubuntu-24.04
     defaults:
       run:
         working-directory: solidcore
@@ -1694,8 +1684,8 @@ jobs:
     name: SolidCore tests (build)
     needs: changes
     if: needs.changes.outputs.solidcore == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-16vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 180 || 60 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: solidcore
@@ -1728,8 +1718,8 @@ jobs:
     name: SolidCore tests (${{ matrix.shard }}/6)
     needs: [changes, solidcore-tests-build]
     if: needs.changes.outputs.solidcore == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-16vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 180 || 60 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -1777,8 +1767,8 @@ jobs:
     name: SolidCore tests (doctests and solids report)
     needs: changes
     if: needs.changes.outputs.solidcore == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-16vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 180 || 60 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: solidcore
@@ -1832,7 +1822,7 @@ jobs:
     name: SolidCore checks (tests)
     needs: [changes, solidcore-tests-build, solidcore-tests-shard, solidcore-tests-extras]
     if: always() && needs.changes.outputs.solidcore == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-2vcpu-ubuntu-2404' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - env:
@@ -1846,8 +1836,8 @@ jobs:
   riscv64-gates:
     name: Compile RISC-V (manual)
     if: github.event_name == 'workflow_dispatch' && inputs.cross_compile
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-8vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 90 || 30 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Check out craft-fonts
@@ -1899,8 +1889,8 @@ jobs:
     name: Nightly alert
     needs: [dependency-advisories, changes, checks, ci, build-tests, action-matrix, action-matrix-determinism, property-tests]
     if: always() && github.event_name == 'schedule'
-    runs-on: ${{ vars.CI_RUNNER || 'blacksmith-2vcpu-ubuntu-2404' }}
-    timeout-minutes: ${{ vars.CI_RUNNER && 15 || 5 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       issues: write
     steps:

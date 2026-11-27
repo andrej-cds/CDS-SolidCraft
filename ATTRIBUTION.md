@@ -1005,6 +1005,78 @@ Original SolidCraft drawings, Open for owner review; no runtime assignments.
 | assets/locales/pending/basque-second-batch.json | Ehuntabi | Original Basque (euskara) translation of 145 more of SolidCraft's English command labels (sketch, solid, construct, surface, view, file, inspect, parameters and browser commands), written with Claude Code from the meaning of each English string; terms from the same glossary as the first batch (Euskaltzaindia, Elhuyar, Itzuli, Euskalterm); not yet reviewed by a Basque speaker with CAD vocabulary; no commercial CAD text used | MIT OR Apache-2.0 |
 | assets/locales/pt-PT.json | acebear17 | Original European Portuguese (Portugal) translation of SolidCraft's English catalog; no commercial CAD text used | MIT OR Apache-2.0 |
 | `assets/locales/pending/note-legacy-centre.json` | SolidCraft contributors | Original note alignment label | MIT OR Apache-2.0 |
+| assets/locales/pending/agent-chat-continue.json | SolidCraft contributors | Original agent chat interruption and task continuation strings and translations | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/constraint_angle.svg | SolidCraft contributors | two-tone modelling icon master (64 grid), original SolidCraft artwork | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/constraint_concentric.svg | SolidCraft contributors | two-tone modelling icon master (64 grid), original SolidCraft artwork | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/constraint_distance.svg | SolidCraft contributors | two-tone modelling icon master (64 grid), original SolidCraft artwork | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/constraint_flush.svg | SolidCraft contributors | two-tone modelling icon master (64 grid), original SolidCraft artwork | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/constraint_insert.svg | SolidCraft contributors | two-tone modelling icon master (64 grid), original SolidCraft artwork | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/constraint_mate.svg | SolidCraft contributors | two-tone modelling icon master (64 grid), original SolidCraft artwork | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/constraint_point_on_axis.svg | SolidCraft contributors | two-tone modelling icon master (64 grid), original SolidCraft artwork | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/constraint_tangent.svg | SolidCraft contributors | two-tone modelling icon master (64 grid), original SolidCraft artwork | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/link.svg | Nathan-Dane | chain badge for a component linked to another design file, drawn for #14236 and given in that PR's discussion; the master re-cuts that drawing to the icon rules (absolute path data, no transform) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/link_broken.svg | Nathan-Dane | broken-chain badge for a component whose linked file is missing, drawn for #14236 and given in that PR's discussion; the master re-cuts that drawing to the icon rules (absolute path data, no transform) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| assets/locales/pending/browser-tree-panel.json | SolidCraft contributors | Original Browser tree panel strings and their translations; no commercial CAD text used | MIT OR Apache-2.0 |
+| assets/locales/pending/cadmpeg-step-iges-export.json | SolidCraft contributors | Original cadmpeg STEP/IGES export setting label and translations | MIT OR Apache-2.0 |
+| assets/locales/pending/czech-translation-completion.json | SolidCraft contributors | Original Czech translations of existing UI messages | MIT OR Apache-2.0 |
+| assets/locales/pending/dimension-window-parameters.json | SolidCraft contributors | Original dimension window parameter row labels and note | MIT OR Apache-2.0 |
+| `assets/locales/pending/document-browser-views.json` | SolidCraft contributors | Original document browser view menu labels and translations | MIT OR Apache-2.0 |
+| assets/locales/pending/extrude-new-sketch.json | SolidCraft contributors | Original New Sketch button, hint and status messages and translations | MIT OR Apache-2.0 |
+| `assets/locales/pending/frame-continuous-paths.json` | SolidCraft contributors | Original continuous frame-member labels and translations | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/gusset.svg | SolidCraft contributors | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/gusset_side_center.svg | SolidCraft contributors | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/gusset_side_negative.svg | SolidCraft contributors | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/gusset_side_positive.svg | SolidCraft contributors | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/frame_plate.svg | SolidCraft contributors | Original; canonical slab and analytic bolt holes | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/frame_trim.svg | SolidCraft contributors | original icon master (64 grid) | MIT OR Apache-2.0 |
+| assets/locales/lo.json | @bounkirdni-2025 | Original Lao translation of SolidCraft English labels | MIT OR Apache-2.0 |
+| assets/platforms/macos/PreviewExtension.Info.plist.in | SolidCraft contributors | Original Info.plist template of the Quick Look preview extension, laid out like the app's own Info.plist.in | MIT OR Apache-2.0 |
+| assets/platforms/macos/ThumbnailExtension.Info.plist.in | SolidCraft contributors | Original Info.plist template of the Quick Look thumbnail extension, laid out like the app's own Info.plist.in | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/mesh_reduce.svg | SolidCraft contributors | original icon master (64 grid) | MIT OR Apache-2.0 |
+| `assets/locales/pending/openai-responses.json` | SolidCraft contributors | Original OpenAI Responses settings messages and translations | MIT OR Apache-2.0 |
+| assets/locales/pending/plugin-edit-form.json | SolidCraft contributors | Original plugin operation form messages and translations | MIT OR Apache-2.0 |
+| assets/locales/pending/rhino-export.json | SolidCraft contributors | Original Rhino export label and translations | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/sheet_tab.svg | SolidCraft contributors | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| tests/step-regressions/rod_cross_hole_rim_off_curve_start.step | SolidCraft contributors | written entity by entity from formulas (a rod with a cross hole whose exit rim's vertex is off its closed curve's start); import regression fixture | MIT OR Apache-2.0 |
+| tests/step-regressions/rounded_disc_cut_vertices_off.step | SolidCraft contributors | written entity by entity from formulas (a rounded disc cut off at x = 8.5, the cut's oval edge with its vertices 1e-7 mm off it); import regression fixture | MIT OR Apache-2.0 |
+| assets/locales/pending/step-source-links.json | SolidCraft contributors | Original STEP source-link preference labels and help text | MIT OR Apache-2.0 |
+| tests/step-regressions/swept_tube_last_wall.step | SolidCraft contributors | exported by SolidCraft 0.46.2 from the public commands of #21379 (a circle swept along a 3D spline), cut down to the last wall and its two caps; import regression fixture | MIT OR Apache-2.0 |
+| solidcore/crates/solidcore-step/tests/fixtures/stepped_tapered_hole.step | SolidCraft contributors | Invented block with a stepped 4° tapered through-hole, written by SolidCraft and published in solidcore issue #3253; no user part, no third-party geometry; STEP import test fixture | MIT OR Apache-2.0 |
+| assets/locales/pending/timeline-2d.json | SolidCraft contributors | Original 2D Timeline UI labels and translations | MIT OR Apache-2.0 |
+| docs/book/src/generated/timeline-2d-assembly.png | SolidCraft contributors | copy of docs/screenshots/timeline-2d-assembly.png made by `cargo xtask book` (gitignored) | MIT OR Apache-2.0 |
+| docs/book/src/generated/timeline-2d-corridor-selection.png | SolidCraft contributors | copy of docs/screenshots/timeline-2d-corridor-selection.png made by `cargo xtask book` (gitignored) | MIT OR Apache-2.0 |
+| docs/book/src/generated/timeline-2d-corridor-smart-inset.png | SolidCraft contributors | copy of docs/screenshots/timeline-2d-corridor-smart-inset.png made by `cargo xtask book` (gitignored) | MIT OR Apache-2.0 |
+| docs/book/src/generated/timeline-2d-dock-closeup.png | SolidCraft contributors | copy of docs/screenshots/timeline-2d-dock-closeup.png made by `cargo xtask book` (gitignored) | MIT OR Apache-2.0 |
+| docs/book/src/generated/timeline-2d-group.png | SolidCraft contributors | copy of docs/screenshots/timeline-2d-group.png made by `cargo xtask book` (gitignored) | MIT OR Apache-2.0 |
+| docs/book/src/generated/timeline-2d-overview.png | SolidCraft contributors | copy of docs/screenshots/timeline-2d-overview.png made by `cargo xtask book` (gitignored) | MIT OR Apache-2.0 |
+| docs/book/src/generated/timeline-2d-resize-1row.png | SolidCraft contributors | copy of docs/screenshots/timeline-2d-resize-1row.png made by `cargo xtask book` (gitignored) | MIT OR Apache-2.0 |
+| docs/book/src/generated/timeline-2d-view-assembly-full.png | SolidCraft contributors | copy of docs/screenshots/timeline-2d-view-assembly-full.png made by `cargo xtask book` (gitignored) | MIT OR Apache-2.0 |
+| docs/book/src/generated/timeline-2d-view-modeling-full.png | SolidCraft contributors | copy of docs/screenshots/timeline-2d-view-modeling-full.png made by `cargo xtask book` (gitignored) | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-assembly.png | SolidCraft contributors | screenshot of SolidCraft itself: 2D Timeline showing multi-component Precision Gantry Stage and split Assembly & Joints track featuring 5 kinematic joints, active selection, dependencies, and movable corridor | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-corridor-selection.png | SolidCraft contributors | screenshot of SolidCraft itself: 2D Timeline showing multi-track component layout, multi-component combine connector, active selection, amber prerequisites, green movable corridor brackets, and suppressed actions with 50% opacity slashed eye overlay | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-corridor-smart-inset.png | SolidCraft contributors | screenshot of SolidCraft itself: 2D Timeline showing Smart Inset behavior with rollback marker line coincident with closing movable corridor bracket | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-dock-closeup.png | SolidCraft contributors | screenshot of SolidCraft itself: 2D Timeline showing folded virtual group cards with header caps, member-count badges, and inactive rollback steps | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-group.png | SolidCraft contributors | screenshot of SolidCraft itself: 2D Timeline showing expanded open feature groups with Tier 2 banners spanning member step columns and multi-track layout | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-one-row-collapsed.png | SolidCraft contributors | screenshot of SolidCraft itself: a one-row 2D Timeline with the Assembly & Joints track collapsed; the strip shows its short title under the count badge | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-overview.png | SolidCraft contributors | screenshot of SolidCraft itself: full application window with 3D model and 2D Timeline multi-track component layout, folded group cap, and cascading suppression | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-place-collapsed-floating.png | SolidCraft contributors | screenshot of SolidCraft itself: the floating 2D Timeline collapsed to its header at its bottom edge | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-place-collapsed.png | SolidCraft contributors | screenshot of SolidCraft itself: the 2D Timeline collapsed to its header at the bottom | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-place-docked.png | SolidCraft contributors | screenshot of SolidCraft itself: 2D Timeline docked at the bottom, the design Sample Plate and Cap | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-place-floating.png | SolidCraft contributors | screenshot of SolidCraft itself: 2D Timeline floating just above where it was docked, at its docked size | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-place-menu.png | SolidCraft contributors | screenshot of SolidCraft itself: the 2D Timeline's panel menu offering Floating and Pop out to window, without Join tabs | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-place-popped-out.png | SolidCraft contributors | screenshot of SolidCraft itself: the 2D Timeline popped out to its own window below the main window | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-resize-1row.png | SolidCraft contributors | screenshot of SolidCraft itself: 2D Timeline vertically resized to its compact 1-row minimum height with vertical scrollbar | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-view-assembly-full.png | SolidCraft contributors | screenshot of SolidCraft itself: 2D Timeline with the Modeling track contracted into the left dock tab and the Assembly & Joints track fully expanded | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-view-modeling-full.png | SolidCraft contributors | screenshot of SolidCraft itself: 2D Timeline with the Assembly & Joints track contracted into the right dock tab and the Modeling track fully expanded | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/timeline_1d.svg | SolidCraft contributors | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/timeline_2d.svg | SolidCraft contributors | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| docs/screenshots/timeline-2d-settings.png | SolidCraft contributors | screenshot of SolidCraft itself: the 2D Timeline's settings menu (alignment dots, row activation, unsuppress modes) on the Sample Plate and Cap design | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-switch-1d.png | SolidCraft contributors | screenshot of SolidCraft itself: the 1D History bar with the 2D Timeline view switch at its right end | MIT OR Apache-2.0 |
+| docs/book/src/generated/timeline-2d-settings.png | SolidCraft contributors | copy of docs/screenshots/timeline-2d-settings.png made by `cargo xtask book` (gitignored) | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-icon-in-2d-dark.png | SolidCraft contributors | screenshot of SolidCraft itself: the 2D Timeline's header in the dark theme: playback, settings, the 1D view switch (one row of white chips, one blue), the menu and collapse | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-icon-in-2d-light.png | SolidCraft contributors | screenshot of SolidCraft itself: the 2D Timeline's header in the light theme, with the 1D view switch | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-icon-in-1d-dark.png | SolidCraft contributors | screenshot of SolidCraft itself: the 1D History's right end in the dark theme: the 2D view switch (three component rows, one blue step) and the menu | MIT OR Apache-2.0 |
+| docs/screenshots/timeline-2d-icon-in-1d-light.png | SolidCraft contributors | screenshot of SolidCraft itself: the 1D History's right end in the light theme, with the 2D view switch | MIT OR Apache-2.0 |
 
 ## Code adapted from sibling projects
 
@@ -1542,3 +1614,24 @@ The original adapters in `crates/engine/src/cmd/render/library.rs`, the generate
 
 | distribution/SolidCraft-Render-Showcase.zip | SolidCraft contributors and the explicitly credited original model/UI/resource authors | byte-verified selected collaborator package of reviewed native media, editable sample, recipes and public provenance; contained attribution and existing SELENE lettering notices retained; no fonts or executable binaries | MIT OR Apache-2.0 for new contributions; referenced original notices retained |
 | distribution/SolidCraft-Render-Showcase.json | SolidCraft contributors | original verified delivery archive manifest with exact SHA-256, member count and bounded scope | MIT OR Apache-2.0 |
+| assets/branding/cds/cds-logo.png | Andrej Češarek (CDS) | CDS company logo, supplied by its owner for this fork | All rights reserved, used with the owner's permission |
+| assets/branding/cds/cds-letters-mask.png | Andrej Češarek (CDS) | Mask of the CDS letters, made for the fork's app icon from the owner's CDS logo | All rights reserved, used with the owner's permission |
+| assets/icons/app/shared/source/mark-gold-512.png | Andrej Češarek (CDS) | The mark of the fork's app icon in the owner's gold (#C8A96E), 512 px, derived from the SolidCraft mark | All rights reserved, used with the owner's permission |
+| assets/icons/app/shared/source/make_cds_icon.py | Andrej Češarek (CDS) | Script that draws the fork's app icon (black plate, gold border, mark and CDS letters) and writes all platform icon files | All rights reserved, used with the owner's permission |
+| assets/icons/app/shared/source/app_icon_512.rgba | Andrej Češarek (CDS) | Raw 512 px RGBA render of the fork's app icon, written by make_cds_icon.py and compiled into the app | All rights reserved, used with the owner's permission |
+| assets/platforms/windows/banner.bmp | Andrej Češarek (CDS) | Installer banner: the gold SolidCraft mark, drawn for this fork | MIT OR Apache-2.0 |
+| assets/platforms/windows/dialog.bmp | Andrej Češarek (CDS) | Installer side panel with the CDS logo, drawn for this fork | All rights reserved, used with the owner's permission |
+| assets/icons/app/web/apple-touch-icon.png | Andrej Češarek (CDS) | The gold SolidCraft mark for the web app's home-screen icon | MIT OR Apache-2.0 |
+| assets/icons/app/web/solidcraft-icon.svg | Andrej Češarek (CDS) | The gold SolidCraft mark as the web app's page icon | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_airfoil.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_dogbone.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_export.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_infill.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_lego.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_offset_body.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_offset_sketch.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_send.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_supershape.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/print_vent.svg | Andrej Češarek (CDS) | Original icon master for the 3D PRINT tool, drawn for this fork (64 grid) | MIT OR Apache-2.0 |
+| assets/locales/sl.json | Andrej Češarek (CDS) | Original Slovenian translation of SolidCraft's English catalog, written for this fork; no commercial CAD text used | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/true_scale.svg | Andrej Češarek (CDS) | Gold carrot icon for the 1:1 true-scale view, drawn for this fork | MIT OR Apache-2.0 |

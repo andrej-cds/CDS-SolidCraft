@@ -330,17 +330,21 @@ fn the_built_in_library_has_fixed_ids_and_todays_values() {
     assert_eq!(library.read_only(), Some(&Reason::BuiltIn));
     assert_eq!(library.id(), Some(BUILT_IN_ID));
     let usable: Vec<&Entry> = library.entries().iter().filter_map(|l| l.entry().ok()).collect();
-    let ids: Vec<&str> = usable.iter().map(|e| e.id.as_str()).collect();
-    let mut sorted = ids.clone();
+    let all_ids: Vec<&str> = usable.iter().map(|e| e.id.as_str()).collect();
+    let mut sorted = all_ids.clone();
     sorted.sort_unstable();
     sorted.dedup();
-    assert_eq!(sorted.len(), ids.len(), "no id twice");
+    assert_eq!(sorted.len(), all_ids.len(), "no id twice");
+    // CDS fork: the five 3D-printing filaments are extra; upstream's own ids stay pinned below.
+    let is_cds = |id: &str| id.contains("3d-print");
+    assert_eq!(all_ids.iter().filter(|id| is_cds(id)).count(), 5, "the five CDS filaments");
+    let ids: Vec<&str> = all_ids.iter().copied().filter(|id| !is_cds(id)).collect();
     // Each entry names its table, with the licence ATTRIBUTION.md gives that table.
     assert!(usable.iter().all(|e| e.provenance.license == "MIT OR Apache-2.0"));
     let from = |source: &str| usable.iter().filter(|e| e.provenance.source_url.as_deref() == Some(source)).count();
     assert_eq!(
         [
-            from("assets/materials/library.rs"),
+            from("assets/materials/library.rs") - 5,
             from("assets/appearances/library.rs"),
             from("assets/appearances/opaque_finishes.rs"),
             from("assets/appearances/starter_pack.rs")
@@ -442,8 +446,11 @@ fn the_built_in_library_has_fixed_ids_and_todays_values() {
     let materials: Vec<(&str, f64, Option<([u8; 3], f64)>)> = usable
         .iter()
         .filter_map(|e| match &e.definition {
-            Definition::Material(m) => Some((m.name.as_str(), m.density_g_cm3, m.appearance.as_ref().map(|a| (a.color, a.opacity)))),
-            Definition::Appearance(_) => None,
+            // CDS fork: the five 3D-print filaments are extra; the 14 upstream names stay exactly as they were.
+            Definition::Material(m) if !m.name.contains("(3D print)") => {
+                Some((m.name.as_str(), m.density_g_cm3, m.appearance.as_ref().map(|a| (a.color, a.opacity))))
+            }
+            _ => None,
         })
         .collect();
     assert_eq!(

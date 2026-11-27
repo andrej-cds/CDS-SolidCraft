@@ -219,6 +219,8 @@ mod panels;
 mod parameter_sweep;
 mod parameters;
 mod plastic;
+mod print3d;
+mod print3d_shapes;
 mod print_face;
 mod remove_history;
 mod render;
@@ -632,6 +634,7 @@ pub fn command_specs() -> Vec<&'static CommandSpec> {
     v.extend(construct::COMMANDS.iter());
     v.extend(sheet::COMMANDS.iter());
     v.extend(plastic::COMMANDS.iter());
+    v.extend(print3d::COMMANDS.iter());
     v.extend(frame::COMMANDS.iter());
     v.extend(frame_end_cap::COMMANDS.iter());
     v.extend(frame_gusset::COMMANDS.iter());
