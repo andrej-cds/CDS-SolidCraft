@@ -531,7 +531,7 @@ pub fn show(app: &mut SolveApp, ctx: &egui::Context) {
 
 /// The panel's contents (CDS fork: also drawn docked in the tools window, two screens).
 fn body(app: &mut SolveApp, ui: &mut egui::Ui, d: &mut ParamsDialog, all: &Arc<Vec<Row>>) {
-    redesign::toolbar(app, ui, d, &all);
+    redesign::toolbar(app, ui, d, all);
     if let Some(error) = d.banner() {
         ui_kit::text(ui, error, ui_kit::Text::Error("parameters_error"));
     }
@@ -546,8 +546,8 @@ fn body(app: &mut SolveApp, ui: &mut egui::Ui, d: &mut ParamsDialog, all: &Arc<V
         .min(solidcraft_theme::Tokens::get().form_card_width);
     let mut sections = sections(&visible, d.sort);
     redesign::follow_selection(app, d, &mut sections);
-    table(app, ui, d, &sections, name_floor, &all);
-    redesign::states(app, ui, d, &all, &visible);
+    table(app, ui, d, &sections, name_floor, all);
+    redesign::states(app, ui, d, all, &visible);
 }
 
 /// Parameters kept open in the tools window (two screens, CDS fork): the same contents as the
