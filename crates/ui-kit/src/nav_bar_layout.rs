@@ -89,7 +89,8 @@ fn measure_row(content: Rect, prefs: &NavigationBar, shown: impl Fn(&Slot) -> bo
         // A strong slot (`Catalogue::strong`) never folds into More: room is kept for it first,
         // and the others fold from the end. With no room even for that, it folds like the rest.
         let base = metrics.button + 2.0 * inset;
-        let reserved = slots.iter().filter(|slot| navigation_bar::strong(slot.id)).map(|slot| width(slot, false, false, false) + NAV_GAP).sum::<f32>();
+        let reserved =
+            slots.iter().filter(|slot| navigation_bar::strong(slot.id)).map(|slot| width(slot, false, false, false) + NAV_GAP).sum::<f32>();
         let keep = base + reserved <= available;
         let strong = |slot: &Slot| keep && navigation_bar::strong(slot.id);
         row_width = if keep { base + reserved } else { base };
