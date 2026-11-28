@@ -522,6 +522,267 @@ fn linked_bodies_with_one_conflicting_material_share_its_copy() {
     let _ = std::fs::remove_dir_all(dir);
 }
 
+/// #21651: an assembly already bloated up to `MAX_USER_MATERIALS` with pre-#21182 `(linked N)`
+/// duplicates consolidates them when inserting another link, remapping body assignments and
+/// link snapshots so future source edits still propagate.
+#[test]
+fn legacy_duplicate_linked_materials_consolidate_on_insert_and_keep_tracking_updates() {
+    let dir = folder("properties-legacy-consolidate");
+    let file_a = dir.join("part_a.solidcraft");
+    let file_b = dir.join("part_b.solidcraft");
+    let mut part_a = properties_part(&file_a, "Custom alloy", Some(4.2), [12, 34, 56]);
+    properties_part(&file_b, "Another alloy", Some(3.1), [90, 80, 70]);
+
+    let mut s = Session::default();
+    s.doc_mut().user_materials.push(solidcraft_doc::UserMaterial {
+        name: "Custom alloy".into(),
+        density: 9.0,
+        appearance: None,
+        physical_card: None,
+    });
+    let c1 = run(&mut s, "component.insert_design", json!({"path": file_a}))["component"].as_u64().unwrap();
+    let c2 = run(&mut s, "component.insert_design", json!({"path": file_a}))["component"].as_u64().unwrap();
+
+    // Simulate pre-#21182 bloat: duplicate `(linked 2..=999)` copies right up to MAX_USER_MATERIALS,
+    // with `c2`'s body pinned to `Custom alloy (linked 2)`.
+    let canonical = s.doc.user_materials.iter().find(|m| m.name == "Custom alloy (linked 1)").unwrap().clone();
+    let body2 = s.doc.links[&c2].feature;
+    let body2_name = s.model.state().bodies.iter().find(|b| b.feature == body2).unwrap().name.clone();
+    for i in 2..solidcraft_doc::MAX_USER_MATERIALS {
+        let mut dup = canonical.clone();
+        dup.name = format!("Custom alloy (linked {i})");
+        s.doc_mut().user_materials.push(dup);
+    }
+    assert_eq!(s.doc.user_materials.len(), solidcraft_doc::MAX_USER_MATERIALS);
+    let dup2 = s.doc.user_material("Custom alloy (linked 2)").unwrap().clone();
+    let dup2_fp = solidcraft_doc::LinkedBodyProperties::fingerprint(&dup2).unwrap();
+    s.doc_mut().materials.insert(body2_name.clone(), "Custom alloy (linked 2)".into());
+    let snap2 = &mut s.doc_mut().links.get_mut(&c2).unwrap().inherited[0];
+    snap2.material = "Custom alloy (linked 2)".into();
+    snap2.material_fingerprint = Some(dup2_fp);
+
+    // Inserting a new link with a brand-new custom material succeeds instead of hitting the 1000 cap.
+    let c3 = run(&mut s, "component.insert_design", json!({"path": file_b}))["component"].as_u64().unwrap();
+    assert_eq!(s.doc.user_materials.len(), 3, "duplicates consolidated: {:?}", s.doc.user_materials.iter().map(|m| &m.name).collect::<Vec<_>>());
+    assert_eq!(s.doc.materials.get(&body2_name).map(String::as_str), Some("Custom alloy (linked 1)"));
+    assert_link_properties(&mut s, c1, "Custom alloy (linked 1)", 4.2, [12, 34, 56]);
+    assert_link_properties(&mut s, c2, "Custom alloy (linked 1)", 4.2, [12, 34, 56]);
+    assert_link_properties(&mut s, c3, "Another alloy", 3.1, [90, 80, 70]);
+
+    // Because `c2`'s inherited fingerprint was remapped cleanly, a later source density edit still propagates.
+    part_a.doc_mut().user_materials[0].density = 5.5;
+    run(&mut part_a, "file.save", json!({}));
+    run(&mut s, "component.update_links", json!({}));
+    let p1 = run(&mut s, "component.properties", json!({"component": c1}));
+    let p2 = run(&mut s, "component.properties", json!({"component": c2}));
+    assert!((p1["total"]["mass_g"].as_f64().unwrap() - 5.5).abs() < 1e-6, "{p1}");
+    assert!((p2["total"]["mass_g"].as_f64().unwrap() - 5.5).abs() < 1e-6, "{p2}");
+    // Old 4.2 `(linked 1)` copy was pruned once no body used it, leaving base + updated copy + Another alloy.
+    assert_eq!(s.doc.user_materials.len(), 3, "{:?}", s.doc.user_materials.iter().map(|m| &m.name).collect::<Vec<_>>());
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// #21651: `component.update_links` merges pinned `(linked N)` duplicates and remaps configuration
+/// material cells pointing to the removed duplicate; a second update is unchanged.
+#[test]
+fn update_links_consolidates_pinned_duplicates_and_remaps_configuration_cells() {
+    let dir = folder("properties-update-consolidate");
+    let file = dir.join("source.solidcraft");
+    properties_part(&file, "Custom alloy", Some(4.2), [12, 34, 56]);
+
+    let mut s = Session::default();
+    s.doc_mut().user_materials.push(solidcraft_doc::UserMaterial {
+        name: "Custom alloy".into(),
+        density: 9.0,
+        appearance: None,
+        physical_card: None,
+    });
+    let _c1 = run(&mut s, "component.insert_design", json!({"path": file}))["component"].as_u64().unwrap();
+    let c2 = run(&mut s, "component.insert_design", json!({"path": file}))["component"].as_u64().unwrap();
+    let body2_feat = s.doc.links[&c2].feature;
+    let body2_name = s.model.state().bodies.iter().find(|b| b.feature == body2_feat).unwrap().name.clone();
+
+    let mut dup2 = s.doc.user_material("Custom alloy (linked 1)").unwrap().clone();
+    dup2.name = "Custom alloy (linked 2)".into();
+    let dup2_fp = solidcraft_doc::LinkedBodyProperties::fingerprint(&dup2).unwrap();
+    s.doc_mut().user_materials.push(dup2);
+    s.doc_mut().materials.insert(body2_name.clone(), "Custom alloy (linked 2)".into());
+    s.doc_mut().links.get_mut(&c2).unwrap().inherited[0].material = "Custom alloy (linked 2)".into();
+    s.doc_mut().links.get_mut(&c2).unwrap().inherited[0].material_fingerprint = Some(dup2_fp);
+    s.doc_mut().configs.columns.push(solidcraft_doc::config::Column::Material(body2_name.clone()));
+    s.doc_mut().add_configuration_row("Alt".into(), vec!["Custom alloy (linked 2)".into()]).unwrap();
+
+    run(&mut s, "component.update_links", json!({}));
+    assert_eq!(s.doc.user_materials.len(), 2, "{:?}", s.doc.user_materials.iter().map(|m| &m.name).collect::<Vec<_>>());
+    assert_eq!(s.doc.materials.get(&body2_name).map(String::as_str), Some("Custom alloy (linked 1)"));
+    assert_eq!(s.doc.configs.rows[0].cells[0], "Custom alloy (linked 1)");
+    assert_eq!(run(&mut s, "component.update_links", json!({}))["unchanged"].as_array().unwrap().len(), 2);
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// #21651: deleting a linked component or switching its source material prunes unreferenced
+/// auto-generated `(linked N)` materials while leaving user-created materials untouched, and Undo
+/// restores both the component and its linked material.
+#[test]
+fn orphaned_linked_materials_are_pruned_on_update_and_component_delete() {
+    let dir = folder("properties-orphan-prune");
+    let file = dir.join("source.solidcraft");
+    let mut part = properties_part(&file, "Custom alloy", Some(4.2), [12, 34, 56]);
+
+    let mut s = Session::default();
+    s.doc_mut().user_materials.push(solidcraft_doc::UserMaterial {
+        name: "Custom alloy".into(),
+        density: 9.0,
+        appearance: None,
+        physical_card: None,
+    });
+    let c = run(&mut s, "component.insert_design", json!({"path": file}))["component"].as_u64().unwrap();
+    assert_eq!(s.doc.user_materials.len(), 2);
+    assert!(s.doc.user_material("Custom alloy (linked 1)").is_some());
+
+    // Deleting the linked component prunes its orphaned `(linked 1)` copy while keeping user material.
+    run(&mut s, "component.delete", json!({"component": c}));
+    assert_eq!(s.doc.user_materials.len(), 1);
+    assert_eq!(s.doc.user_materials[0].name, "Custom alloy");
+
+    // Undo restores both the component and its `(linked 1)` material.
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.doc.user_materials.len(), 2);
+    assert!(s.doc.user_material("Custom alloy (linked 1)").is_some());
+
+    // Switching the linked part to a built-in material also prunes the orphaned `(linked 1)` copy.
+    run(&mut part, "material.assign", json!({"bodies": ["Cube"], "material": "Steel"}));
+    run(&mut part, "file.save", json!({}));
+    run(&mut s, "component.update_links", json!({}));
+    assert_eq!(s.doc.user_materials.len(), 1);
+    assert_eq!(s.doc.user_materials[0].name, "Custom alloy");
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// PR #21663 review: user-created materials whose names contain `(linked N)` — whether unreferenced
+/// or assigned to a non-linked body — must never be pruned or consolidated by link inheritance or
+/// component deletion.
+#[test]
+fn user_created_material_with_linked_suffix_is_never_pruned_or_consolidated() {
+    let dir = folder("properties-user-linked-suffix");
+    let file = dir.join("source.solidcraft");
+    properties_part(&file, "Source alloy", Some(4.2), [12, 34, 56]);
+
+    let mut s = Session::default();
+    run(&mut s, "solid.box", json!({"length": 10, "width": 10, "height": 10, "body_name": "LocalBox"}));
+    s.doc_mut().user_materials.push(solidcraft_doc::UserMaterial {
+        name: "Workshop alloy".into(),
+        density: 4.2,
+        appearance: None,
+        physical_card: None,
+    });
+    s.doc_mut().user_materials.push(solidcraft_doc::UserMaterial {
+        name: "Workshop alloy (linked 1)".into(),
+        density: 4.2,
+        appearance: None,
+        physical_card: None,
+    });
+    s.doc_mut().user_materials.push(solidcraft_doc::UserMaterial {
+        name: "Unused authored (linked 1)".into(),
+        density: 2.5,
+        appearance: None,
+        physical_card: None,
+    });
+    run(&mut s, "material.assign", json!({"bodies": ["LocalBox"], "material": "Workshop alloy (linked 1)"}));
+
+    let c = run(&mut s, "component.insert_design", json!({"path": file}))["component"].as_u64().unwrap();
+    assert!(s.doc.user_material("Workshop alloy (linked 1)").is_some());
+    assert!(s.doc.user_material("Unused authored (linked 1)").is_some());
+    assert_eq!(s.doc.materials.get("LocalBox").map(String::as_str), Some("Workshop alloy (linked 1)"));
+
+    run(&mut s, "component.update_links", json!({}));
+    assert!(s.doc.user_material("Workshop alloy (linked 1)").is_some());
+    assert!(s.doc.user_material("Unused authored (linked 1)").is_some());
+    assert_eq!(s.doc.materials.get("LocalBox").map(String::as_str), Some("Workshop alloy (linked 1)"));
+
+    run(&mut s, "component.delete", json!({"component": c}));
+    assert!(s.doc.user_material("Workshop alloy (linked 1)").is_some());
+    assert!(s.doc.user_material("Unused authored (linked 1)").is_some());
+    assert_eq!(s.doc.materials.get("LocalBox").map(String::as_str), Some("Workshop alloy (linked 1)"));
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// PR #21663 review: a linked material whose name exceeds 64 characters and gets truncated to
+/// `P (linked 1)` must never be consolidated into an unrelated material `PA` that merely shares
+/// the 64-character prefix `P`.
+#[test]
+fn truncated_64_char_prefix_does_not_consolidate_unrelated_long_material_names() {
+    let dir = folder("properties-truncated-prefix");
+    let file = dir.join("source.solidcraft");
+    let prefix = "A".repeat(64);
+    let name_pa = format!("{prefix}A");
+    let name_pb = format!("{prefix}B");
+    properties_part(&file, &name_pb, Some(4.2), [12, 34, 56]);
+
+    let mut s = Session::default();
+    s.doc_mut().user_materials.push(solidcraft_doc::UserMaterial { name: name_pa.clone(), density: 4.2, appearance: None, physical_card: None });
+    s.doc_mut().user_materials.push(solidcraft_doc::UserMaterial { name: name_pb.clone(), density: 9.0, appearance: None, physical_card: None });
+    let c = run(&mut s, "component.insert_design", json!({"path": file}))["component"].as_u64().unwrap();
+    let p = run(&mut s, "component.properties", json!({"component": c}));
+    let assigned = p["bodies"][0]["material"].as_str().unwrap().to_string();
+    assert_eq!(assigned, format!("{prefix} (linked 1)"));
+    assert!(s.doc.user_material(&assigned).is_some());
+
+    // Editing unrelated `PA` must not affect the linked body.
+    s.doc_mut().user_materials.iter_mut().find(|m| m.name == name_pa).unwrap().density = 7.7;
+    run(&mut s, "component.update_links", json!({}));
+    let p2 = run(&mut s, "component.properties", json!({"component": c}));
+    assert_eq!(p2["bodies"][0]["material"].as_str(), Some(assigned.as_str()));
+    assert!((p2["total"]["mass_g"].as_f64().unwrap() - 4.2).abs() < 1e-6, "{p2}");
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// PR #21663 review: deleting a sub-component whose body belongs to a surviving parent Import
+/// feature removes that deleted body's material assignment and prunes its orphaned `(linked N)`
+/// material while keeping the surviving sibling body's material assignment intact.
+#[test]
+fn deleting_subcomponent_of_surviving_import_clears_its_material_and_prunes_linked_copy() {
+    let dir = folder("properties-surviving-import-delete");
+    let file = dir.join("two_bodies.solidcraft");
+    let mut part = Session::default();
+    run(&mut part, "solid.box", json!({"length": 10, "width": 10, "height": 10, "body_name": "First"}));
+    run(&mut part, "solid.box", json!({"length": 10, "width": 10, "height": 10, "corner": [20, 0, 0], "body_name": "Second"}));
+    part.doc_mut().user_materials.push(solidcraft_doc::UserMaterial {
+        name: "Custom alloy".into(),
+        density: 4.2,
+        appearance: None,
+        physical_card: None,
+    });
+    run(&mut part, "material.assign", json!({"bodies": ["First"], "material": "Custom alloy"}));
+    run(&mut part, "material.assign", json!({"bodies": ["Second"], "material": "Steel"}));
+    run(&mut part, "file.save_as", json!({"path": file}));
+
+    let mut s = Session::default();
+    s.doc_mut().user_materials.push(solidcraft_doc::UserMaterial {
+        name: "Custom alloy".into(),
+        density: 9.0,
+        appearance: None,
+        physical_card: None,
+    });
+    let parent = run(&mut s, "component.insert_design", json!({"path": file}))["component"].as_u64().unwrap();
+    assert!(s.doc.user_material("Custom alloy (linked 1)").is_some());
+
+    // Place `First` under a child component inside `parent` so deleting that child keeps the
+    // parent Import feature alive and adds `First`'s slot to `Import.skip`.
+    let child = s.doc_mut().add_component(Some("RemovedChild"), parent).unwrap();
+    s.doc_mut().body_components.insert("First".into(), child);
+    s.refresh();
+    assert_eq!(s.doc.materials.get("First").map(String::as_str), Some("Custom alloy (linked 1)"));
+    assert_eq!(s.doc.materials.get("Second").map(String::as_str), Some("Steel"));
+
+    run(&mut s, "component.delete", json!({"component": child}));
+    assert!(!s.doc.materials.contains_key("First"), "deleted imported body material must be cleared");
+    assert_eq!(s.doc.materials.get("Second").map(String::as_str), Some("Steel"), "surviving body keeps its material");
+    assert!(s.doc.user_material("Custom alloy (linked 1)").is_none(), "orphaned linked material must be pruned");
+    assert!(s.doc.user_material("Custom alloy").is_some(), "base user material stays");
+    let _ = std::fs::remove_dir_all(dir);
+}
+
 #[test]
 fn linked_design_properties_keep_distinct_names_for_equal_material_properties() {
     let dir = folder("properties-equal-density");
@@ -1153,16 +1414,23 @@ fn relink_keeps_joint_definitions_and_reports_solver_diagnostics() {
     let _ = std::fs::remove_dir_all(dir);
 }
 
-/// #12227: relinking one placement of several leaves the others on the old source. The placement
-/// shows a component linked to the new design, made once and reused for the next placement.
+/// #21536 / #21378: relinking one placement of several to a design whose bodies cannot be
+/// unambiguously matched to the copied body still names every pattern and mirror it breaks.
 #[test]
 fn relink_of_one_placement_names_the_patterns_and_mirrors_it_breaks() {
     let dir = folder("placement-copies");
-    let (original, taller) = (dir.join("original.solidcraft"), dir.join("taller.solidcraft"));
-    for (path, height, name) in [(&original, 10, "Block"), (&taller, 20, "Tall")] {
+    let (original, split) = (dir.join("original.solidcraft"), dir.join("split.solidcraft"));
+    {
         let mut part = Session::default();
-        run(&mut part, "solid.box", json!({"length": 10, "width": 10, "height": height, "corner": [0,0,0], "body_name": name}));
-        run(&mut part, "file.save", json!({"path": path}));
+        run(&mut part, "solid.box", json!({"length": 10, "width": 10, "height": 10, "corner": [0,0,0], "body_name": "Block"}));
+        run(&mut part, "file.save", json!({"path": original}));
+    }
+    {
+        // Two differently named bodies: `Block` has no unambiguous 1-to-1 match.
+        let mut part = Session::default();
+        run(&mut part, "solid.box", json!({"length": 10, "width": 10, "height": 20, "corner": [0,0,0], "body_name": "Left"}));
+        run(&mut part, "solid.box", json!({"length": 10, "width": 10, "height": 20, "corner": [30,0,0], "body_name": "Right"}));
+        run(&mut part, "file.save", json!({"path": split}));
     }
     // Two placements of one design; a body pattern and a mirror copy the body at the first.
     let relink = |which: usize| -> Vec<String> {
@@ -1172,7 +1440,7 @@ fn relink_of_one_placement_names_the_patterns_and_mirrors_it_breaks() {
         run(&mut s, "solid.pattern.rectangular", json!({"bodies": ["Block"], "dir1": [1,0,0], "count1": 2, "spacing1": 20}));
         run(&mut s, "solid.mirror", json!({"bodies": ["Block"], "plane": "YZ"}));
         let occurrence = [&first, &second][which]["occurrence"].clone();
-        let reply = run(&mut s, "component.relink", json!({"component": first["component"], "occurrence": occurrence, "path": taller}));
+        let reply = run(&mut s, "component.relink", json!({"component": first["component"], "occurrence": occurrence, "path": split}));
         reply["warnings"]
             .as_array()
             .unwrap()
@@ -1192,6 +1460,175 @@ fn relink_of_one_placement_names_the_patterns_and_mirrors_it_breaks() {
         let w = warned.iter().find(|w| w.starts_with(&format!("`{name}`"))).unwrap_or_else(|| panic!("{name}: {warned:?}"));
         assert!(w.contains("fails now: the placement `Block` was copied from no longer shows it"), "{w}");
     }
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// #21378: relinking a single placement positions the new Import feature before downstream body
+/// patterns (rectangular, circular) and mirrors and retargets them to the new part's body,
+/// preserving all patterned and mirrored copies with the new geometry and zero warnings.
+#[test]
+fn relink_of_one_placement_preserves_rectangular_circular_and_mirror_copies() {
+    let dir = folder("placement-retarget-copies");
+    let original = dir.join("original.solidcraft");
+    let renamed = dir.join("taller.solidcraft");
+    let same_name = dir.join("taller_same_name.solidcraft");
+    for (path, height, name) in [(&original, 10, "Block"), (&renamed, 20, "Tall"), (&same_name, 20, "Block")] {
+        let mut part = Session::default();
+        run(&mut part, "solid.box", json!({"length": 10, "width": 10, "height": height, "corner": [0,0,0], "body_name": name}));
+        run(&mut part, "file.save", json!({"path": path}));
+    }
+
+    for (label, replacement) in [("different body name", &renamed), ("same body name", &same_name)] {
+        let mut s = Session::default();
+        let first = run(&mut s, "component.insert_design", json!({"path": original, "reuse": true, "translate": [20, 0, 0]}));
+        let orig_comp = first["component"].as_u64().unwrap();
+        let orig_import = s.doc.links[&orig_comp].feature;
+        let first_occ = first["occurrence"].as_u64().unwrap();
+        run(&mut s, "component.insert_design", json!({"path": original, "reuse": true, "translate": [120, 0, 0]}));
+
+        let rect = run(&mut s, "solid.pattern.rectangular", json!({"bodies": ["Block"], "dir1": [0, 1, 0], "count1": 2, "spacing1": 25}));
+        let circ = run(&mut s, "solid.pattern.circular", json!({"bodies": ["Block"], "axis": "Z", "count": 3, "angle": "360 deg"}));
+        let mir = run(&mut s, "solid.mirror", json!({"bodies": ["Block"], "plane": "YZ"}));
+        let rect_id = rect["feature"].as_u64().unwrap();
+        let circ_id = circ["feature"].as_u64().unwrap();
+        let mirror_id = mir["feature"].as_u64().unwrap();
+
+        // 2 placements + 1 rectangular copy + 2 circular copies + 1 mirror copy = 6 bodies (6,000 mm³).
+        assert_eq!(s.world_state().unwrap().bodies.len(), 6, "{label}: before relink");
+        assert!((volume(&mut s) - 6000.0).abs() < 1e-3, "{label}: before volume {}", volume(&mut s));
+        let before_doc = serde_json::to_value(&*s.doc).unwrap();
+
+        let reply = run(&mut s, "component.relink", json!({"component": orig_comp, "occurrence": first_occ, "path": replacement}));
+        assert_eq!(reply["warnings"], json!([]), "{label}: expected zero warnings, got {reply}");
+        for r in &s.model.results {
+            assert!(r.error.is_none(), "{label}: `{}` failed: {:?}", r.name, r.error);
+            assert!(r.warning.is_none(), "{label}: `{}` warned: {:?}", r.name, r.warning);
+        }
+
+        // The new Import feature must sit right after the original Import and before every pattern/mirror.
+        let new_import = reply["feature"].as_u64().unwrap();
+        let orig_idx = s.doc.feature_index(orig_import).unwrap();
+        let new_idx = s.doc.feature_index(new_import).unwrap();
+        assert_eq!(new_idx, orig_idx + 1, "{label}: new import should follow original import");
+        for (name, id) in [("RectangularPattern1", rect_id), ("CircularPattern1", circ_id), ("Mirror1", mirror_id)] {
+            let consumer_idx = s.doc.feature_index(id).unwrap();
+            assert!(new_idx < consumer_idx, "{label}: new import ({new_idx}) must precede {name} ({consumer_idx})");
+        }
+
+        // Untouched placement stays 1,000 mm³; relinked placement + 4 copies each become 2,000 mm³ -> 11,000 mm³.
+        assert_eq!(s.world_state().unwrap().bodies.len(), 6, "{label}: all 6 bodies preserved");
+        assert!((volume(&mut s) - 11_000.0).abs() < 1e-3, "{label}: after volume {}", volume(&mut s));
+
+        // Undo/redo round-trip restores exact pre-relink and post-relink state.
+        run(&mut s, "edit.undo", json!({}));
+        assert_eq!(serde_json::to_value(&*s.doc).unwrap(), before_doc, "{label}: undo restores doc");
+        assert!((volume(&mut s) - 6000.0).abs() < 1e-3, "{label}: undo volume {}", volume(&mut s));
+        run(&mut s, "edit.redo", json!({}));
+        assert!((volume(&mut s) - 11_000.0).abs() < 1e-3, "{label}: redo volume {}", volume(&mut s));
+        assert!(s.model.results.iter().all(|r| r.error.is_none() && r.warning.is_none()), "{label}: redo clean");
+    }
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// #21378: relinking a placement to a design that is already linked later in the timeline moves
+/// that reused Import earlier without renumbering existing bodies, and multi-body relinks
+/// retarget matched bodies while warning about genuinely removed ones.
+#[test]
+fn relink_of_one_placement_reuses_later_link_and_handles_partial_multi_body_match() {
+    let dir = folder("placement-reuse-and-partial");
+    let original = dir.join("original.solidcraft");
+    let taller = dir.join("taller.solidcraft");
+    for (path, height, name) in [(&original, 10, "Block"), (&taller, 20, "Block")] {
+        let mut part = Session::default();
+        run(&mut part, "solid.box", json!({"length": 10, "width": 10, "height": height, "corner": [0,0,0], "body_name": name}));
+        run(&mut part, "file.save", json!({"path": path}));
+    }
+
+    // Part A: `taller` is already inserted AFTER the pattern and mirror; relinking `first` reuses
+    // that component and moves its Import feature ahead of the pattern and mirror.
+    let mut s = Session::default();
+    let first = run(&mut s, "component.insert_design", json!({"path": original, "reuse": true, "translate": [20, 0, 0]}));
+    let orig_comp = first["component"].as_u64().unwrap();
+    let first_occ = first["occurrence"].as_u64().unwrap();
+    run(&mut s, "component.insert_design", json!({"path": original, "reuse": true, "translate": [120, 0, 0]}));
+    let rect = run(&mut s, "solid.pattern.rectangular", json!({"bodies": ["Block"], "dir1": [0, 1, 0], "count1": 2, "spacing1": 25}));
+    let mir = run(&mut s, "solid.mirror", json!({"bodies": ["Block"], "plane": "YZ"}));
+    let existing = run(&mut s, "component.insert_design", json!({"path": taller, "reuse": true, "translate": [200, 0, 0]}));
+    let reused_comp = existing["component"].as_u64().unwrap();
+    let reused_import = s.doc.links[&reused_comp].feature;
+    assert!(s.doc.feature_index(reused_import).unwrap() > s.doc.feature_index(mir["feature"].as_u64().unwrap()).unwrap());
+
+    let reply = run(&mut s, "component.relink", json!({"component": orig_comp, "occurrence": first_occ, "path": taller}));
+    assert_eq!(reply["component"].as_u64(), Some(reused_comp), "existing link is reused: {reply}");
+    assert_eq!(reply["warnings"], json!([]), "{reply}");
+    assert!(s.doc.feature_index(reused_import).unwrap() < s.doc.feature_index(rect["feature"].as_u64().unwrap()).unwrap());
+    assert!(s.model.results.iter().all(|r| r.error.is_none() && r.warning.is_none()));
+    // second(1000) + first(2000) + rect copy(2000) + mirror copy(2000) + existing(2000) = 9,000 mm³.
+    assert!((volume(&mut s) - 9000.0).abs() < 1e-3, "volume {}", volume(&mut s));
+
+    // Part B: 2-body source (`Plate`, `Bolt`) relinked to 1-body target (`Plate`, taller).
+    // The pattern of `Plate` survives; the mirror of removed `Bolt` fails and warns.
+    let v1 = dir.join("multi_v1.solidcraft");
+    let v2 = dir.join("multi_v2.solidcraft");
+    {
+        let mut p = Session::default();
+        run(&mut p, "solid.box", json!({"length": 10, "width": 10, "height": 10, "corner": [0,0,0], "body_name": "Plate"}));
+        run(&mut p, "solid.box", json!({"length": 5, "width": 5, "height": 10, "corner": [20,0,0], "body_name": "Bolt"}));
+        run(&mut p, "file.save", json!({"path": v1}));
+    }
+    {
+        let mut p = Session::default();
+        run(&mut p, "solid.box", json!({"length": 10, "width": 10, "height": 20, "corner": [0,0,0], "body_name": "Plate"}));
+        run(&mut p, "file.save", json!({"path": v2}));
+    }
+    let mut m = Session::default();
+    let p_first = run(&mut m, "component.insert_design", json!({"path": v1, "reuse": true, "translate": [20, 0, 0]}));
+    let p_comp = p_first["component"].as_u64().unwrap();
+    let p_occ = p_first["occurrence"].as_u64().unwrap();
+    run(&mut m, "component.insert_design", json!({"path": v1, "reuse": true, "translate": [120, 0, 0]}));
+    let plate_pat = run(&mut m, "solid.pattern.rectangular", json!({"bodies": ["Plate"], "dir1": [0, 1, 0], "count1": 2, "spacing1": 25}));
+    let bolt_mir = run(&mut m, "solid.mirror", json!({"bodies": ["Bolt"], "plane": "YZ"}));
+    let reply = run(&mut m, "component.relink", json!({"component": p_comp, "occurrence": p_occ, "path": v2}));
+    assert!(m.model.result(plate_pat["feature"].as_u64().unwrap()).unwrap().error.is_none(), "Plate pattern must survive");
+    assert!(m.model.result(bolt_mir["feature"].as_u64().unwrap()).unwrap().error.is_some(), "Bolt mirror must fail");
+    let warned: Vec<&str> = reply["warnings"].as_array().unwrap().iter().filter_map(Value::as_str).collect();
+    assert_eq!(warned.len(), 1, "{warned:?}");
+    assert!(
+        warned[0].starts_with("`Mirror1`") && warned[0].contains("fails now: the placement `Bolt` was copied from no longer shows it"),
+        "{warned:?}"
+    );
+    // Surviving volume: untouched v1 (1000 + 250) + relinked v2 Plate (2000) + Plate pattern copy (2000) = 5,250 mm³.
+    assert!((volume(&mut m) - 5250.0).abs() < 1e-3, "volume {}", volume(&mut m));
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// #21378: inserting the replacement Import feature before a pattern inside a timeline folder
+/// keeps every timeline folder contiguous.
+#[test]
+fn relink_of_one_placement_keeps_timeline_groups_contiguous_and_patterns_intact() {
+    let dir = folder("placement-timeline-group");
+    let (original, taller) = (dir.join("original.solidcraft"), dir.join("taller.solidcraft"));
+    for (path, height, name) in [(&original, 10, "Block"), (&taller, 20, "Tall")] {
+        let mut part = Session::default();
+        run(&mut part, "solid.box", json!({"length": 10, "width": 10, "height": height, "corner": [0,0,0], "body_name": name}));
+        run(&mut part, "file.save", json!({"path": path}));
+    }
+    let mut s = Session::default();
+    let first = run(&mut s, "component.insert_design", json!({"path": original, "reuse": true}));
+    let orig_comp = first["component"].as_u64().unwrap();
+    let orig_import = s.doc.links[&orig_comp].feature;
+    let first_occ = first["occurrence"].as_u64().unwrap();
+    run(&mut s, "component.insert_design", json!({"path": original, "reuse": true, "translate": [100, 0, 0]}));
+    let rect = run(&mut s, "solid.pattern.rectangular", json!({"bodies": ["Block"], "dir1": [0, 1, 0], "count1": 2, "spacing1": 25}));
+    let rect_id = rect["feature"].as_u64().unwrap();
+    run(&mut s, "timeline.group", json!({"name": "Parts", "features": [orig_import, rect_id]}));
+
+    let reply = run(&mut s, "component.relink", json!({"component": orig_comp, "occurrence": first_occ, "path": taller}));
+    assert_eq!(reply["warnings"], json!([]), "{reply}");
+    assert_eq!(solidcraft_doc::non_contiguous_timeline_group(&s.doc.features, &s.doc.timeline_groups), None);
+    assert!(s.model.results.iter().all(|r| r.error.is_none() && r.warning.is_none()));
+    // untouched(1000) + relinked(2000) + pattern copy(2000) = 5,000 mm³.
+    assert!((volume(&mut s) - 5000.0).abs() < 1e-3, "volume {}", volume(&mut s));
     let _ = std::fs::remove_dir_all(dir);
 }
 
@@ -1289,6 +1726,66 @@ fn relink_of_one_placement_moves_its_joints_to_the_same_faces() {
     // The copy is the same design, so the same face comes at the same place in the new body.
     assert_eq!(moved, names[index], "{moved} is not the face that was {face}: {names:?}");
     let _ = std::fs::remove_dir_all(dir);
+}
+
+/// A saved design of boxes, one per name, side by side.
+fn named_parts(path: &Path, names: &[&str]) {
+    let mut s = Session::default();
+    for (i, name) in names.iter().enumerate() {
+        run(&mut s, "solid.box", json!({"length": 10, "width": 10, "height": 10, "body_name": name, "corner": [i as f64 * 30.0, 0, 0]}));
+    }
+    run(&mut s, "file.save", json!({"path": path}));
+}
+
+fn linked_names(s: &Session, component: u64) -> Vec<String> {
+    s.model.state().bodies.iter().filter(|b| b.component == component).map(|b| b.name.clone()).collect()
+}
+
+/// #16711: a relink to a source that names its body differently keeps the names by default,
+/// and takes the new source's with `names: "sync"`, with what other features and the design keep
+/// under the old name.
+#[test]
+fn relink_keeps_body_names_by_default_and_syncs_them_on_request() {
+    let dir = folder("names");
+    let (a, b) = (dir.join("a.solidcraft"), dir.join("b.solidcraft"));
+    named_parts(&a, &["Body_A"]);
+    named_parts(&b, &["Body_B"]);
+    let mut s = Session::default();
+    let component = run(&mut s, "component.insert_design", json!({"path": a}))["component"].as_u64().unwrap();
+    run(&mut s, "material.assign", json!({"bodies": ["Body_A"], "material": "Steel"}));
+    run(&mut s, "component.relink", json!({"component": component, "path": b}));
+    assert_eq!(linked_names(&s, component), ["Body_A"], "the default keeps the names");
+    run(&mut s, "edit.undo", json!({}));
+    run(&mut s, "component.relink", json!({"component": component, "path": b, "names": "keep"}));
+    assert_eq!(linked_names(&s, component), ["Body_A"]);
+    run(&mut s, "edit.undo", json!({}));
+    let undo = s.undo.len();
+    run(&mut s, "component.relink", json!({"component": component, "path": b, "names": "sync"}));
+    assert_eq!(linked_names(&s, component), ["Body_B"]);
+    assert_eq!(s.doc.body_material("Body_B"), "Steel", "what was kept under the old name follows the body");
+    assert_eq!(s.undo.len(), undo + 1, "one undo step");
+    assert!(s.execute("component.relink", &json!({"component": component, "path": a, "names": "both"})).is_err());
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(linked_names(&s, component), ["Body_A"]);
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// `keep` is what relinking always did: the names are replaced when the body count changes.
+/// `sync` takes the new source's names whatever the count.
+#[test]
+fn relink_names_when_the_body_count_changes() {
+    let dir = folder("names-count");
+    let (one, two) = (dir.join("one.solidcraft"), dir.join("two.solidcraft"));
+    named_parts(&one, &["Body_A"]);
+    named_parts(&two, &["Body_B", "Extra"]);
+    let mut s = Session::default();
+    let component = run(&mut s, "component.insert_design", json!({"path": one}))["component"].as_u64().unwrap();
+    run(&mut s, "component.relink", json!({"component": component, "path": two}));
+    assert_eq!(linked_names(&s, component), ["Body_B", "Extra"]);
+    run(&mut s, "component.relink", json!({"component": component, "path": one, "names": "keep"}));
+    assert_eq!(linked_names(&s, component), ["Body_A"]);
+    run(&mut s, "component.relink", json!({"component": component, "path": two, "names": "sync"}));
+    assert_eq!(linked_names(&s, component), ["Body_B", "Extra"]);
 }
 
 fn configured_part(path: &Path) -> (Session, u64, u64) {
@@ -2540,4 +3037,181 @@ fn a_collision_shape_survives_a_link_update() {
     run(&mut part, "file.save", json!({}));
     assert_eq!(run(&mut s, "component.update_links", json!({}))["updated"].as_array().unwrap().len(), 1);
     assert_eq!(s.doc.collision_shapes, before);
+}
+
+/// When `component.relink` binds an existing carried face name to an opposite/incompatible face
+/// on the replacement design, `component.relink` reports the per-joint frame deviation, flags the
+/// incompatible re-binding in `joint_errors` and `warnings`, and reports the moved occurrence.
+#[test]
+fn relink_reports_incompatible_face_rebinding_and_occurrence_displacement() {
+    let dir = folder("relink-incompatible-face");
+    let frame_v1 = dir.join("base_frame_v1.sc");
+    let frame_v2 = dir.join("base_frame_v2.sc");
+    let slide = dir.join("slide_block.sc");
+
+    let mut v1 = Session::default();
+    run(&mut v1, "solid.box", json!({"length": 100, "width": 40, "height": 20, "corner": [0, 0, 0], "body_name": "BaseFrame"}));
+    run(&mut v1, "file.save", json!({"path": frame_v1}));
+
+    // Same box history rotated 180 deg around Z at its centre so the carried face name that was
+    // the +X end face (normal +X, x = 100) lands on the -X end face (normal -X, x = 0).
+    let mut v2 = Session::default();
+    run(&mut v2, "solid.box", json!({"length": 100, "width": 40, "height": 22, "corner": [0, 0, 0], "body_name": "BaseFrame"}));
+    run(&mut v2, "solid.move", json!({"bodies": ["BaseFrame"], "axis": [0, 0, 1], "angle": "180 deg", "origin": [50, 20, 0]}));
+    run(&mut v2, "file.save", json!({"path": frame_v2}));
+
+    let mut blk = Session::default();
+    run(&mut blk, "solid.box", json!({"length": 20, "width": 20, "height": 20, "corner": [0, 0, 0], "body_name": "SlideBlock"}));
+    run(&mut blk, "file.save", json!({"path": slide}));
+
+    let mut asm = Session::default();
+    let frame = run(&mut asm, "component.insert_design", json!({"path": frame_v1, "name": "BaseFrame"}));
+    let frame_comp = frame["component"].as_u64().unwrap();
+    let frame_occ = frame["occurrence"].as_u64().unwrap();
+    run(&mut asm, "occurrence.ground", json!({"occurrence": frame_occ, "grounded": true}));
+
+    let block = run(&mut asm, "component.insert_design", json!({"path": slide, "name": "SlideBlock"}));
+    let block_occ = block["occurrence"].as_u64().unwrap();
+    run(&mut asm, "occurrence.ground", json!({"occurrence": block_occ, "grounded": false}));
+
+    let created = run(
+        &mut asm,
+        "joint.create",
+        json!({
+            "name": "EndJoint",
+            "type": "rigid",
+            "a": {"occurrence": frame_occ, "face": [100, 20, 10]},
+            "b": {"occurrence": block_occ, "face": [0, 10, 10]}
+        }),
+    );
+    assert_eq!(created["errors"], json!([]), "{created}");
+
+    let result = run(&mut asm, "component.relink", json!({"component": frame_comp, "path": frame_v2}));
+    assert_eq!(result["geometry_changed"], true, "{result}");
+
+    let devs = result["joint_deviations"].as_array().unwrap();
+    let dev = devs.iter().find(|d| d["name"] == "EndJoint").unwrap_or_else(|| panic!("expected EndJoint deviation: {result}"));
+    assert_eq!(dev["side"], "a", "{dev}");
+    assert!(dev["face"].as_str().is_some_and(|f| f.contains(":link:")), "{dev}");
+    assert!(dev["origin_shift_mm"].as_f64().unwrap() > 99.0, "{dev}");
+    assert!(dev["normal_angle_deg"].as_f64().unwrap() > 179.0, "{dev}");
+    assert_eq!(dev["incompatible"], true, "{dev}");
+
+    let errs = result["joint_errors"].as_array().unwrap();
+    assert!(errs.iter().any(|e| e["name"] == "EndJoint" && e["why"].as_str().is_some_and(|w| w.contains("incompatible face"))), "{result}");
+
+    let moved = result["moved_occurrences"].as_array().unwrap();
+    let occ = moved.iter().find(|m| m["occurrence"] == block_occ).unwrap_or_else(|| panic!("expected moved SlideBlock: {result}"));
+    assert!(occ["translation_mm"].as_f64().unwrap() > 50.0, "{occ}");
+    assert!(occ["rotation_deg"].as_f64().unwrap() > 179.0, "{occ}");
+
+    let warnings = result["warnings"].as_array().unwrap();
+    assert!(warnings.iter().any(|w| w.as_str().is_some_and(|s| s.contains("EndJoint") && s.contains("incompatible face"))), "{result}");
+    assert!(warnings.iter().any(|w| w.as_str().is_some_and(|s| s.contains("SlideBlock") && s.contains("moved by"))), "{result}");
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// A legitimate resize that shifts a mated face parallel to itself reports the deviation and
+/// occurrence move without flagging an incompatible face error.
+#[test]
+fn relink_reports_mild_face_shift_without_flagging_incompatible() {
+    let dir = folder("relink-mild-shift");
+    let plate_short = dir.join("mount_plate_short.sc");
+    let plate_tall = dir.join("mount_plate_tall.sc");
+    let cap_file = dir.join("cap_block.sc");
+
+    part(&plate_short, 30);
+    part(&plate_tall, 45);
+    part(&cap_file, 10);
+
+    let mut asm = Session::default();
+    let plate = run(&mut asm, "component.insert_design", json!({"path": plate_short, "name": "MountPlate"}));
+    let plate_comp = plate["component"].as_u64().unwrap();
+    let plate_occ = plate["occurrence"].as_u64().unwrap();
+    run(&mut asm, "occurrence.ground", json!({"occurrence": plate_occ, "grounded": true}));
+
+    let cap = run(&mut asm, "component.insert_design", json!({"path": cap_file, "name": "CapBlock"}));
+    let cap_occ = cap["occurrence"].as_u64().unwrap();
+    run(&mut asm, "occurrence.ground", json!({"occurrence": cap_occ, "grounded": false}));
+
+    let created = run(
+        &mut asm,
+        "joint.create",
+        json!({
+            "name": "TopMount",
+            "type": "rigid",
+            "a": {"occurrence": plate_occ, "face": [5, 10, 30]},
+            "b": {"occurrence": cap_occ, "face": [5, 10, 0]}
+        }),
+    );
+    assert_eq!(created["errors"], json!([]), "{created}");
+
+    let result = run(&mut asm, "component.relink", json!({"component": plate_comp, "path": plate_tall}));
+    assert_eq!(result["joint_errors"], json!([]), "{result}");
+    assert_eq!(result["joint_conflicts"], json!([]), "{result}");
+
+    let devs = result["joint_deviations"].as_array().unwrap();
+    let dev = devs.iter().find(|d| d["name"] == "TopMount").unwrap_or_else(|| panic!("expected TopMount deviation: {result}"));
+    assert!((dev["origin_shift_mm"].as_f64().unwrap() - 15.0).abs() < 1e-3, "{dev}");
+    assert!(dev["normal_angle_deg"].as_f64().unwrap() < 1e-3, "{dev}");
+    assert_eq!(dev["incompatible"], false, "{dev}");
+
+    let moved = result["moved_occurrences"].as_array().unwrap();
+    let occ = moved.iter().find(|m| m["occurrence"] == cap_occ).unwrap_or_else(|| panic!("expected moved CapBlock: {result}"));
+    assert!((occ["translation_mm"].as_f64().unwrap() - 15.0).abs() < 1e-3, "{occ}");
+    assert!(occ["rotation_deg"].as_f64().unwrap() < 1e-3, "{occ}");
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// Single-placement relink must not silently re-bind a joint face via geometric proximity onto an
+/// opposite-normal face sitting on the same plane.
+#[test]
+fn relink_placement_refuses_incompatible_face_fallback() {
+    let dir = folder("relink-placement-opposite-face");
+    let block_v1 = dir.join("mount_block_v1.sc");
+    let block_v2 = dir.join("mount_block_v2.sc");
+    let cap_file = dir.join("cap_block.sc");
+
+    let mut v1 = Session::default();
+    run(&mut v1, "solid.box", json!({"length": 100, "width": 40, "height": 20, "corner": [0, 0, 0], "body_name": "MountBlock"}));
+    run(&mut v1, "file.save", json!({"path": block_v1}));
+
+    // Shifted up by 20 mm so its bottom (-Z) face lies on z = 20 where v1's top (+Z) face was.
+    let mut v2 = Session::default();
+    run(&mut v2, "solid.box", json!({"length": 100, "width": 40, "height": 20, "corner": [0, 0, 20], "body_name": "MountBlock"}));
+    run(&mut v2, "file.save", json!({"path": block_v2}));
+
+    part(&cap_file, 10);
+
+    let mut asm = Session::default();
+    let inserted = run(&mut asm, "component.insert_design", json!({"path": block_v1, "name": "MountBlock"}));
+    let comp = inserted["component"].as_u64().unwrap();
+    let first = inserted["occurrence"].as_u64().unwrap();
+    let second = run(&mut asm, "occurrence.copy", json!({"occurrence": first, "translate": [200, 0, 0]}))["occurrence"].as_u64().unwrap();
+    run(&mut asm, "occurrence.ground", json!({"occurrence": second, "grounded": true}));
+
+    let cap = run(&mut asm, "component.insert_design", json!({"path": cap_file, "name": "CapBlock"}));
+    let cap_occ = cap["occurrence"].as_u64().unwrap();
+    run(&mut asm, "occurrence.ground", json!({"occurrence": cap_occ, "grounded": false}));
+
+    let created = run(
+        &mut asm,
+        "joint.create",
+        json!({
+            "name": "TopSeat",
+            "type": "rigid",
+            "a": {"occurrence": second, "face": [250, 20, 20]},
+            "b": {"occurrence": cap_occ, "face": [5, 10, 0]}
+        }),
+    );
+    assert_eq!(created["errors"], json!([]), "{created}");
+
+    let result = run(&mut asm, "component.relink", json!({"component": comp, "occurrence": second, "path": block_v2}));
+    let errs = result["joint_errors"].as_array().unwrap();
+    assert!(
+        errs.iter().any(|e| e["name"] == "TopSeat" && e["why"].as_str().is_some_and(|w| w.contains("no longer exists"))),
+        "expected TopSeat to fail instead of rebinding to opposite-normal face: {result}"
+    );
+    assert_eq!(result["moved_occurrences"], json!([]), "failed joint must not move CapBlock: {result}");
+    let _ = std::fs::remove_dir_all(dir);
 }

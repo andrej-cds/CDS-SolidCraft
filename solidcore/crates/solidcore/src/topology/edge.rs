@@ -2252,15 +2252,23 @@ fn is_topological_with(
             approx_tol = gain.plane(half_min);
         }
 
-        // See if this surface can 'cover' the part of the other surface that its face uses
-        let (dist, keep, merged) =
-            match cover_other_coincident_face(k, b, face1, face2_, approx_tol, false) {
-                Ok(r) => r,
-                Err(err) => {
-                    failed(err)?;
-                    return Ok(out);
-                }
-            };
+        // See if this surface can 'cover' the part of the other surface that its face uses.
+        // Not upstream (tangency-labs/solidcore#3399): a test that grows no tolerance fits the
+        // trims it builds for the faces' domains tightly where a loose fit would raise an edge
+        // (`Caches::refit_raising_trims`).
+        let refit = k
+            .caches
+            .refit_raising_trims
+            .replace(matches!(gain, CoverTolerance::NoGrowth));
+        let covered = cover_other_coincident_face(k, b, face1, face2_, approx_tol, false);
+        k.caches.refit_raising_trims.set(refit);
+        let (dist, keep, merged) = match covered {
+            Ok(r) => r,
+            Err(err) => {
+                failed(err)?;
+                return Ok(out);
+            }
+        };
         out.dist_between = dist;
         out.surf_to_keep = keep;
         if keep.is_none() {
@@ -2840,6 +2848,27 @@ pub(crate) fn with_object_context<T>(
 /// [`SolidError::NotFound`] for a dangling id; those of the notification's
 /// [`SolidError::Unported`] and of `ClearAttributes`.
 pub fn destroy(k: &mut Kernel, b: &mut Brep, e: EdgeId, env: &mut NotifyEnv<'_>) -> Result<()> {
+    destroy_in(k, b, e, env, true)
+}
+
+/// [`destroy`] without removing `e` from `b.edge_list`; the caller must call
+/// `Brep::retain_edge_list` once the batch finishes.
+pub(crate) fn destroy_unlisted(
+    k: &mut Kernel,
+    b: &mut Brep,
+    e: EdgeId,
+    env: &mut NotifyEnv<'_>,
+) -> Result<()> {
+    destroy_in(k, b, e, env, false)
+}
+
+fn destroy_in(
+    k: &mut Kernel,
+    b: &mut Brep,
+    e: EdgeId,
+    env: &mut NotifyEnv<'_>,
+    unlink_list: bool,
+) -> Result<()> {
     b.edge(e)?;
     let this = (env.key_of)(EntityRef::Edge(e));
     let notified = with_object_context(k, env, |n| {
@@ -2862,7 +2891,11 @@ pub fn destroy(k: &mut Kernel, b: &mut Brep, e: EdgeId, env: &mut NotifyEnv<'_>)
         notified
     });
     notified?;
-    b.remove_edge_record(e)?;
+    if unlink_list {
+        b.remove_edge_record(e)?;
+    } else {
+        b.remove_edge_record_unlisted(e)?;
+    }
     env.attributes.clear_attributes(this.key)
 }
 

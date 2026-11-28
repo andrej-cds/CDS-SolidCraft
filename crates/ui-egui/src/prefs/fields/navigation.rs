@@ -19,6 +19,10 @@ macro_rules! navigation_preferences {
             /// Opt in to rotation through both poles with roll, without the Shift axis-snap spring.
             /// Independent of mouse bindings; false also preserves existing saved presets' behavior.
             free_orbit: bool = false, PAGE_NAVIGATION;
+            /// A key that, held when a mouse orbit drag starts, makes that drag the other orbit style:
+            /// free where the orbit is turntable, turntable where `free_orbit` is on (#20917). `none`
+            /// (default), `alt` or `ctrl`. A key the mouse mapping already needs for that orbit does nothing.
+            free_orbit_key: String = "none".into(), PAGE_NAVIGATION;
             /// With free orbit, mouse drags turn sideways about the world's up axis (a turntable without
             /// the pole limit) instead of the screen's.
             free_orbit_upright: bool = false, PAGE_NAVIGATION => check_tr("nav.free_orbit_upright.label");
@@ -71,14 +75,17 @@ macro_rules! navigation_preferences {
             navigator_style: NavigatorStyle = NavigatorStyle::default(), PAGE_NAVIGATION;
             /// The custom view gizmo's colours: the theme's (themed) or the body's own (modeled).
             navigator_texture: NavigatorTexture = NavigatorTexture::default(), PAGE_NAVIGATION;
+            /// Show the axes navigator's half-turn button; disabling it restores the previous layout.
+            navigator_turn_around: bool = true, PAGE_NAVIGATION;
             /// What an orbit turns around.
             orbit_around: OrbitAround = OrbitAround::default(), PAGE_NAVIGATION;
             /// The cursor preference as releases before the origin option saved it (`true` = the point
             /// under the cursor). [`migrate`] folds it into `orbit_around` when saved preferences are
             /// read, so an existing choice survives the upgrade; this version only writes `false`.
             orbit_cursor: bool = false, PAGE_NAVIGATION;
-            /// An orbit drag that reaches the edge of the view moves the cursor to the opposite edge and
-            /// keeps turning; false stops the drag at the edge of the screen, as before.
+            /// An orbit drag that reaches the edge of the view, or a drag on a value row's label that
+            /// reaches the edge of the window (#22495), moves the cursor to the opposite edge and keeps
+            /// going; false stops the drag at the edge of the screen, as before.
             orbit_cursor_wrap: bool = true, PAGE_NAVIGATION => check_tr("nav.orbit_cursor_wrap.label");
             /// Shift with two-finger trackpad scrolling orbits the view the other way, both ways at once,
             /// as natural scrolling turns it (#8410).
@@ -94,6 +101,12 @@ macro_rules! navigation_preferences {
             radial_context_menu: bool = false, PAGE_NAVIGATION => check("Radial context menu");
             /// Off: a right drag that the mouse mapping would orbit leaves the camera alone (#6492).
             right_drag_orbits: bool = true, PAGE_NAVIGATION => check_tr("nav.right_drag_orbits.label");
+            /// A key that, held when a mouse orbit drag starts, makes that drag roll the view about
+            /// the line of sight through the orbit point instead, as far as the pointer goes around
+            /// that point, like a dial (#22691). `none` (default), `alt` or `ctrl`; while it is the same
+            /// key as `free_orbit_key`, that one wins and this does nothing. A key the mouse mapping
+            /// already needs for that orbit does nothing.
+            roll_key: String = "none".into(), PAGE_NAVIGATION;
             /// The screen's visible width in millimetres for the 1:1 view (CDS); 0 reads it from the monitor.
             screen_width_mm: f32 = 0.0, PAGE_NAVIGATION, accept(0.0..=3000.0) => slider("ui.screen_width_mm", 0.0..=1500.0, 1.0, |v| if v <= 0.0 { solidcraft_ui_text::tr("ui.screen_width_auto").to_string() } else { format!("{v:.0} mm") }, "prefs:screen_width_mm");
             /// Spread discrete wheel input across frames (off: apply each event immediately).
@@ -102,6 +115,9 @@ macro_rules! navigation_preferences {
             touchscreen_navigation: bool = false, PAGE_NAVIGATION => check_tr("nav.touchscreen.label");
             /// Two-finger trackpad scroll pans (off: it zooms like the wheel); pinch always zooms.
             trackpad_pan: bool = true, PAGE_NAVIGATION;
+            /// With the two-finger twist on, it rolls the view about the line of sight through the
+            /// Orbit around point instead of turning it about the up axis, so it rolls in every view (#22691).
+            trackpad_twist_rolls: bool = false, PAGE_NAVIGATION => check_id_help("prefs.trackpad_twist_rolls", "prefs.trackpad_twist_rolls_tip");
             /// A two-finger twist on the trackpad turns the view about the world's up axis (#6286). Off
             /// by default: the twist does nothing, as before.
             trackpad_twist_turns: bool = false, PAGE_NAVIGATION => check_id_help("prefs.trackpad_twist_turns", "prefs.trackpad_twist_turns_tip");
