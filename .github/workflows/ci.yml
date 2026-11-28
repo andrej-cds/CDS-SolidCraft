@@ -878,12 +878,13 @@ jobs:
     # CDS fork: the free GitHub runner has 4 cores and no persistent compiler cache, so a full
     # build and the slow engine tests need far longer than upstream's 60 minutes on 32 cores.
     timeout-minutes: 340
-    # CDS fork: six shards (`--partition count:N/6`, two test threads each), each building the workspace and running a
-    # sixth of the tests, because one job running all of them lost its runner after 80 minutes.
+    # CDS fork: two shards (`--partition count:N/2`, two test threads each). They test only the packages the
+    # fork changes (the interface, theme, icons, app) and the engine's print, material and bill-of-materials
+    # tests; the kernel and the rest of the engine are upstream's own, tested there (decided 28.11.2026).
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2]
     env:
       # Pictures (snapshots, screenshots, ui.render, the viewport's offscreen tests) are drawn on
       # the GPU. The runner has none: Mesa's lavapipe (software Vulkan) draws them, and a test that
@@ -1032,9 +1033,13 @@ jobs:
           # (tests/KNOWN_FAILING_TESTS) may fail, any other fails it, and so does a listed test
           # that passes. nextest's exit code 100 is "tests failed"; any other is its own error
           # (a build error, a bad filter) and fails the step at once.
+          # CDS fork: only the fork's own packages, library tests only, and from the engine just
+          # the tests of what the fork changed (print tools, materials, bill of materials).
+          scope=(-p solidcraft-ui-egui -p solidcraft-ui-kit -p solidcraft-theme -p solidcraft-look -p solidcraft-io -p solidcraft -p solidcraft-engine --lib)
+          base="($base) & (not package(=solidcraft-engine) | test(/print3d|material|bom|inspect/))"
           status=0
           cargo nextest run "${scope[@]}" --cargo-profile ci --locked --profile ci --no-tests=pass \
-            --ignore-default-filter -E "($base) & not ($excluded)" --test-threads 2 --partition "count:$SHARD/6" || status=$?
+            --ignore-default-filter -E "($base) & not ($excluded)" --test-threads 2 --partition "count:$SHARD/2" || status=$?
           if [ "$status" -ne 0 ] && [ "$status" -ne 100 ]; then exit "$status"; fi
           cargo xtask known-failing --junit "$junit"
       # Every command label needs an English catalog entry (#8542). The label table is the CLI's
@@ -1053,16 +1058,8 @@ jobs:
           WARM_DISK: ${{ steps.target.outputs.warm }}
         run: |
           cli="${CARGO_TARGET_DIR:-target}/ci/solidcraft-cli"
-          if [ "$FULL" != true ] && [ "$WARM_DISK" != true ]; then
-            case " $PACKAGES " in
-              *" solidcraft-cli "*|*" solidcraft-ui-egui "*|*" xtask "*) ;;
-              *) echo "No package that feeds the command table changed."; exit 0 ;;
-            esac
-            case " $PACKAGES " in
-              *" solidcraft-cli "*) ;;
-              *) cargo build -p solidcraft-cli --profile ci --locked ;;
-            esac
-          fi
+          # CDS fork: the tests above no longer build the whole workspace, so build the CLI here.
+          [ -x "$cli" ] || cargo build -p solidcraft-cli --profile ci --locked
           cargo xtask i18n --check --cli "$cli"
       # The Python client's bindings and tests (Select checks' `python`), against the CLI the test
       # build made: about 15 seconds. Built here only when the build above did not make it.
