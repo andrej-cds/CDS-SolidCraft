@@ -338,7 +338,8 @@ jobs:
     if: needs.version.outputs.build == 'true'
     # There are no FreeBSD runners: build in a FreeBSD 14.3 VM (Blacksmith's x64 runners have KVM).
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    # CDS fork: with one compile job in the VM the 0.51 build needs more than the old 180 minutes.
+    timeout-minutes: 345
     env:
       SOLIDCRAFT_VERSION: ${{ needs.version.outputs.version }}
       SOLIDCRAFT_BUILD_DATE: ${{ needs.version.outputs.date }}
