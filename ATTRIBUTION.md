@@ -1131,6 +1131,89 @@ Original SolidCraft drawings, Open for owner review; no runtime assignments.
 | docs/screenshots/timeline-2d-icon-in-2d-light.png | SolidCraft contributors | screenshot of SolidCraft itself: the 2D Timeline's header in the light theme, with the 1D view switch | MIT OR Apache-2.0 |
 | docs/screenshots/timeline-2d-icon-in-1d-dark.png | SolidCraft contributors | screenshot of SolidCraft itself: the 1D History's right end in the dark theme: the 2D view switch (three component rows, one blue step) and the menu | MIT OR Apache-2.0 |
 | docs/screenshots/timeline-2d-icon-in-1d-light.png | SolidCraft contributors | screenshot of SolidCraft itself: the 1D History's right end in the light theme, with the 2D view switch | MIT OR Apache-2.0 |
+| assets/locales/pending/agent-chat-export.json | SolidCraft contributors | Original Assistant conversation export strings and translations | MIT OR Apache-2.0 |
+| assets/locales/pending/agent-chat-service-tier.json | SolidCraft contributors | Original Assistant service tier labels and translations | MIT OR Apache-2.0 |
+| assets/locales/pending/assistant-model-changes.json | SolidCraft contributors | Original Assistant model-change labels and translations | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/dogbone.svg | SolidCraft contributors | two-tone modelling icon master (64 grid), original SolidCraft artwork | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| assets/locales/pending/dogbone.json | SolidCraft contributors | Original Dogbone command strings and translations | MIT OR Apache-2.0 |
+| assets/platforms/windows/solidcraft-registry.wxi | PhotoCraft / SolidCraft contributors | PhotoCraft packaging templates (https://github.com/storytold/photocraft), adapted for SolidCraft (split out of solidcraft.wxs) | Apache-2.0 |
+| assets/locales/pending/plugin-optional-capability-review.json | SolidCraft contributors | Original optional capability review labels and translations | MIT OR Apache-2.0 |
+| tests/step-regressions/bent_strip_micrometre_cuts.step | SolidCraft contributors | written by SolidCraft from the commands of #22579 (a bent strip with two micrometre cuts, exported); import regression fixture | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/flat/swap.svg | SolidCraft contributors | original icon master (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/corner_join.svg | SolidCraft contributors | original icon master (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/sheet_corner_butt.svg | SolidCraft contributors | original icon master (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/sheet_corner_overlap.svg | SolidCraft contributors | original icon master (64 grid) | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/model/sheet_corner_overlap_flipped.svg | SolidCraft contributors | original icon master (64 grid) | MIT OR Apache-2.0 |
+| assets/locales/pending/svg-insert-simplify-auto.json | SolidCraft contributors | Original Insert SVG/DXF Simplify Auto tip strings and translations | MIT OR Apache-2.0 |
+| crates/look/icons/design/svg/flat/weld_both_sides.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_corner_mitre.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_corner_wrap.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_end_rounded.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_end_square.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_end_tapered.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_extent_chain.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_extent_staggered.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_face_blended.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_face_concave.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_face_convex.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_face_flat.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_flag_all_around.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_flag_field.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_flag_tack.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_flip_side.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_show_passes.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_show_penetration.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_show_section.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_tangent_chain.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/flat/weld_tint_concave.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_backing_run.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_convert.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_define.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_folder.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_folder_tack.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_groove_bevel.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_groove_hy.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_groove_j.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_groove_k.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_groove_square.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_groove_u.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_groove_v.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_groove_x.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_groove_y.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_new_bead.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_state_clash.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_state_lost_reference.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_state_no_mass.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_state_tight.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_symbol.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_bead_line.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_cold_pressure.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_diffusion.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_edge.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_explosion.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_fillet.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_flanged_butt.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_flanged_corner.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_friction.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_friction_stir.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_fusion_seam.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_fusion_spot.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_groove.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_groove_fillet.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_magnetic_pulse.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_overlay.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_plug_slot.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_projection.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_resistance_seam.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_root_gap.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_seam_only.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_sheet_rip.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_spot.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_stake.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_stud.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| crates/look/icons/design/svg/model/weld_type_ultrasonic.svg | Nathan-Dane | original icon master (64 grid) | SolidCraft Brand and Interface Licence (LICENSE-BRAND) |
+| assets/platforms/linux/io.tangencylabs.solidcraft.workshop-links.desktop | SolidCraft contributors | Written for SolidCraft | Apache-2.0 |
 
 ## Code adapted from sibling projects
 

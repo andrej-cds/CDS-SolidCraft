@@ -2436,6 +2436,7 @@
   "parameters.held": "{count} modifiche in attesa di Applica",
   "parameters.held_hint": "Modifica espressioni e unità. Le modifiche restano in attesa di Applica o OK.",
   "parameters.held_one": "1 modifica in attesa di Applica",
+  "parameters.redesign.other_uses": "Altri usi",
   "parts.automatic_name": "automatico",
   "parts.dimension.across_flats": "Apertura chiave",
   "parts.dimension.bore": "Foro",
