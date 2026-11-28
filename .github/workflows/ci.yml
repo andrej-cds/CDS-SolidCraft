@@ -914,7 +914,7 @@ jobs:
       - name: Install a software Vulkan driver (lavapipe)
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends mesa-vulkan-drivers libvulkan1
+          sudo apt-get install -y --no-install-recommends mesa-vulkan-drivers libvulkan1 libgl1-mesa-dri libegl1 libegl-mesa0
       # CDS fork: shards 1, 3, 4 and 6 lost their runner ("runner lost communication", no failed
       # test) 12 to 90 minutes in; the same build on an 18 GB VM was killed for memory. Swap on the
       # runner's large /mnt disk lets a memory peak slow the job down instead of freezing the runner.
@@ -1127,7 +1127,7 @@ jobs:
       - name: Install a software Vulkan driver (lavapipe)
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends mesa-vulkan-drivers libvulkan1
+          sudo apt-get install -y --no-install-recommends mesa-vulkan-drivers libvulkan1 libgl1-mesa-dri libegl1 libegl-mesa0
       - name: Size parallel compiles to the job's memory
         run: scripts/ci/build-jobs.sh
       - uses: dtolnay/rust-toolchain@1.99.1

@@ -587,7 +587,10 @@ mod tests {
                 for name in ["surface", "form", "mesh", "sketch"] {
                     let accent = icon_svg::accent_index(name).unwrap_or_else(|| panic!("accent {name}"));
                     let image = band(source, look(Some(accent)), 240).unwrap_or_else(|| panic!("{id}: no band"));
-                    assert_ne!(image.pixels, blue.pixels, "{id}: the {name} accent changes the colours");
+                    // CDS fork: the workspace accent is gold, and so are the Sketch and Sheet Metal accents.
+                    if !matches!(name, "sketch" | "sheet") {
+                        assert_ne!(image.pixels, blue.pixels, "{id}: the {name} accent changes the colours");
+                    }
                     assert_eq!(alpha(&image), alpha(&blue), "{id}: the {name} accent keeps the shape");
                 }
             }

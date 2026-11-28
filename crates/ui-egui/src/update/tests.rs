@@ -899,6 +899,8 @@ fn the_update_chip_matches_the_link_chips_in_both_layouts() {
     let (feed, _) = next_release_feed(&dir.0);
     let mut h = crate::scenario::Harness::new();
     h.app.updater.feed = Some(feed);
+    h.app.preferences.show_donate_button = true; // CDS: both are off by default
+    h.app.preferences.show_discord_button = true;
     h.frame();
     wait_for_check(&mut h);
     let mut seen = Vec::new();
